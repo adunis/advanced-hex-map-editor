@@ -1,0 +1,89 @@
+{{! templates/hexagon.hbs }}
+<g data-hex-id="{{this.id}}" class="hex-group cursor-pointer group {{this.hexOpacityClass}} transition-opacity duration-300" role="button" aria-label="Hex {{this.id}}">
+  <title>{{{this.titleText}}}</title>
+
+  <polygon
+    points="{{this.points}}"
+    class="{{#if this.isTailwindFill}}{{this.currentFillColor}}{{/if}} {{this.finalStrokeColor}} group-hover:stroke-white transition-all duration-150"
+    style="{{#unless this.isTailwindFill}}fill: {{this.currentFillColor}};{{/unless}}"
+    stroke-width="{{this.finalStrokeWidth}}"
+  />
+
+  {{#unless this.isTextHiddenForPlayer}}
+    <text x="{{this.cx}}" y="{{this.textY1}}" text-anchor="middle" class="{{this.finalTextColorClass}} text-[9px] sm:text-[10px] font-mono select-none pointer-events-none" aria-hidden="true">
+      {{{this.elevationText}}}
+    </text>
+    <text x="{{this.cx}}" y="{{this.textY2}}" text-anchor="middle" class="{{this.finalTextColorClass}} text-[8px] sm:text-[9px] font-mono select-none pointer-events-none opacity-80" aria-hidden="true">
+      Vis:{{this.sightPotential}}
+    </text>
+    {{#if this.terrainConfig.symbol}}
+      <text x="{{this.cx}}" y="{{this.textY3}}" text-anchor="middle" class="{{this.finalTextColorClass}} text-xs sm:text-sm font-bold select-none pointer-events-none" aria-hidden="true">
+        {{this.terrainConfig.symbol}}
+      </text>
+    {{/if}}
+
+    <defs>
+  <filter id="hexBorderEffect" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="yellow" flood-opacity="1"/>
+    <feMorphology operator="dilate" radius="1" in="SourceAlpha" result="dilated" /> }}
+    <feFlood flood-color="black" result="outsideColor"/> }}
+    {<feComposite in="outsideColor" in2="dilated" operator="in" result="outline"/> }}
+    <feMerge> }}
+    <feMergeNode in="outline"/> }}
+    {<feMergeNode in="SourceGraphic"/> }}
+    {</feMerge> }}
+  </filter>
+</defs>
+
+    {{! Feature Icons }}
+    {{#if this.featureDisplayIconToRender}}
+      {{#if this.isLandmarkFeature}}
+        <text x="{{add this.cx (mul ../CONST.HEX_SIZE 0.55)}}"
+              y="{{sub this.cy (mul ../CONST.HEX_SIZE 0.5)}}"
+              text-anchor="middle"
+              dominant-baseline="central"
+              filter="url(#hexBorderEffect)" 
+              class="{{this.featureIconComputedClassToRender}} text-3xl select-none pointer-events-none"
+              role="img"
+              aria-label="{{this.featureAriaLabelToRender}}">
+            {{{this.featureDisplayIconToRender}}}
+        </text>
+      {{/if}}
+      {{#if this.isSecretFeature}}
+        <text x="{{sub this.cx (mul ../CONST.HEX_SIZE 0.55)}}" 
+              y="{{add this.cy (mul ../CONST.HEX_SIZE 0.5)}}" 
+             text-anchor="middle"
+              dominant-baseline="central"
+                            filter="url(#hexBorderEffect)" 
+
+              class="{{this.featureIconComputedClassToRender}} text-xl select-none pointer-events-none" 
+              role="img" 
+              aria-label="{{this.featureAriaLabelToRender}}">
+            {{{this.featureDisplayIconToRender}}}
+        </text>
+      {{/if}}
+    {{/if}}
+  {{/unless}}
+
+  {{! 3D Side Faces }}
+  {{#if this.is3DView}}
+    {{#each this.sideFaces}}
+        <polygon points="{{this.points}}" style="fill:{{this.fill}};" class="stroke-gray-600" stroke-width="0.5" />
+    {{/each}}
+  {{/if}}
+
+  {{! Player Marker - Rendered last. Accessing HEX_SIZE correctly. }}
+  {{#if this.isPlayerPosition}}
+    <circle 
+      cx="{{this.cx}}" 
+      cy="{{this.cy}}" 
+      r="{{mul this.CONST.HEX_SIZE 0.3}}" {{! CORRECTED: Use this.CONST.HEX_SIZE with the mul helper }}
+      fill="magenta" 
+      stroke="cyan" 
+      stroke-width="2" 
+      opacity="1" 
+      class="pointer-events-none" 
+      aria-label="Player Position (Debug Visible)"
+    />
+  {{/if}}
+</g>

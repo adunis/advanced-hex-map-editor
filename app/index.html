@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced Hex Map Editor</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Handlebars.js via CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.7.7/handlebars.min.js"></script>
+  <!-- Link to your custom styles for the app -->
+  <link rel="stylesheet" href="styles.css">
+
+  <style>
+    /* Basic body styles */
+    body { 
+      margin: 0; 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 
+                   'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', 
+                   sans-serif; 
+      /* Ensure body takes full height for flex layout if app-container needs it */
+      min-height: 100vh;
+      display: flex; /* Helps if app-container is also flex */
+    }
+
+    /* Custom scrollbar for webkit browsers for better aesthetics with dark theme */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #374151; /* Tailwind gray-700 */
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #4b5563; /* Tailwind gray-600 */
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #6b7280; /* Tailwind gray-500 */
+    }
+
+    /* Ensure the app container can take up full space if needed */
+    #app-container {
+      width: 100%;
+      /* display: flex; /* Uncomment if app.js root element needs to be a flex container */
+      /* flex-direction: column; /* Uncomment if app.js root element needs to be a flex container */
+    }
+  </style>
+</head>
+<body class="bg-gray-800">
+  <!-- This div is where your app.js will render its content -->
+  <div id="app-container">
+    <!-- Fallback content if JS fails spectacularly early -->
+    <p style="color: white; padding: 20px;">Loading Advanced Hex Map Editor...</p>
+  </div>
+
+  <!-- Load your main application JavaScript file as a module -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>

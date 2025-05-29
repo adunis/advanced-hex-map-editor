@@ -1,0 +1,29 @@
+{
+  "id": "advanced-hex-map-editor",
+  "title": "Advanced Hex Map Editor",
+  "description": "A JavaScript and Handlebars application embedded in Foundry VTT to visually edit elevations, terrain types, and features on a hexagonal grid map. Includes GM editing tools and a player view with fog of war.",
+  "version": "0.2.0",
+  "compatibility": {
+    "minimum": "10",
+    "verified": "11"
+  },
+  "authors": [
+    {
+      "name": "Your Name/Handle",
+      "email": "your-email@example.com",
+      "url": "https://your-website.com"
+    }
+  ],
+  "esmodules": [
+    "foundry-bridge.js"
+  ],
+  "styles": [
+    "styles/module.css"
+  ],
+  "languages": [],
+  "packs": [],
+  "socket": false,
+  "manifest": "https://example.com/path/to/your/module/latest/module.json",
+  "download": "https://example.com/path/to/your/module/releases/download/v0.2.0/module.zip",
+  "url": "https://github.com/your-repo/advanced-hex-map-editor"
+}
