@@ -1,14 +1,15 @@
-<div class="w-full max-w-5xl mx-auto bg-gray-700 p-2 sm:p-4 rounded-lg shadow-2xl overflow-auto">
+{{! app/templates/hex-grid.hbs - Revised for dynamic SVG sizing }}
+<div class="w-full h-full overflow-auto" id="svg-scroll-container"> {{!-- Added ID for potential direct manipulation if needed, and ensure overflow:auto --}}
     {{#if currentGridWidth}}
         {{#if currentGridHeight}}
             <svg
                 id="hexGridSvg"
-                width="100%" 
-                height="100%"
-                viewBox="0 0 {{svgViewBoxWidth}} {{svgViewBoxHeight}}"
+                {{!-- Width and Height will be set dynamically by ui.js based on zoom --}}
+                viewBox="0 0 {{svgViewBoxWidth}} {{svgViewBoxHeight}}" {{!-- ViewBox still changes for zoom effect --}}
                 preserveAspectRatio="xMidYMid meet" 
-                class="block mx-auto" 
+                class="block" 
                 aria-label="Hexagonal map grid"
+                style="transform-origin: 0 0;" {{!-- Helps if we use CSS transform scale later --}}
             >
                 {{#each hexGridRenderData}}
                     {{> hexagon . }}

@@ -1,18 +1,19 @@
 {{! app/templates/main.hbs }}
 <div class="min-h-screen bg-gray-800 text-white p-2 sm:p-4 flex flex-col w-full h-full overflow-hidden">
   <header class="mb-2 sm:mb-4 text-center flex-shrink-0">
-    <h1 class="text-2xl sm:text-3xl font-bold text-sky-400">Advanced Hex Map Editor</h1>
     {{#if currentMapName}}
-      <h2 class="text-md sm:text-lg text-sky-200 mt-1">Current Map: <span class="font-semibold">{{currentMapName}}</span> {{#if isCurrentMapDirty}}(Unsaved*){{/if}}</h2>
+        <h1 class="text-4xl sm:text-3xl font-bold text-sky-400"><span class="font-semibold">{{currentMapName}}</span> {{#if isCurrentMapDirty}}(Unsaved*){{/if}}</h1>
     {{else}}
       <h2 class="text-md sm:text-lg text-sky-200 mt-1">No Map Loaded</h2>
     {{/if}}
   </header>
   
-  <div class="flex flex-grow overflow-hidden h-[calc(100vh-90px)] sm:h-[calc(100vh-110px)]">
+  <div class="flex flex-grow overflow-hidden h-[calc(100vh-90px)] sm:h-[calc(100vh-110px)]"> {{! This outer flex container dictates the height for its children }}
     
     {{!-- Left Panel: Controls & Settings --}}
-    <aside id="left-panel" class="w-1/3 max-w-xs sm:max-w-sm flex-shrink-0 bg-gray-750 p-2 sm:p-3 overflow-y-auto mr-2 rounded-lg shadow-lg"> 
+    {{!-- REMOVED overflow-y-auto from here. The 'controls' partial will handle its own height and internal scrolling. --}}
+    <aside id="left-panel" class="w-1/4 max-w-xs sm:max-w-sm flex-shrink-0 bg-gray-750 p-2 sm:p-3 mr-2 rounded-lg shadow-lg flex flex-col"> 
+      {{!-- The 'controls' partial should be designed to fill this space or scroll internally --}}
       {{> controls }}
     </aside>
 
@@ -43,8 +44,15 @@
         <h3 class="text-lg font-semibold text-sky-300 mb-2 border-b border-gray-600 pb-1">Hexploration Status</h3>
         <div class="text-sm space-y-1 text-gray-200 mb-2">
           <p><span class="text-gray-400">Mode:</span> <span class="font-semibold capitalize">{{capitalize appMode}}</span> ({{#if isGM}}GM{{else}}Player{{/if}} View)</p>
+          {{#if mapInitialized}}
+            <p><span class="text-gray-400">Hex Scale:</span> <span class="font-semibold">{{currentMapHexSizeValue}} {{getUnitLabelByKey currentMapHexSizeUnit "distance"}}</span></p>
+            <p><span class="text-gray-400">Base Travel:</span> <span class="font-semibold">{{currentMapHexTraversalTimeValue}} {{getUnitLabelByKey currentMapHexTraversalTimeUnit "time"}} / hex</span></p>
+          {{else}}
+             <p><span class="text-gray-400">Hex Scale:</span> <span class="font-semibold">N/A (No map loaded)</span></p>
+             <p><span class="text-gray-400">Base Travel:</span> <span class="font-semibold">N/A (No map loaded)</span></p>
+          {{/if}}
           <p><span class="text-gray-400">Time Today:</span> <span class="font-semibold">{{toFixed hexplorationTimeElapsedHoursToday 1}}</span> / 24.0 h</p>
-          <p><span class="text-gray-400">KM Today:</span> <span class="font-semibold">{{hexplorationKmTraveledToday}}</span> km</p>
+          <p><span class="text-gray-400">KM Today:</span> <span class="font-semibold">{{toFixed hexplorationKmTraveledToday 1}}</span> km</p>
           {{#if isGM}}
             <button id="newHexplorationDayBtn" class="mt-2 w-full px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm shadow hover:shadow-md">Start New Day</button>
           {{/if}}
@@ -59,29 +67,27 @@
           {{#each currentMapEventLog}}
             <div class="p-1.5 bg-gray-700 rounded-sm shadow hover:bg-gray-650 transition-colors duration-150">
               <p class="font-semibold text-sky-400">{{capitalizeFirst this.type}}: Party {{#if this.movementVerb}}{{this.movementVerb}}{{else}}moved{{/if}} {{this.direction}} to hex {{this.to}}</p>
-              <p><span class="text-gray-400">From:</span> {{this.from}}, <span class="text-gray-400">Target Terrain:</span> {{this.targetTerrain}}</p>
-              <p><span class="text-gray-400">Distance:</span> {{this.distanceKm}}km. <span class="text-gray-400">Base Time:</span> {{toFixed this.baseTime 1}}h.</p>
+              <p><span class="text-gray-400">From:</span> {{this.from}}, <span class="text-gray-400">Terrain:</span> {{this.targetTerrain}}</p>
+              <p><span class="text-gray-400">Dist:</span> {{this.distanceValue}} {{getUnitLabelByKey this.distanceUnit "distance"}}. <span class="text-gray-400">Base Time:</span> {{toFixed this.baseTimeValue 1}} {{getUnitLabelByKey this.baseTimeUnit "time"}}.</p>
               
-              {{!-- Calculate terrainEffect and only show if significant --}}
-              {{assign "terrainEffectVal" (subtract this.terrainModifiedTime this.baseTime)}}
+              {{assign "terrainEffectVal" (subtract this.terrainModifiedTime this.baseTimeValue)}}
               {{assign "absTerrainEffectVal" (abs terrainEffectVal)}}
 
-              {{#if (compare absTerrainEffectVal ">" 0.01)}} {{!-- Use compare helper --}}
+              {{#if (compare absTerrainEffectVal ">" 0.01)}}
                 <p><span class="text-gray-400">Terrain ({{this.targetTerrain}}):</span> 
                   <span class="{{#if (compare terrainEffectVal "<" 0)}}text-green-400{{else}}text-red-400{{/if}} font-semibold">
-                    {{#if (compare terrainEffectVal "<" 0)}}-{{else}}+{{/if}}{{toFixed absTerrainEffectVal 1}}h
+                    {{#if (compare terrainEffectVal "<" 0)}}-{{else}}+{{/if}}{{toFixed absTerrainEffectVal 1}} {{getUnitLabelByKey this.baseTimeUnit "time"}}
                   </span>
                 </p>
               {{/if}}
               
-              {{#if (compare this.elevationPenalty ">" 0.01)}} {{!-- Use compare helper --}}
+              {{#if (compare this.elevationPenalty ">" 0.01)}} 
                  <p><span class="text-gray-400">Elevation ({{#if (compare this.elevationChange ">" 0)}}+{{/if}}{{this.elevationChange}}m):</span> 
-                   <span class="text-red-400 font-semibold">+{{toFixed this.elevationPenalty 1}}h</span>
+                   <span class="text-red-400 font-semibold">+{{toFixed this.elevationPenalty 1}} {{getUnitLabelByKey this.baseTimeUnit "time"}}</span>
                  </p>
               {{/if}}
-              <p class="font-bold text-white">Total Time for Leg: {{toFixed this.totalTime 1}}h.</p>
+              <p class="font-bold text-white">Total Time: {{toFixed this.totalTimeValue 1}} {{getUnitLabelByKey this.totalTimeUnit "time"}}.</p>
               {{#if this.encounterStatus}}
-                {{! Use compare helper for this condition as well }}
                 {{#if (compare this.encounterStatus "!==" "No significant event on entering hex.")}}
                      <p class="text-yellow-300 italic mt-0.5">{{this.encounterStatus}}</p>
                 {{/if}}
@@ -99,6 +105,6 @@
   <input type="file" id="fileLoadInput" accept=".json, .hexmap" style="display: none;" />
   <footer class="mt-auto pt-1 sm:pt-2 text-center text-gray-500 text-xs flex-shrink-0">
     {{#if mapInitialized}}Grid: {{currentGridWidth}}x{{currentGridHeight}}{{else}}No map initialized.{{/if}}
-    <span class="mx-1 sm:mx-2">|</span> AHME v0.2.1 {{!-- Example version update --}}
+    <span class="mx-1 sm:mx-2">|</span> AHME v0.3.2 {{!-- Version bump --}}
   </footer>
 </div>

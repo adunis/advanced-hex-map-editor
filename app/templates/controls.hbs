@@ -1,143 +1,250 @@
-{{!-- app/templates/controls.hbs - For Left Panel --}}
-<div class="space-y-4">
+{{! templates/controls.hbs }}
+<div id="controls-panel" class="bg-gray-800 text-white p-2 flex flex-col space-y-2 h-screen overflow-y-hidden w-80">
+    <!-- Panel Header -->
+    <div class="text-center border-b border-gray-700 pb-1 mb-1">
+        <h2 class="text-lg font-semibold">Hex Map Editor</h2>
+        <div class="text-xs text-gray-400">v0.x.x</div>
+    </div>
 
-{{!-- View Mode Toggle (General or GM only) --}}
-<div class="p-2 bg-gray-800 rounded-lg mt-3">
-  <h3 class="w-full text-center text-lg font-semibold mb-2 text-sky-300">View Mode</h3>
-  <div class="flex justify-center gap-2">
-    <button 
-      data-action="change-view-mode" 
-      data-mode="{{CONST.ViewMode.TWOD}}"
-      class="px-3 py-1.5 rounded-md text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-opacity-50
-             {{#eq appState.viewMode CONST.ViewMode.TWOD}}bg-sky-500 hover:bg-sky-600 text-white ring-sky-400{{else}}bg-gray-600 hover:bg-gray-500 text-gray-300 ring-gray-500{{/eq}}"
-      aria-pressed="{{eq appState.viewMode CONST.ViewMode.TWOD}}">
-      2D
-    </button>
-    <button 
-      data-action="change-view-mode" 
-      data-mode="{{CONST.ViewMode.THREED}}"
-      class="px-3 py-1.5 rounded-md text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-opacity-50
-             {{#eq appState.viewMode CONST.ViewMode.THREED}}bg-sky-500 hover:bg-sky-600 text-white ring-sky-400{{else}}bg-gray-600 hover:bg-gray-500 text-gray-300 ring-gray-500{{/eq}}"
-      aria-pressed="{{eq appState.viewMode CONST.ViewMode.THREED}}">
-      3D
-    </button>
-  </div>
-</div>
-
-
-  {{#if isGM}}
-    {{!-- Application Mode Selection --}}
-    <section class="p-2 bg-gray-800 rounded-lg">
-      <h3 class="w-full text-center text-md font-semibold mb-2 text-sky-300">Application Mode</h3>
-      <div class="grid grid-cols-2 gap-2">
-        {{#each (objValues CONST.AppMode) as |modeValue|}}
-          <button data-action="change-app-mode" data-mode="{{modeValue}}" class="px-2 py-1.5 text-xs rounded-md font-semibold {{#if (eq ../appMode modeValue)}}bg-green-500 hover:bg-green-600 text-white{{else}}bg-gray-600 hover:bg-gray-500 text-gray-200{{/if}} capitalize" aria-pressed="{{eq ../appMode modeValue}}">{{capitalize modeValue}}</button>
-        {{/each}}
-      </div>
-    </section>
-
-    {{!-- Maps Management --}}
-    <section class="p-2 bg-gray-800 rounded-lg">
-      <h3 class="w-full text-center text-md font-semibold mb-2 text-sky-300">Maps</h3>
-    
-      <div class="space-y-1 mb-2">
-                    <button id="resetExplorationButton" class="w-full px-3 py-1.5 rounded-md bg-yellow-500 hover:bg-yellow-600 text-black text-xs">Reset Explored & Marker</button>
-
-      </div>
-      {{#if mapList.length}}
-        <ul class="max-h-32 overflow-y-auto bg-gray-700 p-1 rounded text-xs">
-          {{#each mapList}}
-            <li class="flex justify-between items-center p-1 border-b border-gray-600 last:border-b-0">
-              <span class="text-gray-200 truncate pr-1" title="{{this.name}} ({{this.id}})">{{this.name}}</span>
-              <div class="flex-shrink-0">
-                <button data-action="open-map" data-map-id="{{this.id}}" class="px-1.5 py-0.5 rounded bg-blue-600 hover:bg-blue-700 text-white mr-1">Open</button>
-                <button data-action="delete-map" data-map-id="{{this.id}}" data-map-name="{{this.name}}" class="px-1.5 py-0.5 rounded bg-red-600 hover:bg-red-700 text-white">Del</button>
-              </div>
-            </li>
-          {{/each}}
-        </ul>
-      {{else}}
-        <p class="text-center text-gray-400 text-xs">No maps saved.</p>
-      {{/if}}
-    </section>
-
-    {{!-- Editor Tools - only if a map is active and in Hex Editor mode --}}
-    {{#if (and mapInitialized (eq appMode CONST.AppMode.HEX_EDITOR))}}
-      <section class="p-2 bg-gray-800 rounded-lg space-y-3">
-        <h3 class="w-full text-center text-md font-semibold mb-1 text-sky-300">Editor Tools ('{{currentMapName}}')</h3>
-        {{!-- Grid Dimensions --}}
-        <div>
-            <div class="flex items-center justify-between text-xs mb-1">
-                <label for="gridWidth" class="text-gray-300">W:</label><input type="number" id="gridWidth" min="{{CONST.MIN_GRID_DIMENSION}}" max="{{CONST.MAX_GRID_DIMENSION}}" value="{{tempGridWidth}}" class="w-12 px-1 py-0.5 bg-gray-700 border rounded"/>
-                <label for="gridHeight" class="text-gray-300">H:</label><input type="number" id="gridHeight" min="{{CONST.MIN_GRID_DIMENSION}}" max="{{CONST.MAX_GRID_DIMENSION}}" value="{{tempGridHeight}}" class="w-12 px-1 py-0.5 bg-gray-700 border rounded"/>
-                <button id="applyResizeButton" class="px-2 py-0.5 rounded bg-teal-500 hover:bg-teal-600 text-white text-xs">Apply Size</button>
-            </div>
-            <p class="text-xxs text-center text-gray-400">Resets current map. Min/Max: {{CONST.MIN_GRID_DIMENSION}}/{{CONST.MAX_GRID_DIMENSION}}.</p>
+    <!-- App & View Mode Section -->
+    <div class="p-1 border border-gray-700 rounded">
+        <h3 class="text-sm font-medium mb-1 text-center">Mode</h3>
+        <div class="grid grid-cols-2 gap-1 text-xs">
+            <button data-action="change-app-mode" data-mode="{{CONST.AppMode.HEX_EDITOR}}"
+                    class="p-1 rounded {{#if (eq appMode CONST.AppMode.HEX_EDITOR)}}bg-sky-600{{else}}bg-gray-600 hover:bg-gray-500{{/if}}">
+                Editor
+            </button>
+            <button data-action="change-app-mode" data-mode="{{CONST.AppMode.PLAYER}}"
+                    class="p-1 rounded {{#if (eq appMode CONST.AppMode.PLAYER)}}bg-amber-600{{else}}bg-gray-600 hover:bg-gray-500{{/if}}">
+                Player
+            </button>
+            <button data-action="change-view-mode" data-mode="{{CONST.ViewMode.TWOD}}"
+                    class="p-1 rounded {{#if (eq viewMode CONST.ViewMode.TWOD)}}bg-blue-500{{else}}bg-gray-600 hover:bg-gray-500{{/if}}">
+                2D View
+            </button>
+            <button data-action="change-view-mode" data-mode="{{CONST.ViewMode.THREED}}"
+                    class="p-1 rounded {{#if (eq viewMode CONST.ViewMode.THREED)}}bg-purple-500{{else}}bg-gray-600 hover:bg-gray-500{{/if}}">
+                3D View
+            </button>
         </div>
-        {{!-- Paint Mode --}}
-        <div>
-            <h4 class="text-center text-sm font-semibold mb-1 text-sky-300">Paint Mode</h4>
-            <div class="grid grid-cols-3 gap-1">
-            {{#each (objValues CONST.PaintMode) as |modeValue|}}<button data-action="change-paint-mode" data-mode="{{modeValue}}" class="px-1 py-1 text-xs rounded {{#if (eq ../paintMode modeValue)}}bg-sky-500{{else}}bg-gray-600{{/if}} capitalize">{{capitalize modeValue}}</button>{{/each}}
-            </div>
+        {{#if (eq appMode CONST.AppMode.PLAYER)}}
+        <div class="mt-1">
+             <label class="flex items-center space-x-1 text-xs">
+                <input type="checkbox" id="gmModeToggle" {{#if isGM}}checked{{/if}} data-action="toggle-gm-mode" class="form-checkbox h-3 w-3 text-amber-500">
+                <span>GM Mode</span>
+            </label>
         </div>
-        {{!-- Brush Size --}}
-        <div>
-            <label for="brushSize" class="block text-center text-sm font-semibold mb-1 text-sky-300">Brush: {{brushSize}}</label>
-            <input type="range" id="brushSize" min="{{CONST.MIN_BRUSH_SIZE}}" max="{{CONST.MAX_BRUSH_SIZE}}" value="{{brushSize}}" class="w-full h-2 bg-gray-500 rounded-lg accent-sky-500"/>
-        </div>
-        {{!-- Elevation Controls (if paintMode is elevation) --}}
-        {{#if (eq paintMode CONST.PaintMode.ELEVATION)}}
-          <div class="grid grid-cols-2 gap-1">
-            <button data-action="change-elevation-mode" data-mode="{{CONST.ElevationBrushMode.INCREASE}}" class="px-1 py-1 text-xs rounded {{#if (eq elevationBrushMode CONST.ElevationBrushMode.INCREASE)}}bg-sky-500{{else}}bg-gray-600{{/if}}">Elev +</button>
-            <button data-action="change-elevation-mode" data-mode="{{CONST.ElevationBrushMode.DECREASE}}" class="px-1 py-1 text-xs rounded {{#if (eq elevationBrushMode CONST.ElevationBrushMode.DECREASE)}}bg-sky-500{{else}}bg-gray-600{{/if}}">Elev -</button>
-          </div>
         {{/if}}
-{{!-- Terrain Selection (if paintMode is terrain) --}}
+    </div>
 
-{{!-- Terrain Selection (if paintMode is terrain) --}}
-{{#if (eq paintMode CONST.PaintMode.TERRAIN)}}
-  <div><h4 class="text-center text-sm font-semibold mb-1 text-sky-300">Terrain</h4><div class="grid grid-cols-3 gap-1"> {{! You might need to adjust grid-cols-3 if you have many new types }}
-    {{#each (objEntries CONST.TERRAIN_TYPES_CONFIG) as |terrainEntry|}}
-      <button 
-        data-action="change-terrain-type" 
-        data-type="{{terrainEntry.key}}" 
-        class="px-1 py-1 text-xs rounded {{#if (eq ../selectedTerrainType terrainEntry.key)}}bg-sky-500 text-white{{else}}{{replace terrainEntry.value.color 'fill-' 'bg-'}} hover:ring-1 hover:ring-sky-300 text-gray-200 opacity-80 hover:opacity-100{{/if}}" 
-        title="{{terrainEntry.value.name}} (Speed: x{{terrainEntry.value.speedMultiplier}}, VisMod: x{{terrainEntry.value.visibilityFactor}})"
-        aria-pressed="{{eq ../selectedTerrainType terrainEntry.key}}"
-      >
-        {{terrainEntry.value.symbol}} {{! This uses the 'symbol' property }}
-      </button>
-    {{/each}}
-  </div></div>
-{{/if}}
-        {{#if (eq paintMode CONST.PaintMode.FEATURE)}}
-          <div><h4 class="text-center text-sm font-semibold mb-1 text-sky-300">Feature</h4><div class="grid grid-cols-2 gap-1">
-            {{#each (filterNoneFeature (objValues CONST.TerrainFeature)) as |featureValue|}}<button data-action="change-feature-type" data-type="{{featureValue}}" class="px-1 py-1 text-xs rounded {{#if (eq ../selectedFeatureType featureValue)}}bg-sky-500{{else}}bg-gray-600{{/if}} capitalize">{{capitalize featureValue}}</button>{{/each}}
-            <button data-action="change-feature-type" data-type="{{CONST.TerrainFeature.NONE}}" class="px-1 py-1 text-xs rounded {{#if (eq selectedFeatureType CONST.TerrainFeature.NONE)}}bg-sky-500{{else}}bg-gray-600{{/if}}">Clear</button>
-          </div></div>
-        {{/if}}
-
-
-
-        <div class="space-y-1 pt-2 border-t border-gray-700">
-          
-        <button id="createNewMapButton" class="w-full px-3 py-1.5 rounded-md bg-green-600 hover:bg-green-700 text-white text-xs">Create New Map</button>
-        <button id="saveCurrentMapButton" class="w-full px-3 py-1.5 rounded-md text-white text-xs {{#if (and mapInitialized currentMapName)}}bg-sky-600 hover:bg-sky-700{{else}}bg-gray-600 cursor-not-allowed{{/if}}" {{#unless (and mapInitialized currentMapName)}}disabled{{/unless}}>Save '{{currentMapName}}'</button>
-        <button id="saveMapAsButton" class="w-full px-3 py-1.5 rounded-md text-white text-xs {{#if (and mapInitialized currentMapName)}}bg-sky-600 hover:bg-sky-700{{else}}bg-gray-600 cursor-not-allowed{{/if}}" {{#unless (and mapInitialized currentMapName)}}disabled{{/unless}}>Save As New...</button>
-            <button id="loadMapFromFileButton" class="w-full px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-xs">Load Map from File</button>
-            <button id="toggleLosButton" class="w-full px-3 py-1.5 rounded-md {{#if isEditorLosSelectMode}}bg-yellow-500 hover:bg-yellow-600{{else}}bg-purple-600 hover:bg-purple-700{{/if}} text-white text-xs">{{#if isEditorLosSelectMode}}Cancel LoS Select{{else}}Simulate LoS{{/if}}</button>
-            <button id="clearLosButton" class="w-full px-3 py-1.5 rounded-md bg-gray-600 hover:bg-gray-500 text-gray-300 text-xs">Clear LoS Display</button>
-            <button id="resetGridButton" class="w-full px-3 py-1.5 rounded-md bg-red-600 hover:bg-red-700 text-white text-xs">Reset Current Map Grid</button>
+    <!-- Zoom Controls -->
+    <div class="p-1 border border-gray-700 rounded">
+        <h3 class="text-sm font-medium text-center mb-1">Zoom ({{toFixed zoomLevel 2}})</h3>
+        <div class="flex items-center space-x-1">
+            <button id="zoomOutButton" class="p-1 bg-gray-600 hover:bg-gray-500 rounded text-xs w-6">-</button>
+            <input type="range" id="zoomSlider" min="{{minZoom}}" max="{{maxZoom}}" step="{{zoomStep}}" value="{{zoomLevel}}" class="w-full h-4 appearance-none bg-gray-700 rounded-lg cursor-pointer accent-sky-500">
+            <button id="zoomInButton" class="p-1 bg-gray-600 hover:bg-gray-500 rounded text-xs w-6">+</button>
+            <button id="resetZoomButton" class="p-1 bg-gray-600 hover:bg-gray-500 rounded text-xs">100%</button>
         </div>
-      </section>
-    {{else if (and mapInitialized (eq appMode CONST.AppMode.PLAYER))}}
-        {{!-- GM in player view specific controls could go here if any, or it's just for viewing --}}
-        <p class="text-xs text-center text-gray-400 p-2 bg-gray-800 rounded-lg">Player View: GM can move party marker. Map saves include marker & exploration.</p>
-    {{else}}
-        <p class="text-xs text-center text-gray-400 p-2 bg-gray-800 rounded-lg">Load or create a map to enable editor tools.</p>
+    </div>
+
+    {{#if (eq appMode CONST.AppMode.HEX_EDITOR)}}
+    <!-- Editor Specific Controls Section -->
+    <div class="flex-grow overflow-y-auto space-y-2 p-0.5 controls-scroll-section"> {{! This section can scroll if needed }}
+        <!-- Grid Management Section (Collapsible Example) -->
+        <details class="bg-gray-750 rounded group" {{#ifCond currentGridWidth ">" 0}}open{{/ifCond}}>
+            <summary class="text-sm font-medium p-1 cursor-pointer list-none flex justify-between items-center hover:bg-gray-600 rounded">
+                Grid & Sizing
+                <span class="text-xs group-open:rotate-90 transform transition-transform duration-150">▶</span>
+            </summary>
+            <div class="p-1 border-t border-gray-600 space-y-1">
+                <div class="grid grid-cols-2 gap-1 items-center text-xs">
+                    <label for="gridWidth">Width:</label>
+                    <input type="number" id="gridWidth" value="{{currentGridWidth}}" min="{{CONST.MIN_GRID_DIMENSION}}" max="{{CONST.MAX_GRID_DIMENSION}}" class="bg-gray-900 p-0.5 rounded w-full">
+                    <label for="gridHeight">Height:</label>
+                    <input type="number" id="gridHeight" value="{{currentGridHeight}}" min="{{CONST.MIN_GRID_DIMENSION}}" max="{{CONST.MAX_GRID_DIMENSION}}" class="bg-gray-900 p-0.5 rounded w-full">
+                </div>
+                <button id="applyResizeButton" class="w-full p-1 bg-sky-600 hover:bg-sky-500 rounded text-xs">Apply Size</button>
+                <button id="resetGridButton" class="w-full p-1 bg-red-600 hover:bg-red-500 rounded text-xs mt-1">Reset Grid Data</button>
+            </div>
+        </details>
+
+        <!-- Painting Tools Section -->
+        <details class="bg-gray-750 rounded group" open>
+            <summary class="text-sm font-medium p-1 cursor-pointer list-none flex justify-between items-center hover:bg-gray-600 rounded">
+                Painting Tools
+                <span class="text-xs group-open:rotate-90 transform transition-transform duration-150">▶</span>
+            </summary>
+            <div class="p-1 border-t border-gray-600 space-y-1">
+                 <label for="brushSize" class="block">Brush Size: {{brushSize}}</label>
+                    <input type="range" id="brushSize" min="{{CONST.MIN_BRUSH_SIZE}}" max="{{CONST.MAX_BRUSH_SIZE}}" value="{{brushSize}}" class="w-full h-3 appearance-none bg-gray-700 rounded-lg cursor-pointer accent-blue-500">
+                   
+                <div class="grid grid-cols-3 gap-1 text-xs">
+                    <button data-action="change-paint-mode" data-mode="{{CONST.PaintMode.TERRAIN}}" class="p-1 rounded {{#if (eq paintMode CONST.PaintMode.TERRAIN)}}bg-green-600{{else}}bg-gray-600 hover:bg-gray-500{{/if}}">Terrain</button>
+                    <button data-action="change-paint-mode" data-mode="{{CONST.PaintMode.ELEVATION}}" class="p-1 rounded {{#if (eq paintMode CONST.PaintMode.ELEVATION)}}bg-blue-600{{else}}bg-gray-600 hover:bg-gray-500{{/if}}">Elevation</button>
+                    <button data-action="change-paint-mode" data-mode="{{CONST.PaintMode.FEATURE}}" class="p-1 rounded {{#if (eq paintMode CONST.PaintMode.FEATURE)}}bg-yellow-600{{else}}bg-gray-600 hover:bg-gray-500{{/if}}">Feature</button>
+                </div>
+
+                {{#if (eq paintMode CONST.PaintMode.ELEVATION)}}
+                <div class="space-y-1 text-xs mt-1">
+                  <div class="grid grid-cols-2 gap-1">
+                        <button data-action="change-elevation-mode" data-mode="{{CONST.ElevationBrushMode.INCREASE}}" class="p-1 rounded {{#if (eq elevationBrushMode CONST.ElevationBrushMode.INCREASE)}}bg-green-500{{else}}bg-gray-600 hover:bg-gray-500{{/if}}">Increase</button>
+                        <button data-action="change-elevation-mode" data-mode="{{CONST.ElevationBrushMode.DECREASE}}" class="p-1 rounded {{#if (eq elevationBrushMode CONST.ElevationBrushMode.DECREASE)}}bg-red-500{{else}}bg-gray-600 hover:bg-gray-500{{/if}}">Decrease</button>
+                    </div>
+                </div>
+                {{/if}}
+
+                {{#if (eq paintMode CONST.PaintMode.TERRAIN)}}
+                <div class="mt-1 text-xs">
+                    <label for="terrainTypeSelect" class="block mb-0.5">Terrain Type:</label>
+                    <select id="terrainTypeSelect" data-action="select-terrain-type" class="w-full bg-gray-900 p-1 rounded text-xs">
+                        {{#each (objEntries CONST.TERRAIN_TYPES_CONFIG)}}
+                            <option value="{{this.key}}" {{#if (eq ../selectedTerrainType this.key)}}selected{{/if}}>{{this.value.name}} {{this.value.symbol}}</option>
+                        {{/each}}
+                    </select>
+                </div>
+                {{/if}}
+
+                {{#if (eq paintMode CONST.PaintMode.FEATURE)}}
+                <div class="mt-1 text-xs">
+                    <label for="featureToggleSelect" class="block mb-0.5">Feature Type:</label>
+                     <select id="featureToggleSelect" data-action="select-feature-type" class="w-full bg-gray-900 p-1 rounded text-xs">
+                        {{#each (objEntries CONST.TerrainFeature)}}
+                            <option value="{{this.value}}" {{#if (eq ../selectedFeatureType this.value)}}selected{{/if}}>{{capitalizeFirst this.key}}</option>
+                        {{/each}}
+                    </select>
+                </div>
+                {{/if}}
+            </div>
+        </details>
+
+        <!-- LoS Tools Section -->
+        <details class="bg-gray-750 rounded group">
+            <summary class="text-sm font-medium p-1 cursor-pointer list-none flex justify-between items-center hover:bg-gray-600 rounded">
+                Line of Sight Tools
+                <span class="text-xs group-open:rotate-90 transform transition-transform duration-150">▶</span>
+            </summary>
+            <div class="p-1 border-t border-gray-600 space-y-1 text-xs">
+                <button id="toggleLosButton" class="w-full p-1 rounded {{#if isEditorLosSelectMode}}bg-yellow-500 text-black{{else}}bg-cyan-600 hover:bg-cyan-500{{/if}}">
+                    {{#if isEditorLosSelectMode}}Cancel Select Source{{else}}Select LoS Source Hex{{/if}}
+                </button>
+                {{#if editorLosSourceHexId}}
+                    <button id="clearLosButton" class="w-full p-1 bg-red-600 hover:bg-red-500 rounded">Clear LoS</button>
+                    <p class="text-xs text-gray-300">Source: {{editorLosSourceHexId}}</p>
+                {{/if}}
+            </div>
+        </details>
+    </div> <!-- End Editor Specific Scrollable section -->
     {{/if}}
-  {{else}} {{!-- Not GM --}}
-    <p class="text-xs text-center text-gray-300 p-2 bg-gray-800 rounded-lg">Player View Mode. Map controlled by GM.</p>
-  {{/if}}
+
+
+    {{#if (eq appMode CONST.AppMode.PLAYER)}}
+    <!-- Player Specific Controls Section -->
+    <div class="flex-grow overflow-y-auto space-y-2 p-0.5 controls-scroll-section">
+        {{#if isGM}}
+        <div class="p-1 border border-gray-700 rounded text-xs">
+            <h3 class="text-sm font-medium text-center mb-1">GM Tools</h3>
+            <button id="resetExplorationButton" class="w-full p-1 bg-orange-600 hover:bg-orange-500 rounded">Reset Player Exploration</button>
+        </div>
+        {{/if}}
+
+        {{#if partyMarkerPosition}}
+        <div class="p-1 border border-gray-700 rounded text-xs">
+            <h3 class="text-sm font-medium text-center mb-1">Party</h3>
+            <p>Location: {{partyMarkerPosition.id}}</p>
+            <p>Current Day: {{hexplorationCurrentDay}}</p>
+            <button id="newHexplorationDayBtn" class="w-full p-1 mt-1 bg-green-600 hover:bg-green-500 rounded">New Hexploration Day</button>
+        </div>
+        {{else}}
+         <div class="p-1 border border-gray-700 rounded text-xs text-center">
+            <p class="mb-1">Place Party Marker</p>
+            <p class="text-gray-400 text-xxs">(Click a hex on the map)</p>
+        </div>
+        {{/if}}
+
+        <!-- Hexploration Log -->
+        <div class="p-1 border border-gray-700 rounded">
+            <h3 class="text-sm font-medium text-center mb-1">Hexploration Log</h3>
+            <div id="hexplorationLogContainer" class="text-xs space-y-1 max-h-48 overflow-y-auto bg-gray-900 p-1 rounded">
+                {{#if hexplorationLogEntries}}
+                    {{#each hexplorationLogEntries}}
+                        <div class="log-entry-{{this.type}} border-l-2 pl-1 {{#if (eq this.type 'day')}}border-sky-400{{else if (eq this.type 'travel')}}border-green-400{{else if (eq this.type 'discovery')}}border-yellow-400{{else if (eq this.type 'encounter')}}border-red-400{{else}}border-gray-500{{/if}}">
+                            <span class="font-semibold">{{typeCapitalized this}}:</span> {{this.message}}
+                        </div>
+                    {{/each}}
+                {{else}}
+                    <p class="text-gray-500">No log entries yet.</p>
+                {{/if}}
+            </div>
+        </div>
+    </div> <!-- End Player Specific Scrollable section -->
+    {{/if}}
+
+    <!-- Map Management (always available, at bottom) -->
+    <div class="mt-auto pt-2 border-t border-gray-700"> <!-- Push to bottom -->
+      <div class="bg-gray-750 rounded group">
+          <summary class="text-sm font-medium p-1 cursor-pointer list-none flex justify-between items-center hover:bg-gray-600 rounded">
+              Map Management
+              <span class="text-xs group-open:rotate-90 transform transition-transform duration-150">▶</span>
+          </summary>
+          <div class="p-1 border-t border-gray-600 space-y-1 text-xs">
+              <button id="createNewMapButton" class="w-full p-1 bg-indigo-600 hover:bg-indigo-500 rounded">New Map</button>
+              <input type="file" id="fileLoadInput" class="hidden" accept=".json,.hexmap">
+              <button id="loadMapFromFileButton" class="w-full p-1 bg-teal-600 hover:bg-teal-500 rounded mt-1">Load Map from File</button>
+              
+              {{#if savedMapsList.length}}
+              <div class="mt-1">
+                  <label for="savedMapSelect" class="block mb-0.5">Open Saved Map:</label>
+                  <div class="flex space-x-1">
+                      <select id="savedMapSelect" class="w-full bg-gray-900 p-1 rounded">
+                          <option value="">-- Select a map --</option>
+                          {{#each savedMapsList}}
+                              <option value="{{this.id}}">{{this.name}} ({{this.timestamp}})</option>
+                          {{/each}}
+                      </select>
+                      <button id="openSelectedMapButton" data-action="open-selected-map" class="p-1 bg-sky-600 hover:bg-sky-500 rounded">Open</button>
+                  </div>
+                   <button id="deleteSelectedMapButton" data-action="delete-selected-map" class="w-full p-1 bg-red-700 hover:bg-red-600 rounded mt-1 text-xs">Delete Selected Map</button>
+              </div>
+              {{else}}
+                  <p class="text-gray-400 mt-1 text-center">No saved maps found.</p>
+              {{/if}}
+              
+                  <button id="saveCurrentMapButton" class="w-full p-1 bg-green-600 hover:bg-green-500 rounded mt-1">Save '{{currentMapName}}'</button>
+              <button id="saveMapAsButton" class="w-full p-1 bg-purple-600 hover:bg-purple-500 rounded mt-1">Save Map As...</button>
+          </div>
+      </div>
+    </div>
+
 </div>
+
+<style>
+  /* For Webkit browsers like Chrome, Safari */
+  .controls-scroll-section::-webkit-scrollbar {
+    width: 6px; /* Adjust as needed */
+  }
+  .controls-scroll-section::-webkit-scrollbar-track {
+    background: #374151; /* Tailwind gray-700 */
+    border-radius: 3px;
+  }
+  .controls-scroll-section::-webkit-scrollbar-thumb {
+    background: #4b5563; /* Tailwind gray-600 */
+    border-radius: 3px;
+  }
+  .controls-scroll-section::-webkit-scrollbar-thumb:hover {
+    background: #6b7280; /* Tailwind gray-500 */
+  }
+  #hexplorationLogContainer::-webkit-scrollbar { width: 6px; }
+  #hexplorationLogContainer::-webkit-scrollbar-track { background: #1f2937; /* gray-800 */ border-radius: 3px; }
+  #hexplorationLogContainer::-webkit-scrollbar-thumb { background: #374151; /* gray-700 */ border-radius: 3px; }
+  #hexplorationLogContainer::-webkit-scrollbar-thumb:hover { background: #4b5563; /* gray-600 */ }
+
+
+  /* For Firefox */
+  .controls-scroll-section, #hexplorationLogContainer {
+    scrollbar-width: thin;
+    scrollbar-color: #4b5563 #374151; /* thumb track */
+  }
+  .bg-gray-750 { background-color: #303846; } /* Slightly different from gray-700 for detail sections */
+  .text-xxs { font-size: 0.65rem; line-height: 0.9rem; }
+</style>
