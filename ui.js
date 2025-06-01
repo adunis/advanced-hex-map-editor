@@ -56,6 +56,7 @@ export async function compileTemplates() {
     Handlebars.registerPartial("hexagon", texts[3]);
     Handlebars.registerHelper({
         eq: (a, b) => a === b,
+        or: (a, b) => a || b, // Added OR helper
         capitalize: (s) => s ? s.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()) : "",
         capitalizeFirst: function (string) { if (!string || typeof string !== "string") return ""; return string.charAt(0).toUpperCase() + string.slice(1); },
         typeCapitalized: function(logEntry) { if (logEntry && logEntry.type) { return logEntry.type.charAt(0).toUpperCase() + logEntry.type.slice(1); } return "Event"; },
@@ -350,7 +351,7 @@ export function renderApp(options = {}) {
                                        appState.currentGridHeight > 0;
 
     const renderContext = {
-        ...appState,
+        ...appState, // Includes new elevation state variables
         CONST,
         hexGridRenderData,
         svgViewBoxWidth,
@@ -374,22 +375,11 @@ export function renderApp(options = {}) {
 
             requestAnimationFrame(() => {
                 if (!newSvgScrollContainer || !document.body.contains(newSvgScrollContainer)) {
-                        console.warn("AHME_UI_SCROLL: svg-scroll-container no longer in DOM for rAF scroll application.");
                         return;
                 }
 
                 const currentUnscaledSvgWidth = parseFloat(svgElement.style.width) || svgViewBoxWidth;
                 const currentUnscaledSvgHeight = parseFloat(svgElement.style.height) || svgViewBoxHeight;
-
-                console.log(`%cAHME_UI_SCROLL (rAF Start):
-                centerViewOnHexAfterRender: ${appState.centerViewOnHexAfterRender},
-                targetScrollLeft: ${appState.targetScrollLeft}, targetScrollTop: ${appState.targetScrollTop},
-                preserveScrollOption: ${options.preserveScroll},
-                oldScroll (if preserved): Left=${svgScrollContainerPrior ? oldScrollLeft : 'N/A'}, Top=${svgScrollContainerPrior ? oldScrollTop : 'N/A'}
-                Container (current): W=${newSvgScrollContainer.clientWidth}, H=${newSvgScrollContainer.clientHeight}
-                Unscaled SVG (current): W=${currentUnscaledSvgWidth}, H=${currentUnscaledSvgHeight}
-                Zoom: ${appState.zoomLevel}`, "color: dodgerblue; font-weight: bold;");
-
                 let scrollAppliedBy = "none";
                 let finalScrollLeft = 0;
                 let finalScrollTop = 0;
@@ -439,8 +429,6 @@ export function renderApp(options = {}) {
                         finalScrollTop = defaultPos.scrollTop;
                     }
                 }
-
-                console.log(`%cAHME_UI_SCROLL (Before Apply in rAF): Attempting to set scrollLeft=${finalScrollLeft}, scrollTop=${finalScrollTop}`, "color: blueviolet");
                 newSvgScrollContainer.scrollLeft = finalScrollLeft;
                 newSvgScrollContainer.scrollTop = finalScrollTop;
 
@@ -449,11 +437,7 @@ export function renderApp(options = {}) {
 
                 setTimeout(() => {
                     if (document.body.contains(newSvgScrollContainer)) {
-                        console.log(`%cAHME_UI_SCROLL (rAF End - Delayed Log):
-                        Scroll Applied By: ${scrollAppliedBy}
-                        Final Scroll: Left=${newSvgScrollContainer.scrollLeft}, Top=${newSvgScrollContainer.scrollTop}`, "color: lightcoral; font-weight: bold;");
-                    } else {
-                        console.warn("AHME_UI_SCROLL (rAF End - Delayed Log): svg-scroll-container no longer in DOM.");
+                        // console.log(`%cAHME_UI_SCROLL (rAF End - Delayed Log): Scroll Applied By: ${scrollAppliedBy}, Final Scroll: L=${newSvgScrollContainer.scrollLeft}, T=${newSvgScrollContainer.scrollTop}`, "color: lightcoral; font-weight: bold;");
                     }
                 }, 0);
 
@@ -511,7 +495,7 @@ export function attachEventListeners() {
   if (savedMapSelect) {
     savedMapSelect.onchange = (event) => {
       const mapId = event.target.value;
-      if (mapId && !appState.isStandaloneMode) { // Prevent open if standalone
+      if (mapId && !appState.isStandaloneMode) {
         MapManagement.handleOpenMap(mapId, false);
       }
     };
@@ -520,34 +504,22 @@ export function attachEventListeners() {
   const openSelectedMapBtn = el("openSelectedMapButton");
   if (openSelectedMapBtn && savedMapSelect) {
     openSelectedMapBtn.onclick = () => {
-      if (appState.isStandaloneMode) {
-          alert("Opening saved maps from server is not available in standalone mode.");
-          return;
-      }
+      if (appState.isStandaloneMode) { return; }
       const mapId = savedMapSelect.value;
-      if (mapId) {
-        MapManagement.handleOpenMap(mapId, false);
-      } else {
-        alert("Please select a map to open.");
-      }
+      if (mapId) { MapManagement.handleOpenMap(mapId, false); }
+      else { alert("Please select a map to open."); }
     };
   }
 
   const deleteSelectedMapBtn = el("deleteSelectedMapButton");
   if (deleteSelectedMapBtn && savedMapSelect) {
     deleteSelectedMapBtn.onclick = () => {
-        if (appState.isStandaloneMode) {
-             alert("Deleting maps is not applicable in standalone mode.");
-             return;
-        }
+        if (appState.isStandaloneMode) { return; }
         const mapId = savedMapSelect.value;
         const selectedOption = savedMapSelect.options[savedMapSelect.selectedIndex];
         const mapName = selectedOption && selectedOption.value ? selectedOption.text.split(' (')[0] : 'the selected map';
-        if (mapId) {
-            MapManagement.handleDeleteMap(mapId, mapName);
-        } else {
-            alert("Please select a map to delete.");
-        }
+        if (mapId) { MapManagement.handleDeleteMap(mapId, mapName); }
+        else { alert("Please select a map to delete."); }
     };
   }
 
@@ -616,14 +588,34 @@ export function attachEventListeners() {
       if (brushSizeValueDisplay) brushSizeValueDisplay.textContent = appState.brushSize;
   });
 
+  // New Elevation Brush Controls
   qsa('[data-action="change-elevation-mode"]').forEach((b) => (b.onclick = createRenderAppWithScrollPreservation(() => { appState.elevationBrushMode = b.dataset.mode; })));
 
-  const createBtn = el("createNewMapButton"); if (createBtn) createBtn.onclick = () => MapManagement.handleCreateNewMap(false); // Not silent
+  const elevStepInput = el("elevationStepInput");
+  if (elevStepInput) elevStepInput.onchange = (e) => {
+      appState.elevationBrushCustomStep = parseInt(e.target.value, 10) || CONST.DEFAULT_CUSTOM_ELEVATION_STEP;
+      // No re-render needed just for changing the step value, only when used.
+  };
+
+  const elevSetValueInput = el("elevationSetValueInput");
+  if (elevSetValueInput) elevSetValueInput.onchange = (e) => {
+      appState.elevationBrushSetValue = parseInt(e.target.value, 10) || CONST.DEFAULT_SET_ELEVATION_VALUE;
+  };
+
+  const autoTerrainToggle = el("autoTerrainChangeToggle");
+  if (autoTerrainToggle) autoTerrainToggle.onchange = (e) => {
+      appState.autoTerrainChangeOnElevation = e.target.checked;
+      // This might warrant a re-render if visual cues depend on it, but usually not.
+  };
+
+
+  const createBtn = el("createNewMapButton"); if (createBtn) createBtn.onclick = () => MapManagement.handleCreateNewMap(false);
 
   const saveBtn = el("saveCurrentMapButton");
-  if (saveBtn) {
-      saveBtn.onclick = (event) => MapManagement.handleSaveCurrentMap(event);
-  }
+  if (saveBtn) saveBtn.onclick = (event) => MapManagement.handleSaveCurrentMap(event);
+  const saveStandaloneBtn = el("saveStandaloneMapButton"); // For standalone
+  if (saveStandaloneBtn) saveStandaloneBtn.onclick = (event) => MapManagement.handleSaveCurrentMap(event);
+
 
   const saveAsBtn = el("saveMapAsButton"); if (saveAsBtn) saveAsBtn.onclick = MapManagement.handleSaveMapAs;
   const exportMapBtn = el("exportMapButton"); if (exportMapBtn) exportMapBtn.onclick = () => MapManagement.handleExportMapFile(false);

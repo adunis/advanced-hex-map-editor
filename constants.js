@@ -1,3 +1,5 @@
+// File: app/constants.js
+
 export const AppMode = {
   HEX_EDITOR: 'hex_editor',
   PLAYER: 'player',
@@ -11,6 +13,7 @@ export const ViewMode = {
 export const ElevationBrushMode = {
   INCREASE: 'increase',
   DECREASE: 'decrease',
+  SET_TO_VALUE: 'set_to_value', // New mode
 };
 
 export const PaintMode = {
@@ -70,7 +73,9 @@ export const MAX_GRID_DIMENSION = 50;
 
 export const MIN_ELEVATION = -200;
 export const MAX_ELEVATION = 6000;
-export const ELEVATION_STEP = 100;
+export const ELEVATION_STEP = 100; // Default step for increase/decrease
+export const DEFAULT_CUSTOM_ELEVATION_STEP = 100; // Default for the input field
+export const DEFAULT_SET_ELEVATION_VALUE = 0; // Default for "Set to..."
 export const INITIAL_ELEVATION = 0;
 export const INITIAL_BASE_VISIBILITY = 1;
 
@@ -229,7 +234,7 @@ export const OBSIDIAN_FIELD_MID_COLOR = 'rgb(17, 24, 39)';
 export const OBSIDIAN_FIELD_HIGH_COLOR = 'rgb(39, 39, 42)';
 
 export const DEFAULT_TERRAIN_TYPE = TerrainType.PLAINS;
-export const MOUNTAIN_THRESHOLD = 600; 
+export const MOUNTAIN_THRESHOLD = 600;
 export const HILLS_THRESHOLD = 300;
 
 export const INITIAL_PLAYER_COL = 0;
@@ -245,6 +250,17 @@ export const HEX_3D_PROJECTED_DEPTH_PER_ELEVATION_UNIT = 0.05;
 export const HEX_3D_Y_SQUASH_FACTOR = 1.0;
 export const HEX_3D_SIDE_COLOR_DARKEN_FACTOR = 0.25;
 export const HEX_3D_MIN_VISUAL_DEPTH = 1.5;
+
+// Config for auto terrain change based on elevation
+export const AUTO_TERRAIN_CHANGE_ENABLED_DEFAULT = true; // New constant
+export const AUTO_TERRAIN_IGNORE_TYPES = [ // Types not to change automatically
+    TerrainType.ROAD, TerrainType.SETTLEMENT, TerrainType.WATER,
+    TerrainType.SHALLOW_WATER, TerrainType.DEEP_OCEAN,
+    TerrainType.CAVERN_FLOOR, TerrainType.TUNNEL, TerrainType.MUSHROOM_FOREST,
+    TerrainType.CRYSTAL_CAVE, TerrainType.UNDERGROUND_RIVER, TerrainType.LAVA_TUBE,
+    TerrainType.MAGMA_LAKE, TerrainType.BLOOD_MARSH
+];
+
 
 export const TERRAIN_TYPES_CONFIG = {
   [TerrainType.PLAINS]: {
@@ -315,7 +331,7 @@ export const TERRAIN_TYPES_CONFIG = {
     canopyBlockage: 0,
     encounterChanceOnEnter: 20, encounterChanceOnDiscover: 15,
     elevationColor: (elevation) => {
-      if (elevation < MOUNTAIN_THRESHOLD) return MOUNTAIN_COLOR_LOW_SLOPE;
+      if (elevation < MOUNTAIN_THRESHOLD) return MOUNTAIN_COLOR_LOW_SLOPE; // Should ideally be a hill or plain color if below its own threshold
       const midSlopeStart = MOUNTAIN_THRESHOLD + (MOUNTAIN_ELEV_SNOW_LINE_START - MOUNTAIN_THRESHOLD) * 0.4;
       if (elevation < midSlopeStart) return MOUNTAIN_COLOR_LOW_SLOPE;
       if (elevation <= MOUNTAIN_ELEV_MID_SLOPE_END) return MOUNTAIN_COLOR_MID_SLOPE;
@@ -627,7 +643,7 @@ export const PARTY_ACTIVITIES = {
     id: 'avoid_notice',
     name: 'Avoid Notice',
     description: 'Attempt Stealth (Perception DC) while traveling at half speed. On encounter start, use Stealth for initiative and detection.',
-    movementPenaltyFactor: 2.0, 
+    movementPenaltyFactor: 2.0,
     traits: ['Exploration'],
     source: 'Player Core pg. 438'
   },
@@ -651,7 +667,7 @@ export const PARTY_ACTIVITIES = {
     id: 'follow_expert',
     name: 'Follow the Expert',
     description: 'Match ally\'s skill check (e.g., Climb, Avoid Notice). Add level to skill, gain circumstance bonus from ally.',
-    movementPenaltyFactor: 1.0, 
+    movementPenaltyFactor: 1.0,
     traits: ['Auditory', 'Concentrate', 'Exploration', 'Visual'],
     source: 'Player Core pg. 438'
   },
@@ -659,7 +675,7 @@ export const PARTY_ACTIVITIES = {
     id: 'hustle',
     name: 'Hustle',
     description: 'Move at double travel speed for Con mod × 10 minutes (min 10 min). Group uses lowest Con.',
-    movementPenaltyFactor: 0.5, 
+    movementPenaltyFactor: 0.5,
     traits: ['Exploration', 'Move'],
     source: 'Player Core pg. 438'
   },

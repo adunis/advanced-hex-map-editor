@@ -1,8 +1,10 @@
+// File: app/state.js
 import * as CONST from './constants.js';
 
 export const appState = {
   isGM: new URLSearchParams(window.location.search).get('isGM') === 'true',
   userId: new URLSearchParams(window.location.search).get('userId') || 'unknown_player_iframe',
+  isStandaloneMode: !new URLSearchParams(window.location.search).get('moduleId'), // True if no moduleId
   appMode: null,
   viewMode: CONST.DEFAULT_VIEW_MODE,
   hexplorationTimeElapsedHoursToday: 0,
@@ -22,7 +24,13 @@ export const appState = {
   hexGridData: [],
   hexDataMap: new Map(),
   currentMapEventLog: [],
+
+  // Elevation Brush specific state
   elevationBrushMode: CONST.ElevationBrushMode.INCREASE,
+  elevationBrushCustomStep: CONST.DEFAULT_CUSTOM_ELEVATION_STEP, // New state for custom step
+  elevationBrushSetValue: CONST.DEFAULT_SET_ELEVATION_VALUE,   // New state for "Set to..." value
+  autoTerrainChangeOnElevation: CONST.AUTO_TERRAIN_CHANGE_ENABLED_DEFAULT, // New state for toggle
+
   paintMode: CONST.PaintMode.ELEVATION,
   brushSize: CONST.DEFAULT_BRUSH_SIZE,
   selectedTerrainType: CONST.DEFAULT_TERRAIN_TYPE,
@@ -59,7 +67,7 @@ export const appState = {
   targetScrollTop: null,
   centerViewOnHexAfterRender: null,
 
-  activePartyActivities: new Set(), // Store IDs of active activities
+  activePartyActivities: new Set(),
 };
 
 export function resetActiveMapState() {
@@ -89,8 +97,14 @@ export function resetActiveMapState() {
     appState.zoomLevel = 1.0;
     appState.activePartyActivities = new Set();
 
+    // Reset new elevation states too if needed, or they can persist across maps
+    appState.elevationBrushMode = CONST.ElevationBrushMode.INCREASE;
+    appState.elevationBrushCustomStep = CONST.DEFAULT_CUSTOM_ELEVATION_STEP;
+    appState.elevationBrushSetValue = CONST.DEFAULT_SET_ELEVATION_VALUE;
+    appState.autoTerrainChangeOnElevation = CONST.AUTO_TERRAIN_CHANGE_ENABLED_DEFAULT;
 
-    if (!appState.currentMapName) {
+
+    if (!appState.currentMapName || appState.isStandaloneMode) { // Reset grid dims if no map name or in standalone fresh start
         appState.currentGridWidth = CONST.INITIAL_GRID_WIDTH;
         appState.currentGridHeight = CONST.INITIAL_GRID_HEIGHT;
         appState.tempGridWidth = CONST.INITIAL_GRID_WIDTH.toString();

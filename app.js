@@ -8,26 +8,21 @@ import * as MapManagement from './map-management.js';
 import * as HexplorationLogic from './hexploration-logic.js';
 
 const APP_MODULE_ID = new URLSearchParams(window.location.search).get('moduleId');
-appState.isStandaloneMode = !APP_MODULE_ID; // Determine if running standalone
+appState.isStandaloneMode = !APP_MODULE_ID; 
 
 window.addEventListener('message', (event) => {
     const { type, payload, moduleId: msgModuleId } = event.data || {};
 
-    // In standalone mode, we don't expect messages from a parent, so ignore if not matching module ID (unless no module ID, implying standalone dev)
     if (!type || (!appState.isStandaloneMode && msgModuleId !== APP_MODULE_ID)) {
         return;
     }
     if (appState.isStandaloneMode && msgModuleId === APP_MODULE_ID) {
-        // If in standalone but somehow got a message with its own ID, likely a misconfiguration or test, log it.
-        console.warn("AHME Standalone: Received a message with its own module ID. This is unexpected.", event.data);
-        // Potentially ignore these messages in standalone to prevent loops if testing postMessage locally
         return;
     }
 
-
     switch(type) {
         case 'initialData':
-            if (appState.isStandaloneMode) return; // Standalone doesn't get initialData from bridge
+            if (appState.isStandaloneMode) return; 
             if (payload) {
                 appState.mapList = payload.mapList || [];
                 appState.activeGmMapId = payload.activeGmMapId || null;
@@ -45,7 +40,7 @@ window.addEventListener('message', (event) => {
             break;
 
         case 'mapDataLoaded':
-            if (appState.isStandaloneMode) return; // Standalone handles its own data via file load
+            if (appState.isStandaloneMode) return; 
             if (payload && payload.mapId && Array.isArray(payload.hexes)) {
                 resetActiveMapState();
 
@@ -60,7 +55,6 @@ window.addEventListener('message', (event) => {
                     appState.currentMapHexTraversalTimeUnit = payload.mapSettings.hexTraversalTimeUnit || CONST.DEFAULT_HEX_TRAVERSAL_TIME_UNIT;
                     appState.zoomLevel = parseFloat(payload.mapSettings.zoomLevel) || 1.0;
                 } else {
-                    // Defaults
                     appState.currentMapHexSizeValue = CONST.DEFAULT_HEX_SIZE_VALUE;
                     appState.currentMapHexSizeUnit = CONST.DEFAULT_HEX_SIZE_UNIT;
                     appState.currentMapHexTraversalTimeValue = CONST.DEFAULT_HEX_TRAVERSAL_TIME_VALUE;
@@ -152,10 +146,8 @@ window.addEventListener('message', (event) => {
             }
             break;
 
-        case 'partyDataUpdated': // Can be relevant for GM in standalone if they are also "player"
+        case 'partyDataUpdated': 
             if (payload && payload.mapId === appState.currentMapId) {
-                // Allow in standalone IF the GM is acting as player.
-                // The bridge would not send this in pure standalone, but if testing, good to handle.
                 if (!appState.isStandaloneMode || (appState.isStandaloneMode && appState.isGM)) {
                     let needsRender = false;
                     let explicitCenteringRequestedThisUpdate = false;
@@ -191,7 +183,7 @@ window.addEventListener('message', (event) => {
                     }
 
                     if (needsRender) {
-                        if (appState.mapInitialized) { // Ensure this check
+                        if (appState.mapInitialized) { 
                            MapLogic.updatePartyMarkerBasedLoS();
                         }
                         renderApp({ preserveScroll: !explicitCenteringRequestedThisUpdate });
@@ -243,9 +235,8 @@ window.addEventListener('message', (event) => {
             break;
 
         case 'formInputResponse':
-             if (appState.isStandaloneMode && payload && payload.cancelled && !appState.isWaitingForFormInput) {
-                // This might happen if a standalone "Create New Map" was cancelled by user dismissing prompt
-                renderApp(); // Just re-render to clear any interim state
+            if (appState.isStandaloneMode && payload && payload.cancelled && !appState.isWaitingForFormInput) {
+                renderApp(); 
                 return;
             }
             if (appState.isWaitingForFormInput && typeof appState.formInputCallback === 'function') {
@@ -257,7 +248,7 @@ window.addEventListener('message', (event) => {
             break;
 
         case 'featureDetailsInputResponse':
-             if (appState.isStandaloneMode && payload && payload.cancelled && !appState.isWaitingForFeatureDetails) {
+            if (appState.isStandaloneMode && payload && payload.cancelled && !appState.isWaitingForFeatureDetails) {
                 renderApp();
                 return;
             }
@@ -278,9 +269,8 @@ window.addEventListener('message', (event) => {
             }
             break;
 
-        case 'hexplorationDataUpdated': // Can be relevant for GM in standalone
+        case 'hexplorationDataUpdated': 
             if (payload) {
-                // Allow in standalone IF the GM is acting as player and bridge communication is simulated or not strictly checked
                 if (!appState.isStandaloneMode || (appState.isStandaloneMode && appState.isGM)) {
                     HexplorationLogic.updateLocalHexplorationDisplayValues(payload);
                     renderApp({ preserveScroll: true });
@@ -298,9 +288,8 @@ export function handleAppModeChange(newMode) {
 }
 
 async function start() {
-    appState.isGM = appState.isStandaloneMode ? true : (new URLSearchParams(window.location.search).get('isGM') === 'true'); // GM is true in standalone
+    appState.isGM = appState.isStandaloneMode ? true : (new URLSearchParams(window.location.search).get('isGM') === 'true');
     appState.userId = appState.isStandaloneMode ? 'standalone_gm' : (new URLSearchParams(window.location.search).get('userId') || 'unknown_player_iframe');
-
     appState.appMode = appState.isGM ? CONST.DEFAULT_APP_MODE : CONST.AppMode.PLAYER;
 
     const templatesReady = await compileTemplates();
@@ -309,10 +298,7 @@ async function start() {
     }
 
     if (appState.isStandaloneMode) {
-        // For standalone, initialize with a default new map or let user load one.
-        // We'll use a silent create new map as a starting point.
-        MapManagement.handleCreateNewMap(true); // true for silent
-        // renderApp() will be called by handleCreateNewMap's logic
+        MapManagement.handleCreateNewMap(true); 
     } else if (window.parent && APP_MODULE_ID && typeof window.parent.postMessage === 'function') {
         try {
             window.parent.postMessage({ type: 'jsAppReady', moduleId: APP_MODULE_ID }, '*');
@@ -322,9 +308,7 @@ async function start() {
             renderApp();
         }
     } else {
-        // This case should ideally not be hit if !isStandaloneMode and no parent comms
-        // but as a fallback, treat as standalone.
-        appState.isStandaloneMode = true;
+        appState.isStandaloneMode = true; 
         appState.isGM = true; 
         appState.userId = 'fallback_standalone_gm';
         appState.appMode = CONST.DEFAULT_APP_MODE;
