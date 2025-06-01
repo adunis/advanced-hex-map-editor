@@ -1,0 +1,23 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main  # Or master, or whichever is your primary development branch
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v3 # Or v2 if you prefer
+
+      - name: Deploy 🚀
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./app # This tells the action to deploy the 'app' folder
+          # Optional: publish_branch: gh-pages # Deploys to a gh-pages branch by default
+          # Optional: user_name: 'github-actions[bot]'
+          # Optional: user_email: 'github-actions[bot]@users.noreply.github.com'
+          # Optional: commit_message: ${{ github.event.head_commit.message }} # Use the last commit message
