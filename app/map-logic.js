@@ -1,3 +1,4 @@
+// File: app/map-logic.js
 import { appState } from './state.js';
 import * as CONST from './constants.js';
 import * as HEX_UTILS from './hex-utils.js';
@@ -118,11 +119,11 @@ export function calculateLineOfSight(sourceHexId, currentHexDataMap) {
 }
 
 export function initializeGridData(
-    width, 
-    height, 
-    loadedHexes = [], 
-    mapIsNewAndUnsaved = false, 
-    defaultElevation = CONST.INITIAL_ELEVATION, 
+    width,
+    height,
+    loadedHexes = [],
+    mapIsNewAndUnsaved = false,
+    defaultElevation = CONST.INITIAL_ELEVATION,
     defaultTerrain = CONST.DEFAULT_TERRAIN_TYPE
 ) {
     const grid = [], newHexMap = new Map();
@@ -302,8 +303,6 @@ async function checkRandomEncountersOnDiscover(discoveredHexIdsSet) {
             if (details && details.added) createdFeatures.push(details);
         }
     }
-
-
     return createdFeatures;
 }
 
@@ -321,7 +320,7 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
 
         let baseTimeValue = appState.currentMapHexTraversalTimeValue;
         const targetTerrainConfig = CONST.TERRAIN_TYPES_CONFIG[targetHex.terrain] || CONST.TERRAIN_TYPES_CONFIG[CONST.DEFAULT_TERRAIN_TYPE];
-        
+
         let overallActivityPenaltyFactor = 1.0;
         if (appState.activePartyActivities.size > 0) {
             let maxPenalty = 1.0;
@@ -333,11 +332,11 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
             });
             overallActivityPenaltyFactor = maxPenalty;
         }
-        
+
         let terrainModifiedTime = baseTimeValue * targetTerrainConfig.speedMultiplier * overallActivityPenaltyFactor;
 
         let elevationTimePenalty = 0;
-        if (previousHex && !isExploringCurrentHex) { 
+        if (previousHex && !isExploringCurrentHex) {
             const elevationDiff = targetHex.elevation - previousHex.elevation;
             elevationTimePenalty = (Math.abs(elevationDiff) / 100) * CONST.ELEVATION_TIME_PENALTY_FACTOR_PER_100M;
         }
@@ -350,7 +349,7 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
         const direction = getTravelDirection(previousHex, targetHex, isExploringCurrentHex);
         updatePartyMarkerBasedLoS();
         appState.isCurrentMapDirty = true;
-        appState.centerViewOnHexAfterRender = targetHex.id; 
+        requestCenteringOnHex(targetHex.id);
 
         const encounterOnEnterDetails = await checkRandomEncountersOnEnter(targetHex);
 
@@ -360,22 +359,22 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
         else if (encounterOnEnterDetails && !encounterOnEnterDetails.added && encounterOnEnterDetails.reason) { encounterStatusMessage = `Encounter event at ${targetHex.id} occurred (GM skipped marking).`;}
 
         const travelLogEntry = {
-            timestamp: new Date().toISOString(), 
-            type: isExploringCurrentHex ? "explore_in_place" : "travel", 
-            from: previousHex ? previousHex.id : "Start", 
-            to: targetHex.id, 
-            direction, 
-            distanceValue: isExploringCurrentHex ? 0 : appState.currentMapHexSizeValue, 
-            distanceUnit: appState.currentMapHexSizeUnit, 
-            baseTimeValue: baseTimeValue, 
-            baseTimeUnit: appState.currentMapHexTraversalTimeUnit, 
-            terrainModifiedTime: terrainModifiedTime, 
-            elevationPenalty: elevationTimePenalty, 
-            totalTimeValue: totalTimeValue, 
-            totalTimeUnit: appState.currentMapHexTraversalTimeUnit, 
-            previousTerrain: previousHex ? (CONST.TERRAIN_TYPES_CONFIG[previousHex.terrain]?.name || previousHex.terrain) : "N/A", 
-            targetTerrain: targetTerrainConfig.name, 
-            elevationChange: (previousHex && !isExploringCurrentHex) ? (targetHex.elevation - previousHex.elevation) : 0, 
+            timestamp: new Date().toISOString(),
+            type: isExploringCurrentHex ? "explore_in_place" : "travel",
+            from: previousHex ? previousHex.id : "Start",
+            to: targetHex.id,
+            direction,
+            distanceValue: isExploringCurrentHex ? 0 : appState.currentMapHexSizeValue,
+            distanceUnit: appState.currentMapHexSizeUnit,
+            baseTimeValue: baseTimeValue,
+            baseTimeUnit: appState.currentMapHexTraversalTimeUnit,
+            terrainModifiedTime: terrainModifiedTime,
+            elevationPenalty: elevationTimePenalty,
+            totalTimeValue: totalTimeValue,
+            totalTimeUnit: appState.currentMapHexTraversalTimeUnit,
+            previousTerrain: previousHex ? (CONST.TERRAIN_TYPES_CONFIG[previousHex.terrain]?.name || previousHex.terrain) : "N/A",
+            targetTerrain: targetTerrainConfig.name,
+            elevationChange: (previousHex && !isExploringCurrentHex) ? (targetHex.elevation - previousHex.elevation) : 0,
             encounterStatus: encounterStatusMessage,
         };
         if (!appState.currentMapEventLog) appState.currentMapEventLog = [];
@@ -383,21 +382,20 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
         if (appState.currentMapEventLog.length > 50) appState.currentMapEventLog.pop();
 
         let hoursCost = totalTimeValue; if (appState.currentMapHexTraversalTimeUnit === 'minute') hoursCost /= 60; else if (appState.currentMapHexTraversalTimeUnit === 'second') hoursCost /= 3600; else if (appState.currentMapHexTraversalTimeUnit === 'day') hoursCost *= 24; else if (appState.currentMapHexTraversalTimeUnit === 'week') hoursCost *= 24 * 7;
-        let kmCost = isExploringCurrentHex ? 0 : appState.currentMapHexSizeValue; 
+        let kmCost = isExploringCurrentHex ? 0 : appState.currentMapHexSizeValue;
         if (!isExploringCurrentHex) {
-            if (appState.currentMapHexSizeUnit === 'm') kmCost /= 1000; 
-            else if (appState.currentMapHexSizeUnit === 'mi') kmCost *= 1.60934; 
+            if (appState.currentMapHexSizeUnit === 'm') kmCost /= 1000;
+            else if (appState.currentMapHexSizeUnit === 'mi') kmCost *= 1.60934;
             else if (appState.currentMapHexSizeUnit === 'ft') kmCost *= 0.0003048;
         }
-        
+
         const hexplorationActionType = isExploringCurrentHex ? `explore hex ${targetHex.id}` : `moveParty ${direction} to ${targetHex.id}`;
 
         if (window.parent && APP_MODULE_ID) { window.parent.postMessage({ type: 'gmPerformedHexplorationAction', payload: { action: hexplorationActionType, kmCost: kmCost, hoursCost: hoursCost, logEntry: travelLogEntry }, moduleId: APP_MODULE_ID }, '*');}
-          console.log(`%cAHME_IFRAME (GM ${appState.userId}): Calling handleSaveCurrentMap(true) for map ${appState.currentMapId} after party move.`, "color: magenta; font-weight:bold;");
         if (appState.currentMapId) {
-            handleSaveCurrentMap(true); 
+            handleSaveCurrentMap(true);
         }
-        
+
         if (!(encounterOnEnterDetails && encounterOnEnterDetails.added)) {
             renderApp();
         }
@@ -503,45 +501,77 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
 export function handleAppModeChange(newMode) {
     if (appState.appMode === newMode) return;
     appState.appMode = newMode;
+
     if (appState.mapInitialized) updatePartyMarkerBasedLoS();
     if (newMode !== CONST.AppMode.HEX_EDITOR && appState.isEditorLosSelectMode) {
         appState.isEditorLosSelectMode = false;
     }
+
     if (appState.appMode === CONST.AppMode.PLAYER && appState.partyMarkerPosition) {
-        appState.centerViewOnHexAfterRender = appState.partyMarkerPosition.id;
+        requestCenteringOnHex(appState.partyMarkerPosition.id);
     } else {
-        appState.centerViewOnHexAfterRender = null;
+        const svgScrollContainer = document.getElementById('svg-scroll-container');
+        if (svgScrollContainer && appState.zoomLevel !== 0 && appState.mapInitialized) {
+             setTargetScrollForHexBasedOnCurrentCenter(appState.zoomLevel, appState.zoomLevel);
+        } else {
+            appState.centerViewOnHexAfterRender = null;
+            appState.targetScrollLeft = null;
+            appState.targetScrollTop = null;
+        }
     }
     renderApp();
 }
 
 
 export function toggleEditorLosSelectMode() { if (appState.appMode !== CONST.AppMode.HEX_EDITOR) { alert("LoS sim only in Hex Editor mode."); return; }
-
-
 appState.isEditorLosSelectMode = !appState.isEditorLosSelectMode; if (appState.isEditorLosSelectMode) { appState.editorLosSourceHexId = null; appState.editorVisibleHexIds = new Set(); alert("Editor LoS Mode: Click hex for LoS source.");} renderApp();}
 
 
 export function requestCenteringOnHex(hexId) {
+    console.log(`%cAHME_MAP_LOGIC (requestCenteringOnHex - ENTRY): Attempting to center on ${hexId}. Map init: ${appState.mapInitialized}`, "color: blueviolet");
     if (!appState.mapInitialized || !hexId) {
+        console.log(`%cAHME_MAP_LOGIC (requestCenteringOnHex): Aborted. Map not init or no hexId. HexId: ${hexId}, MapInit: ${appState.mapInitialized}`, "color: red");
         appState.centerViewOnHexAfterRender = null;
         return;
     }
     const hexData = appState.hexDataMap.get(hexId);
     if (!hexData) {
+        console.log(`%cAHME_MAP_LOGIC (requestCenteringOnHex): Aborted. Hex data not found for ID: ${hexId}`, "color: red");
         appState.centerViewOnHexAfterRender = null;
         return;
     }
+    console.log(`%cAHME_MAP_LOGIC (requestCenteringOnHex): Setting centerViewOnHexAfterRender to: ${hexId}`, "color: blue");
     appState.centerViewOnHexAfterRender = hexId;
+    appState.targetScrollLeft = null;
+    appState.targetScrollTop = null;
 }
 
-export function calculateAndApplyScrollForHex(hexId, svgScrollContainerId = 'svg-scroll-container') {
-    if (!appState.mapInitialized || !hexId) return;
+export function getCalculatedScrollForHex(hexId, svgScrollContainerId = 'svg-scroll-container', unscaledContentWidth, unscaledContentHeight) {
+    console.log(`%cAHME_GET_CALC_SCROLL (Entry):
+    hexId: ${hexId}, containerId: ${svgScrollContainerId}
+    unscaledContentW: ${unscaledContentWidth}, unscaledContentH: ${unscaledContentHeight}
+    mapInitialized: ${appState.mapInitialized}`, "color: darkcyan");
+
+    if (!appState.mapInitialized || !hexId) {
+        console.log(`%cAHME_GET_CALC_SCROLL: Aborted (map not init or no hexId).`, "color: red");
+        return null; // Return null if cannot calculate
+    }
     const hexData = appState.hexDataMap.get(hexId);
-    if (!hexData) return;
+    if (!hexData) {
+        console.log(`%cAHME_GET_CALC_SCROLL: Aborted (hexData for ${hexId} not found).`, "color: red");
+        return null;
+    }
 
     const svgScrollContainer = document.getElementById(svgScrollContainerId);
-    if (!svgScrollContainer) return;
+    if (!svgScrollContainer) {
+        console.log(`%cAHME_GET_CALC_SCROLL: Aborted (SVG scroll container '${svgScrollContainerId}' not found).`, "color: red");
+        return null;
+    }
+
+    if (isNaN(unscaledContentWidth) || isNaN(unscaledContentHeight) || unscaledContentWidth <= 0 || unscaledContentHeight <= 0) {
+        console.log(`%cAHME_GET_CALC_SCROLL: Aborted (Invalid unscaledContent dimensions: W=${unscaledContentWidth}, H=${unscaledContentHeight}).`, "color: red");
+        return null;
+    }
 
     const hexTrueW = CONST.HEX_SIZE * Math.sqrt(3);
     const hexVOff = CONST.HEX_SIZE * 1.5;
@@ -563,19 +593,38 @@ export function calculateAndApplyScrollForHex(hexId, svgScrollContainerId = 'svg
     let scrollLeft = targetX_scaled_pixels - (containerWidth / 2);
     let scrollTop = targetY_scaled_pixels - (containerHeight / 2);
 
-    scrollLeft = Math.max(0, Math.min(scrollLeft, svgScrollContainer.scrollWidth - containerWidth));
-    scrollTop = Math.max(0, Math.min(scrollTop, svgScrollContainer.scrollHeight - containerHeight));
+    const maxScrollLeft = Math.max(0, (unscaledContentWidth * appState.zoomLevel) - containerWidth);
+    const maxScrollTop = Math.max(0, (unscaledContentHeight * appState.zoomLevel) - containerHeight);
 
-    svgScrollContainer.scrollLeft = scrollLeft;
-    svgScrollContainer.scrollTop = scrollTop;
+    console.log(`%cAHME_GET_CALC_SCROLL (Calculations):
+    HexCoords (col,row): ${hexData.col},${hexData.row}
+    HexCenterUnzoomed: X=${hexCenterX_unzoomed.toFixed(2)}, Y=${hexCenterY_unzoomed.toFixed(2)}
+    Zoom: ${appState.zoomLevel.toFixed(2)}
+    TargetScaledPixels: X=${targetX_scaled_pixels.toFixed(2)}, Y=${targetY_scaled_pixels.toFixed(2)}
+    ContainerDims: W=${containerWidth}, H=${containerHeight}
+    InitialScrollAttempt: Left=${scrollLeft.toFixed(2)}, Top=${scrollTop.toFixed(2)}
+    MaxScrollPossible: Left=${maxScrollLeft.toFixed(2)}, Top=${maxScrollTop.toFixed(2)}`, "color: darkcyan");
+
+    scrollLeft = Math.max(0, Math.min(scrollLeft, maxScrollLeft));
+    scrollTop = Math.max(0, Math.min(scrollTop, maxScrollTop));
+
+    console.log(`%cAHME_GET_CALC_SCROLL (Returning): Left=${scrollLeft.toFixed(2)}, Top=${scrollTop.toFixed(2)}`, "color: green");
+    return { scrollLeft, scrollTop }; // Return the calculated values
 }
+
 
 export function setTargetScrollForHexBasedOnCurrentCenter(oldZoom, newZoom) {
     const svgScrollContainer = document.getElementById('svg-scroll-container');
-    if (!svgScrollContainer) {
+    if (!svgScrollContainer || oldZoom === 0) {
+        console.log(`%cAHME_MAP_LOGIC (setTargetScroll): Aborted. No scroll container or oldZoom is 0. OldZoom: ${oldZoom}`, "color: red");
         appState.targetScrollLeft = null;
         appState.targetScrollTop = null;
-        appState.centerViewOnHexAfterRender = null; 
+        return;
+    }
+
+    if (appState.appMode === CONST.AppMode.PLAYER && appState.partyMarkerPosition) {
+        console.log(`%cAHME_MAP_LOGIC (setTargetScroll): Player mode with party marker. Prioritizing centering on marker: ${appState.partyMarkerPosition.id}`, "color: blue");
+        requestCenteringOnHex(appState.partyMarkerPosition.id);
         return;
     }
 
@@ -586,10 +635,16 @@ export function setTargetScrollForHexBasedOnCurrentCenter(oldZoom, newZoom) {
     const currentViewportCenterY_scaled = svgScrollContainer.scrollTop + containerHeight / 2;
 
     const currentViewportCenterX_unzoomed = currentViewportCenterX_scaled / oldZoom;
-    const currentViewportCenterY_unzoomed = currentViewportCenterY_scaled / oldZoom; 
+    const currentViewportCenterY_unzoomed = currentViewportCenterY_scaled / oldZoom;
 
     appState.targetScrollLeft = (currentViewportCenterX_unzoomed * newZoom) - (containerWidth / 2);
     appState.targetScrollTop = (currentViewportCenterY_unzoomed * newZoom) - (containerHeight / 2);
 
-    appState.centerViewOnHexAfterRender = null; 
+    console.log(`%cAHME_MAP_LOGIC (setTargetScroll): Setting targetScroll.
+    OldZoom: ${oldZoom}, NewZoom: ${newZoom}
+    Viewport Center (Scaled): X=${currentViewportCenterX_scaled}, Y=${currentViewportCenterY_scaled}
+    Viewport Center (Unzoomed): X=${currentViewportCenterX_unzoomed}, Y=${currentViewportCenterY_unzoomed}
+    TargetScroll: Left=${appState.targetScrollLeft}, Top=${appState.targetScrollTop}`, "color: blue");
+
+    appState.centerViewOnHexAfterRender = null;
 }

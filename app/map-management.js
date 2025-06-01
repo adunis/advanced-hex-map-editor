@@ -2,7 +2,7 @@
 
 import { appState, resetActiveMapState } from './state.js';
 import * as CONST from './constants.js';
-import { initializeGridData, updatePartyMarkerBasedLoS, calculateAndApplyScrollForHex } from './map-logic.js';
+import { initializeGridData, updatePartyMarkerBasedLoS, getCalculatedScrollForHex } from './map-logic.js';
 import { renderApp } from './ui.js'; 
 
 const APP_MODULE_ID = new URLSearchParams(window.location.search).get('moduleId');

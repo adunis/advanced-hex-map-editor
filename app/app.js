@@ -2,7 +2,7 @@
 
 import { appState, resetActiveMapState } from './state.js';
 import * as CONST from './constants.js';
-import { compileTemplates, renderApp } from './ui.js'; 
+import { compileTemplates, renderApp } from './ui.js';
 import * as MapLogic from './map-logic.js';
 import * as MapManagement from './map-management.js';
 import * as HexplorationLogic from './hexploration-logic.js';
@@ -23,25 +23,24 @@ window.addEventListener('message', (event) => {
                 appState.activeGmMapId = payload.activeGmMapId || null;
 
                 if (appState.activeGmMapId) {
-                    MapManagement.handleOpenMap(appState.activeGmMapId, true); 
+                    MapManagement.handleOpenMap(appState.activeGmMapId, true);
                 } else {
                     resetActiveMapState();
-                    renderApp();
+                    renderApp(); // Will use default centering (first hex or nothing)
                 }
             } else {
-                console.warn("AHME IFRAME: 'initialData' received with no payload.");
-                resetActiveMapState(); 
+                resetActiveMapState();
                 renderApp();
             }
             break;
 
-        case 'mapDataLoaded': 
+        case 'mapDataLoaded':
             if (payload && payload.mapId && Array.isArray(payload.hexes)) {
-                resetActiveMapState(); 
+                resetActiveMapState();
 
                 appState.currentMapId = payload.mapId;
                 appState.currentMapName = payload.name || "Unnamed Map";
-                appState.isCurrentMapDirty = false; 
+                appState.isCurrentMapDirty = false;
 
                 if (payload.mapSettings) {
                     appState.currentMapHexSizeValue = parseFloat(payload.mapSettings.hexSizeValue) || CONST.DEFAULT_HEX_SIZE_VALUE;
@@ -60,16 +59,16 @@ window.addEventListener('message', (event) => {
                 MapManagement.loadGlobalExplorationForMap(payload);
 
                 const gridSettings = payload.gridSettings || {
-                    gridWidth: CONST.INITIAL_GRID_WIDTH, 
+                    gridWidth: CONST.INITIAL_GRID_WIDTH,
                     gridHeight: CONST.INITIAL_GRID_HEIGHT
                 };
                 MapLogic.initializeGridData(
                     gridSettings.gridWidth,
                     gridSettings.gridHeight,
                     payload.hexes,
-                    false 
+                    false
                 );
-                
+
                 if (appState.isGM && appState.activeGmMapId !== appState.currentMapId) {
                      window.parent.postMessage({
                         type: 'gmSetActiveMap',
@@ -77,19 +76,18 @@ window.addEventListener('message', (event) => {
                         moduleId: APP_MODULE_ID
                     }, '*');
                 }
-                
-                MapLogic.updatePartyMarkerBasedLoS(); 
+
+                MapLogic.updatePartyMarkerBasedLoS();
 
                 if (appState.partyMarkerPosition) {
-                    appState.centerViewOnHexAfterRender = appState.partyMarkerPosition.id;
+                    MapLogic.requestCenteringOnHex(appState.partyMarkerPosition.id);
                 } else if (appState.mapInitialized) {
                     const firstHex = appState.hexDataMap.values().next().value;
-                    if(firstHex) appState.centerViewOnHexAfterRender = firstHex.id;
+                    if(firstHex) MapLogic.requestCenteringOnHex(firstHex.id);
                 }
                 renderApp();
 
             } else {
-                console.error("AHME IFRAME: 'mapDataLoaded' - Invalid payload.", payload);
                 alert("Error: Received incomplete map data from the server.");
                 resetActiveMapState();
                 renderApp();
@@ -106,19 +104,19 @@ window.addEventListener('message', (event) => {
             renderApp();
             break;
 
-        case 'mapListUpdated': 
+        case 'mapListUpdated':
             if (payload && Array.isArray(payload.mapList)) {
                 appState.mapList = payload.mapList;
                 let needsFullRender = true;
 
-                if (payload.savedMapId) { 
+                if (payload.savedMapId) {
                     const savedMapInfo = appState.mapList.find(m => m.id === payload.savedMapId);
                     if (savedMapInfo) {
-                        if (appState.isGM && 
-                            (appState.currentMapId === payload.savedMapId || 
+                        if (appState.isGM &&
+                            (appState.currentMapId === payload.savedMapId ||
                              (appState.currentMapId === null && appState.currentMapName === savedMapInfo.name))) {
-                            appState.currentMapId = savedMapInfo.id; 
-                            appState.currentMapName = savedMapInfo.name; 
+                            appState.currentMapId = savedMapInfo.id;
+                            appState.currentMapName = savedMapInfo.name;
                             appState.isCurrentMapDirty = false;
                         }
                     }
@@ -129,7 +127,7 @@ window.addEventListener('message', (event) => {
                     appState.currentMapId = null;
                     appState.currentMapName = null;
                 }
-                
+
                 if (payload.newActiveGmMapId !== undefined && appState.activeGmMapId !== payload.newActiveGmMapId) {
                      appState.activeGmMapId = payload.newActiveGmMapId;
                 }
@@ -139,23 +137,24 @@ window.addEventListener('message', (event) => {
                 }
             }
             break;
-        
+
         case 'partyDataUpdated':
             if (payload && payload.mapId === appState.currentMapId) {
                 let needsRender = false;
-                let explicitCenteringNeeded = false; 
+                let explicitCenteringRequestedThisUpdate = false;
 
                 if (payload.hasOwnProperty('partyMarkerPosition')) {
                     const oldMarkerPosId = appState.partyMarkerPosition ? appState.partyMarkerPosition.id : null;
-                    appState.partyMarkerPosition = payload.partyMarkerPosition; 
-                    
+                    appState.partyMarkerPosition = payload.partyMarkerPosition;
+
                     if (appState.partyMarkerPosition && oldMarkerPosId !== appState.partyMarkerPosition.id) {
-                        if (appState.appMode === CONST.AppMode.PLAYER && !appState.isGM) {
-                            appState.centerViewOnHexAfterRender = appState.partyMarkerPosition.id;
-                            explicitCenteringNeeded = true;
+                         // Always try to center on party marker if it moves, regardless of mode, unless GM is actively editing hexes
+                        if (appState.appMode === CONST.AppMode.PLAYER || (appState.isGM && appState.appMode !== CONST.AppMode.HEX_EDITOR)) {
+                            MapLogic.requestCenteringOnHex(appState.partyMarkerPosition.id);
+                            explicitCenteringRequestedThisUpdate = true;
                         }
                     }
-                    needsRender = true; 
+                    needsRender = true;
                 }
 
                 if (payload.discoveredHexIds && Array.isArray(payload.discoveredHexIds)) {
@@ -172,57 +171,62 @@ window.addEventListener('message', (event) => {
                         needsRender = true;
                      }
                 }
-                
-                if (needsRender) {
-                    MapLogic.updatePartyMarkerBasedLoS(); 
-                    
-                    const shouldPreserveScroll = !explicitCenteringNeeded && 
-                                                 !(appState.appMode === CONST.AppMode.PLAYER && appState.partyMarkerPosition);
 
-                    renderApp({ preserveScroll: shouldPreserveScroll }); 
+                if (needsRender) {
+                    MapLogic.updatePartyMarkerBasedLoS();
+                    // If explicit centering was requested, renderApp will pick it up via appState.centerViewOnHexAfterRender.
+                    // Otherwise, preserve scroll.
+                    renderApp({ preserveScroll: !explicitCenteringRequestedThisUpdate });
                 }
             }
             break;
-        
-        case 'forceMapReload': 
+
+        case 'forceMapReload':
             if (payload && payload.mapId && !appState.isGM) {
                 if (appState.currentMapId === payload.mapId) {
-                    MapManagement.handleOpenMap(payload.mapId, true); 
+                    MapManagement.handleOpenMap(payload.mapId, true); // true = automatic, bypasses unsaved changes prompt
                 }
             }
             break;
-            
-        case 'activeMapChanged': 
-            const newActiveGmMapIdFromSetting = payload.activeGmMapId; 
-            const oldActiveGmMapId = appState.activeGmMapId;
-            appState.activeGmMapId = newActiveGmMapIdFromSetting; 
+
+        case 'activeMapChanged': // Sent from bridge when GM's active map setting changes
+            const newActiveGmMapIdFromSetting = payload.activeGmMapId;
+            appState.activeGmMapId = newActiveGmMapIdFromSetting;
 
             if (newActiveGmMapIdFromSetting) {
+                // If the map is already current and initialized, a forced open isn't always needed.
+                // However, if it's a player, or the GM is in player view, they should see the active map.
                 if (appState.currentMapId !== newActiveGmMapIdFromSetting || !appState.mapInitialized) {
-                    MapManagement.handleOpenMap(newActiveGmMapIdFromSetting, true); 
-                } else if (appState.currentMapId === newActiveGmMapIdFromSetting) {
                     MapManagement.handleOpenMap(newActiveGmMapIdFromSetting, true);
+                } else if (appState.currentMapId === newActiveGmMapIdFromSetting && appState.mapInitialized) {
+                    // If current map IS the new active map, and player view, ensure party marker is centered
+                     if (appState.appMode === CONST.AppMode.PLAYER && appState.partyMarkerPosition) {
+                        MapLogic.requestCenteringOnHex(appState.partyMarkerPosition.id);
+                        renderApp(); // Render with the centering request
+                    } else {
+                        renderApp({preserveScroll: true}); // Just a cosmetic update for the map list perhaps
+                    }
                 }
-            } else {
+            } else { // No active GM map
                 if (appState.currentMapId || appState.mapInitialized) {
                     resetActiveMapState();
                     appState.currentMapId = null;
                     appState.currentMapName = null;
                 }
-                renderApp(); 
+                renderApp();
             }
             break;
 
-        case 'activeMapContentRefreshed': 
+        case 'activeMapContentRefreshed':
             if (payload && payload.mapId === appState.currentMapId && !appState.isGM) {
-                MapManagement.handleOpenMap(payload.mapId, true); 
+                MapManagement.handleOpenMap(payload.mapId, true);
             }
             break;
 
         case 'formInputResponse':
             if (appState.isWaitingForFormInput && typeof appState.formInputCallback === 'function') {
-                appState.formInputCallback(payload); 
-            } else { 
+                appState.formInputCallback(payload);
+            } else {
                 appState.isWaitingForFormInput = false;
                 appState.formInputCallback = null;
             }
@@ -231,28 +235,28 @@ window.addEventListener('message', (event) => {
         case 'featureDetailsInputResponse':
             if (appState.isWaitingForFeatureDetails && typeof appState.featureDetailsCallback === 'function') {
                 if (appState.pendingFeaturePlacement && payload && appState.pendingFeaturePlacement.hexId === payload.hexId) {
-                    appState.featureDetailsCallback(payload); 
+                    appState.featureDetailsCallback(payload);
                 } else {
-                    appState.isWaitingForFeatureDetails = false; 
-                    appState.featureDetailsCallback = null; 
+                    appState.isWaitingForFeatureDetails = false;
+                    appState.featureDetailsCallback = null;
                     appState.pendingFeaturePlacement = null;
-                    renderApp(); 
+                    renderApp();
                 }
             } else {
                 appState.isWaitingForFeatureDetails = false;
                 appState.featureDetailsCallback = null;
                 appState.pendingFeaturePlacement = null;
-                renderApp(); 
+                renderApp();
             }
             break;
 
         case 'hexplorationDataUpdated':
             if (payload) {
                 HexplorationLogic.updateLocalHexplorationDisplayValues(payload);
-                renderApp({ preserveScroll: true }); 
+                renderApp({ preserveScroll: true });
             }
             break;
-        
+
         default:
             break;
     }
@@ -274,14 +278,12 @@ async function start() {
         try {
             window.parent.postMessage({ type: 'jsAppReady', moduleId: APP_MODULE_ID }, '*');
         } catch (e) {
-            console.error("AHME IFRAME: Error sending 'jsAppReady' to parent:", e);
             alert("AHME: Critical error initializing communication with Foundry. The map editor may not function correctly. Check console (F12).");
-            resetActiveMapState(); 
+            resetActiveMapState();
             renderApp();
         }
     } else {
-        console.warn("AHME IFRAME: Not running in a Foundry iframe or APP_MODULE_ID is missing. Map operations requiring Foundry interaction will not work. Running in limited/standalone mode.");
-        resetActiveMapState(); 
+        resetActiveMapState();
         renderApp();
     }
 }
