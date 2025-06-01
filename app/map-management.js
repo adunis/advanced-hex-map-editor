@@ -3,7 +3,7 @@
 import { appState, resetActiveMapState } from './state.js';
 import * as CONST from './constants.js';
 import { initializeGridData, updatePartyMarkerBasedLoS, calculateAndApplyScrollForHex } from './map-logic.js';
-import { renderApp } from './ui.js'; // Assuming renderApp is needed for UI updates on cancel/error
+import { renderApp } from './ui.js'; 
 
 const APP_MODULE_ID = new URLSearchParams(window.location.search).get('moduleId');
 
@@ -61,35 +61,24 @@ export function getMapContextDataForSave() {
 }
 
 export function handleSaveCurrentMap(eventOrIsAutoSave = false) {
-    // Determine the actual isAutoSave boolean value
-    // If eventOrIsAutoSave is a boolean, use it directly.
-    // Otherwise (if it's an event object from a click), it's a manual save, so isAutoSave is false.
     const isAutoSaveActual = (typeof eventOrIsAutoSave === 'boolean') ? eventOrIsAutoSave : false;
 
     if (!appState.isGM) {
-        if (!isAutoSaveActual) alert("Only GMs can save maps."); // Only alert for manual saves
+        if (!isAutoSaveActual) alert("Only GMs can save maps."); 
         return;
     }
     if (!appState.mapInitialized && !appState.currentMapName) {
         if (!isAutoSaveActual) alert("No active map data to save. Please create or open a map first.");
         return;
     }
-     // If map has no ID (it's new and not yet saved to DB), an autosave initiated by e.g. party movement
-     // should not attempt to save if it doesn't have a name yet.
-     // The name should be set during map creation or file load.
     if (!appState.currentMapId && isAutoSaveActual && (!appState.currentMapName || !appState.currentMapName.trim())) {
         console.warn("AHME: Auto-save skipped for new map without a name.");
         return;
     }
-    // Also, if it's an autosave for a map that has never been saved (no ID yet),
-    // but *does* have a name, it will proceed to `proceedWithSave` with a null mapId and true isAutoSaveActual.
-    // The bridge will generate an ID.
 
     let mapIdToSave = appState.currentMapId;
     let mapNameToSave = appState.currentMapName;
 
-    // This block handles the case where "Save Current" is clicked for a brand new map (no ID yet).
-    // It prompts for a name. This is NOT an autosave.
     if (!mapIdToSave && !isAutoSaveActual) {
         appState.isWaitingForFormInput = true;
         appState.formInputCallback = function(formDataFromDialog) {
@@ -97,7 +86,6 @@ export function handleSaveCurrentMap(eventOrIsAutoSave = false) {
             appState.formInputCallback = null;
             if (!formDataFromDialog || formDataFromDialog.cancelled || !formDataFromDialog.mapName || !formDataFromDialog.mapName.trim()) {
                 if (formDataFromDialog && formDataFromDialog.cancelled) {
-                    // If cancelled, just re-render to clear any "waiting" UI state
                     renderApp({ preserveScroll: true });
                 } else {
                     alert("Map name cannot be empty for the first save.");
@@ -105,7 +93,6 @@ export function handleSaveCurrentMap(eventOrIsAutoSave = false) {
                 return;
             }
             appState.currentMapName = formDataFromDialog.mapName.trim();
-            // Proceed with save, mapId is null (new map), name is from dialog, isAutoSave is false.
             proceedWithSave(null, appState.currentMapName, false); 
         };
         const formPayload = {
@@ -122,19 +109,14 @@ export function handleSaveCurrentMap(eventOrIsAutoSave = false) {
             payload: formPayload,
             moduleId: APP_MODULE_ID
         }, '*');
-        return; // Wait for form input callback
+        return; 
     }
-    // If it's an autosave for a new map (no ID yet, but has a name), mapNameToSave will be appState.currentMapName
-    // mapIdToSave will be null. isAutoSaveActual will be true.
-
-    // For existing maps OR for autosaving a named new map.
     proceedWithSave(mapIdToSave, mapNameToSave, isAutoSaveActual);
 }
 
 function proceedWithSave(mapId, mapName, isAutoSaveFlag) {
     console.log(`%cAHME_IFRAME (GM ${appState.userId}): In proceedWithSave. MapID: ${mapId}, Name: ${mapName}, AutoSave: ${isAutoSaveFlag}. Sending 'saveMapData' to bridge.`, "color: magenta; font-weight:bold;");
     if (!mapName || !mapName.trim()) {
-        // This check should ideally be redundant if handleSaveCurrentMap logic is correct
         alert("Map name is missing or empty. Cannot save.");
         return;
     }
@@ -147,14 +129,14 @@ function proceedWithSave(mapId, mapName, isAutoSaveFlag) {
     const contextDataForSave = getMapContextDataForSave();
 
     const finalPayload = {
-        mapId: mapId, // Can be null for a new map
+        mapId: mapId, 
         mapName: mapName,
         mapData: mapStructurePayload,
-        explorationData: null, // Default
-        partyMarkerPosition: undefined, // Default, will be set
-        eventLog: [], // Default
-        mapSettings: null, // Default
-        isAutoSave: isAutoSaveFlag // This is now guaranteed to be a boolean
+        explorationData: null, 
+        partyMarkerPosition: undefined, 
+        eventLog: [], 
+        mapSettings: null, 
+        isAutoSave: isAutoSaveFlag 
     };
 
     if (contextDataForSave && contextDataForSave.explorationData) {
@@ -176,7 +158,7 @@ function proceedWithSave(mapId, mapName, isAutoSaveFlag) {
     if (contextDataForSave && contextDataForSave.mapSettings) {
         finalPayload.mapSettings = contextDataForSave.mapSettings;
     } else {
-        finalPayload.mapSettings = { // Fallback, though should be set in appState
+        finalPayload.mapSettings = { 
             hexSizeValue: CONST.DEFAULT_HEX_SIZE_VALUE,
             hexSizeUnit: CONST.DEFAULT_HEX_SIZE_UNIT,
             hexTraversalTimeValue: CONST.DEFAULT_HEX_TRAVERSAL_TIME_VALUE,
@@ -185,10 +167,9 @@ function proceedWithSave(mapId, mapName, isAutoSaveFlag) {
         };
     }
     
-    // THE POSTMESSAGE CALL THAT WAS FAILING
     window.parent.postMessage({
         type: 'saveMapData',
-        payload: finalPayload, // finalPayload.isAutoSave is now correctly a boolean
+        payload: finalPayload, 
         moduleId: APP_MODULE_ID
     }, '*');
 }
@@ -229,7 +210,7 @@ export function handleSaveMapAs() {
             partyMarkerPosition: undefined,
             eventLog: [], 
             mapSettings: null,
-            isAutoSave: false // Save As is a manual action
+            isAutoSave: false 
         };
         if (contextDataForSave && contextDataForSave.explorationData) {
             finalPayload.explorationData = contextDataForSave.explorationData;
@@ -292,10 +273,16 @@ export function handleCreateNewMap(silent = false) {
     appState.formInputCallback = function(formDataFromDialog) {
         appState.isWaitingForFormInput = false; appState.formInputCallback = null;
         if (!formDataFromDialog || formDataFromDialog.cancelled || !formDataFromDialog.mapName || formDataFromDialog.mapName.trim() === "") {
-            renderApp(); // Ensure UI updates if cancelled
+            renderApp(); 
             return;
         }
         const finalMapName = formDataFromDialog.mapName.trim();
+        const gridWidth = parseInt(formDataFromDialog.gridWidth, 10) || CONST.INITIAL_GRID_WIDTH;
+        const gridHeight = parseInt(formDataFromDialog.gridHeight, 10) || CONST.INITIAL_GRID_HEIGHT;
+        const rawDefaultElevation = parseFloat(formDataFromDialog.defaultElevation);
+        const defaultElevation = !isNaN(rawDefaultElevation) ? rawDefaultElevation : CONST.INITIAL_ELEVATION;
+        const defaultTerrainType = formDataFromDialog.defaultTerrainType || CONST.DEFAULT_TERRAIN_TYPE;
+
 
         resetActiveMapState();
 
@@ -315,9 +302,9 @@ export function handleCreateNewMap(silent = false) {
             appState.activeGmMapId = null;
         }
 
-        initializeGridData(CONST.INITIAL_GRID_WIDTH, CONST.INITIAL_GRID_HEIGHT, [], true);
+        initializeGridData(gridWidth, gridHeight, [], true, defaultElevation, defaultTerrainType);
         
-        if (appState.appMode === CONST.AppMode.PLAYER && appState.partyMarkerPosition) { // Should be null after reset normally
+        if (appState.appMode === CONST.AppMode.PLAYER && appState.partyMarkerPosition) { 
             appState.centerViewOnHexAfterRender = appState.partyMarkerPosition.id;
         } else {
             const firstHex = appState.hexDataMap.values().next().value;
@@ -330,10 +317,14 @@ export function handleCreateNewMap(silent = false) {
         title: "Create New Map",
         fields: [
             { name: "mapName", label: "Map Name:", type: "text", default: `New Hex Map ${appState.mapList.length + 1}` },
+            { name: "gridWidth", label: "Grid Width:", type: "number", default: CONST.INITIAL_GRID_WIDTH, min: CONST.MIN_GRID_DIMENSION, max: CONST.MAX_GRID_DIMENSION, step: 1 },
+            { name: "gridHeight", label: "Grid Height:", type: "number", default: CONST.INITIAL_GRID_HEIGHT, min: CONST.MIN_GRID_DIMENSION, max: CONST.MAX_GRID_DIMENSION, step: 1 },
+            { name: "defaultElevation", label: "Default Hex Elevation (m):", type: "number", default: CONST.INITIAL_ELEVATION, min: CONST.MIN_ELEVATION, max: CONST.MAX_ELEVATION, step: 10 },
+            { name: "defaultTerrainType", label: "Default Hex Terrain:", type: "select", default: CONST.DEFAULT_TERRAIN_TYPE, options: Object.entries(CONST.TERRAIN_TYPES_CONFIG).map(([key, conf]) => ({value: key, label: `${conf.name} (${conf.symbol})`})) },
             { name: "hexSizeValue", label: "Hex Size Value:", type: "number", default: CONST.DEFAULT_HEX_SIZE_VALUE, min: 0.01, step: 0.01 },
             { name: "hexSizeUnit", label: "Hex Size Unit:", type: "select", default: CONST.DEFAULT_HEX_SIZE_UNIT, options: CONST.DISTANCE_UNITS.map(u => ({value: u.key, label: u.label})) },
             { name: "hexTraversalTimeValue", label: "Traversal Time:", type: "number", default: CONST.DEFAULT_HEX_TRAVERSAL_TIME_VALUE, min: 0.01, step: 0.01 },
-            { name: "hexTraversalTimeUnit", label: "Traversal Unit:", type: "select", default: CONST.DEFAULT_HEX_TRAVERSAL_TIME_UNIT, options: CONST.TIME_UNITS.map(u => ({value: u.key, label: u.label})) }
+            { name: "hexTraversalTimeUnit", label: "Traversal Unit:", type: "select", default: CONST.DEFAULT_HEX_TRAVERSAL_TIME_UNIT, options: CONST.TIME_UNITS.map(u => ({value: u.key, label: u.label})) },
         ],
         dialogWidth: 500
     };
@@ -348,18 +339,17 @@ export function handleCreateNewMap(silent = false) {
 export function handleOpenMap(mapIdToOpen, isAutomaticOpen = false) {
     if (!isAutomaticOpen && appState.isCurrentMapDirty && appState.currentMapId) {
         if (!confirm("You have unsaved changes on the current map. Open another map anyway? Unsaved changes will be lost.")) {
-            // If user cancels, we might need to reset the dropdown if it was changed optimistically
             const selectElement = document.getElementById('savedMapSelect');
             if (selectElement && appState.currentMapId) {
                 selectElement.value = appState.currentMapId;
             } else if (selectElement) {
-                selectElement.value = ""; // Or to a "select map" option
+                selectElement.value = ""; 
             }
             return;
         }
     }
 
-    appState.currentMapId = mapIdToOpen; // Temporarily set for loading state
+    appState.currentMapId = mapIdToOpen; 
     const mapListItem = appState.mapList.find(m => m.id === mapIdToOpen);
     appState.currentMapName = mapListItem ? mapListItem.name : "Loading map...";
     appState.mapInitialized = false; 
@@ -442,7 +432,6 @@ export function handleLoadMapFileSelected(event) {
                 appState.currentMapHexTraversalTimeUnit = mapSettingsFromFile.hexTraversalTimeUnit || CONST.DEFAULT_HEX_TRAVERSAL_TIME_UNIT;
                 appState.zoomLevel = parseFloat(mapSettingsFromFile.zoomLevel) || 1.0;
             } else {
-                // Defaults already set by resetActiveMapState
             }
 
             initializeGridData(w, h, hexes, true); 
@@ -484,7 +473,14 @@ export function handleResetGrid() {
             appState.zoomLevel = 1.0;
             appState.activePartyActivities.clear();
 
-            initializeGridData(CONST.INITIAL_GRID_WIDTH, CONST.INITIAL_GRID_HEIGHT, [], true);
+            initializeGridData(
+                CONST.INITIAL_GRID_WIDTH, 
+                CONST.INITIAL_GRID_HEIGHT, 
+                [], 
+                true, 
+                CONST.INITIAL_ELEVATION, 
+                CONST.DEFAULT_TERRAIN_TYPE 
+            );
             appState.isCurrentMapDirty = true;
             
             const firstHex = appState.hexDataMap.values().next().value;
@@ -494,7 +490,7 @@ export function handleResetGrid() {
         }
     } else {
         alert("No map currently loaded. This will create a new, blank map context with default scale settings.");
-        handleCreateNewMap(true); // True for silent creation, as alert already shown
+        handleCreateNewMap(true); 
     }
 }
 
@@ -511,9 +507,8 @@ export function handleResetExplorationAndMarker() {
         appState.playerDiscoveredHexIds = new Set();
         appState.partyMarkerPosition = null;
         appState.isCurrentMapDirty = true;
-        // appState.activePartyActivities.clear(); // Decided to keep activities unless specified otherwise.
 
-        updatePartyMarkerBasedLoS(); // This will clear playerCurrentVisibleHexIds if no marker
+        updatePartyMarkerBasedLoS(); 
         renderApp();
         alert("Exploration data and party marker position have been reset locally for this map. Click 'Save Current Map' to persist these changes.");
     }

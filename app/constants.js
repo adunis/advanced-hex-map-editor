@@ -8,6 +8,23 @@ export const ViewMode = {
   THREED: '3d',
 };
 
+export const ElevationBrushMode = {
+  INCREASE: 'increase',
+  DECREASE: 'decrease',
+};
+
+export const PaintMode = {
+  ELEVATION: 'elevation',
+  TERRAIN: 'terrain',
+  FEATURE: 'feature',
+};
+
+export const TerrainFeature = {
+  NONE: 'none',
+  LANDMARK: 'LANDMARK',
+  SECRET: 'SECRET',
+};
+
 export const TerrainType = {
   PLAINS: 'plains',
   FOREST: 'forest',
@@ -22,20 +39,17 @@ export const TerrainType = {
   ROAD: 'road',
   SETTLEMENT: 'settlement',
   WATER: 'water',
-
   CAVERN_FLOOR: 'cavern_floor',
   TUNNEL: 'tunnel',
   MUSHROOM_FOREST: 'mushroom_forest',
   CRYSTAL_CAVE: 'crystal_cave',
   UNDERGROUND_RIVER: 'underground_river',
   LAVA_TUBE: 'lava_tube',
-
   SHALLOW_WATER: 'shallow_water',
   DEEP_OCEAN: 'deep_ocean',
   CORAL_REEF: 'coral_reef',
   KELP_FOREST: 'kelp_forest',
   TRENCH: 'trench',
-
   SKELETAL_FOREST: 'skeletal_forest',
   ASHEN_WASTELAND: 'ashen_wasteland',
   BLOOD_MARSH: 'blood_marsh',
@@ -46,23 +60,6 @@ export const TerrainType = {
   QUICKSAND: 'quicksand',
   ICE_PLAIN: 'ice_plain',
   OBSIDIAN_FIELD: 'obsidian_field',
-};
-
-export const TerrainFeature = {
-  NONE: 'none',
-  LANDMARK: 'LANDMARK',
-  SECRET: 'SECRET',
-};
-
-export const ElevationBrushMode = {
-  INCREASE: 'increase',
-  DECREASE: 'decrease',
-};
-
-export const PaintMode = {
-  ELEVATION: 'elevation',
-  TERRAIN: 'terrain',
-  FEATURE: 'feature',
 };
 
 export const HEX_SIZE = 30;
@@ -116,7 +113,6 @@ export const JUNGLE_CANOPY_BLOCKAGE_ADDITION = 25;
 export const HILLS_TERRAIN_BLOCKAGE_ADDITION = 5;
 export const ENCOUNTER_FEATURE_ICON = "⚠️";
 
-
 export const FEATURE_ICON_COLORS = [
     { name: "Default Yellow", class: "fill-yellow-200" },
     { name: "Bright Red", class: "fill-red-500" },
@@ -134,27 +130,21 @@ export const DEFAULT_LANDMARK_ICON_COLOR_CLASS = "fill-yellow-200";
 export const DEFAULT_ENCOUNTER_ICON_COLOR_CLASS = "fill-red-500";
 export const DEFAULT_SECRET_ICON_COLOR_CLASS = "fill-purple-400";
 
-
 export const PLAINS_LOW_ELEV_COLOR = 'rgb(134, 239, 172)';
 export const PLAINS_MID_ELEV_COLOR = 'rgb(74, 222, 128)';
 export const PLAINS_HIGH_ELEV_COLOR = 'rgb(34, 197, 94)';
-
 export const FOREST_LOW_ELEV_COLOR = 'rgb(22, 163, 74)';
 export const FOREST_MID_ELEV_COLOR = 'rgb(21, 128, 61)';
 export const FOREST_HIGH_ELEV_COLOR = 'rgb(22, 101, 52)';
-
 export const THICK_FOREST_LOW_ELEV_COLOR = 'rgb(22, 101, 52)';
 export const THICK_FOREST_MID_ELEV_COLOR = 'rgb(20, 83, 45)';
 export const THICK_FOREST_HIGH_ELEV_COLOR = 'rgb(18, 70, 38)';
-
 export const YOUNG_FOREST_LOW_ELEV_COLOR = 'rgb(163, 230, 53)';
 export const YOUNG_FOREST_MID_ELEV_COLOR = 'rgb(132, 204, 22)';
 export const YOUNG_FOREST_HIGH_ELEV_COLOR = 'rgb(101, 163, 13)';
-
 export const HILLS_COLOR_LOW = 'rgb(245, 222, 179)';
 export const HILLS_COLOR_MID = 'rgb(229, 195, 101)';
 export const HILLS_COLOR_HIGH = 'rgb(218, 165, 32)';
-
 export const MOUNTAIN_COLOR_LOW_SLOPE = 'rgb(160, 120, 80)';
 export const MOUNTAIN_COLOR_MID_SLOPE = 'rgb(100, 70, 40)';
 export const MOUNTAIN_ELEV_MID_SLOPE_END = 1999;
@@ -164,105 +154,97 @@ export const MOUNTAIN_COLOR_ICE_PEAK = 'rgb(200, 220, 255)';
 export const MOUNTAIN_ELEV_ICE_TRANSITION_START = 3000;
 export const MOUNTAIN_ELEV_ICE_PEAK_END = 5000;
 export const MOUNTAIN_LIGHT_SURFACE_TEXT_COLOR = 'fill-gray-800';
-
 export const SWAMP_LOW_ELEV_COLOR = 'rgb(17, 94, 89)';
 export const SWAMP_MID_ELEV_COLOR = 'rgb(15, 118, 110)';
 export const SWAMP_HIGH_ELEV_COLOR = 'rgb(13, 148, 136)';
-
 export const DESERT_LOW_ELEV_COLOR = 'rgb(254, 240, 138)';
 export const DESERT_MID_ELEV_COLOR = 'rgb(253, 224, 71)';
 export const DESERT_HIGH_ELEV_COLOR = 'rgb(250, 204, 21)';
-
 export const JUNGLE_LOW_ELEV_COLOR = 'rgb(6, 78, 59)';
 export const JUNGLE_MID_ELEV_COLOR = 'rgb(6, 95, 70)';
 export const JUNGLE_HIGH_ELEV_COLOR = 'rgb(4, 120, 87)';
-
 export const BADLANDS_LOW_ELEV_COLOR = 'rgb(154, 52, 18)';
 export const BADLANDS_MID_ELEV_COLOR = 'rgb(194, 65, 12)';
 export const BADLANDS_HIGH_ELEV_COLOR = 'rgb(234, 88, 12)';
-
 export const WATER_SURFACE_COLOR = 'rgb(3, 105, 161)';
 export const WATER_SHALLOW_DEPTH_COLOR = 'rgb(7, 89, 133)';
 export const WATER_MID_DEPTH_COLOR = 'rgb(30, 58, 138)';
 export const WATER_DEEP_DEPTH_COLOR = 'rgb(30, 64, 175)';
-
 export const CAVERN_DEEP_COLOR = 'rgb(55, 65, 81)';
 export const CAVERN_MID_COLOR = 'rgb(75, 85, 99)';
 export const CAVERN_HIGH_COLOR = 'rgb(107, 114, 128)';
-
 export const TUNNEL_COLOR = 'rgb(31, 41, 55)';
-
 export const MUSHROOM_FOREST_DEEP_COLOR = 'rgb(126, 34, 206)';
 export const MUSHROOM_FOREST_MID_COLOR = 'rgb(147, 51, 234)';
 export const MUSHROOM_FOREST_HIGH_COLOR = 'rgb(168, 85, 247)';
-
 export const CRYSTAL_CAVE_DEEP_COLOR = 'rgb(6, 182, 212)';
 export const CRYSTAL_CAVE_MID_COLOR = 'rgb(34, 211, 238)';
 export const CRYSTAL_CAVE_HIGH_COLOR = 'rgb(103, 232, 249)';
-
 export const UNDERGROUND_RIVER_SURFACE_COLOR = 'rgb(30, 64, 175)';
 export const UNDERGROUND_RIVER_DEEP_COLOR = 'rgb(30, 58, 138)';
 export const UNDERGROUND_RIVER_VERY_DEEP_COLOR = 'rgb(31, 41, 55)';
-
 export const LAVA_TUBE_COLOR = 'rgb(55, 25, 25)';
-
 export const SHALLOW_WATER_VERY_SHALLOW_COLOR = 'rgb(56, 189, 248)';
 export const SHALLOW_WATER_MID_DEPTH_COLOR = 'rgb(14, 165, 233)';
 export const SHALLOW_WATER_DEEP_COLOR = 'rgb(2, 132, 199)';
-
 export const DEEP_OCEAN_SURFACE_COLOR = 'rgb(30, 58, 138)';
 export const DEEP_OCEAN_MID_DEPTH_COLOR = 'rgb(23, 37, 84)';
 export const DEEP_OCEAN_VERY_DEEP_COLOR = 'rgb(17, 24, 39)';
-
 export const CORAL_REEF_SHALLOW_COLOR = 'rgb(249, 168, 212)';
 export const CORAL_REEF_MID_COLOR = 'rgb(244, 114, 182)';
 export const CORAL_REEF_DEEP_COLOR = 'rgb(236, 72, 153)';
-
 export const KELP_FOREST_SHALLOW_COLOR = 'rgb(20, 184, 166)';
 export const KELP_FOREST_MID_COLOR = 'rgb(13, 148, 136)';
 export const KELP_FOREST_DEEP_COLOR = 'rgb(15, 118, 110)';
-
 export const TRENCH_UPPER_COLOR = 'rgb(39, 39, 42)';
 export const TRENCH_MID_COLOR = 'rgb(24, 24, 27)';
 export const TRENCH_DEEPEST_COLOR = 'rgb(0, 0, 0)';
-
 export const SKELETAL_FOREST_LOW_COLOR = 'rgb(156, 163, 175)';
 export const SKELETAL_FOREST_MID_COLOR = 'rgb(209, 213, 219)';
 export const SKELETAL_FOREST_HIGH_COLOR = 'rgb(229, 231, 235)';
-
 export const ASHEN_WASTELAND_LOW_COLOR = 'rgb(71, 85, 105)';
 export const ASHEN_WASTELAND_MID_COLOR = 'rgb(100, 116, 139)';
 export const ASHEN_WASTELAND_HIGH_COLOR = 'rgb(148, 163, 184)';
-
 export const BLOOD_MARSH_DEEP_COLOR = 'rgb(153, 27, 27)';
 export const BLOOD_MARSH_MID_COLOR = 'rgb(185, 28, 28)';
 export const BLOOD_MARSH_SHALLOW_COLOR = 'rgb(220, 38, 38)';
-
 export const MAGMA_LAKE_HOT_COLOR = 'rgb(250, 204, 21)';
 export const MAGMA_LAKE_MID_COLOR = 'rgb(249, 115, 22)';
 export const MAGMA_LAKE_COOLER_COLOR = 'rgb(220, 38, 38)';
-
 export const VOLCANIC_LOW_COLOR = 'rgb(82, 82, 91)';
 export const VOLCANIC_MID_COLOR = 'rgb(63, 63, 70)';
 export const VOLCANIC_HIGH_COLOR = 'rgb(39, 39, 42)';
-
 export const FLOATING_ISLAND_LOW_COLOR = 'rgb(252, 211, 77)';
 export const FLOATING_ISLAND_MID_COLOR = 'rgb(253, 230, 138)';
 export const FLOATING_ISLAND_HIGH_COLOR = 'rgb(254, 249, 195)';
-
 export const ETHEREAL_MIST_DENSE_COLOR = 'rgb(167, 139, 250)';
 export const ETHEREAL_MIST_MID_COLOR = 'rgb(192, 132, 252)';
 export const ETHEREAL_MIST_THIN_COLOR = 'rgb(221, 190, 253)';
-
 export const QUICKSAND_COLOR = 'rgb(161, 98, 7)';
-
 export const ICE_PLAIN_LOW_COLOR = 'rgb(103, 232, 249)';
 export const ICE_PLAIN_MID_COLOR = 'rgb(165, 243, 252)';
 export const ICE_PLAIN_HIGH_COLOR = 'rgb(207, 250, 254)';
-
 export const OBSIDIAN_FIELD_LOW_COLOR = 'rgb(0,0,0)';
 export const OBSIDIAN_FIELD_MID_COLOR = 'rgb(17, 24, 39)';
 export const OBSIDIAN_FIELD_HIGH_COLOR = 'rgb(39, 39, 42)';
+
+export const DEFAULT_TERRAIN_TYPE = TerrainType.PLAINS;
+export const MOUNTAIN_THRESHOLD = 600; 
+export const HILLS_THRESHOLD = 300;
+
+export const INITIAL_PLAYER_COL = 0;
+export const INITIAL_PLAYER_ROW = 0;
+export const PLAYER_MARKER_COLOR = 'fill-red-500';
+export const FOG_OF_WAR_COLOR = 'rgb(20, 20, 20)';
+export const DISCOVERED_DIM_OPACITY = 0.6;
+export const DEFAULT_APP_MODE = AppMode.HEX_EDITOR;
+export const DEFAULT_VIEW_MODE = ViewMode.TWOD;
+
+export const HEX_3D_PROJECTED_Y_SHIFT_PER_ELEVATION_UNIT = 0.05;
+export const HEX_3D_PROJECTED_DEPTH_PER_ELEVATION_UNIT = 0.05;
+export const HEX_3D_Y_SQUASH_FACTOR = 1.0;
+export const HEX_3D_SIDE_COLOR_DARKEN_FACTOR = 0.25;
+export const HEX_3D_MIN_VISUAL_DEPTH = 1.5;
 
 export const TERRAIN_TYPES_CONFIG = {
   [TerrainType.PLAINS]: {
@@ -418,7 +400,6 @@ export const TERRAIN_TYPES_CONFIG = {
       return WATER_SURFACE_COLOR;
     },
   },
-
   [TerrainType.CAVERN_FLOOR]: {
     name: 'Cavern Floor', symbol: '🕳️', color: 'fill-gray-600',
     speedMultiplier: 1, visibilityFactor: 0.7,
@@ -477,7 +458,6 @@ export const TERRAIN_TYPES_CONFIG = {
     encounterChanceOnEnter: 5, encounterChanceOnDiscover: 1,
     elevationColor: (elevation) => LAVA_TUBE_COLOR,
   },
-
   [TerrainType.SHALLOW_WATER]: {
     name: 'Shallow Water', symbol: '얕', color: 'fill-sky-400',
     speedMultiplier: 1.5, visibilityFactor: 0.8,
@@ -533,7 +513,6 @@ export const TERRAIN_TYPES_CONFIG = {
       return TRENCH_UPPER_COLOR;
     },
   },
-
   [TerrainType.SKELETAL_FOREST]: {
     name: 'Skeletal Forest', symbol: '💀', color: 'fill-gray-300',
     speedMultiplier: 2.2, visibilityFactor: 0.6,
@@ -643,31 +622,12 @@ export const TERRAIN_TYPES_CONFIG = {
   },
 };
 
-export const DEFAULT_TERRAIN_TYPE = TerrainType.PLAINS;
-
-export const MOUNTAIN_THRESHOLD = 600;
-export const HILLS_THRESHOLD = 300;
-
-export const INITIAL_PLAYER_COL = 0;
-export const INITIAL_PLAYER_ROW = 0;
-export const PLAYER_MARKER_COLOR = 'fill-red-500';
-export const FOG_OF_WAR_COLOR = 'rgb(20, 20, 20)';
-export const DISCOVERED_DIM_OPACITY = 0.6;
-export const DEFAULT_APP_MODE = AppMode.HEX_EDITOR;
-export const DEFAULT_VIEW_MODE = ViewMode.TWOD;
-
-export const HEX_3D_PROJECTED_Y_SHIFT_PER_ELEVATION_UNIT = 0.05;
-export const HEX_3D_PROJECTED_DEPTH_PER_ELEVATION_UNIT = 0.05;
-export const HEX_3D_Y_SQUASH_FACTOR = 1.0;
-export const HEX_3D_SIDE_COLOR_DARKEN_FACTOR = 0.25;
-export const HEX_3D_MIN_VISUAL_DEPTH = 1.5;
-
 export const PARTY_ACTIVITIES = {
   avoid_notice: {
     id: 'avoid_notice',
     name: 'Avoid Notice',
     description: 'Attempt Stealth (Perception DC) while traveling at half speed. On encounter start, use Stealth for initiative and detection.',
-    movementPenaltyFactor: 2.0, // Half speed means time taken is x2
+    movementPenaltyFactor: 2.0, 
     traits: ['Exploration'],
     source: 'Player Core pg. 438'
   },
@@ -691,7 +651,7 @@ export const PARTY_ACTIVITIES = {
     id: 'follow_expert',
     name: 'Follow the Expert',
     description: 'Match ally\'s skill check (e.g., Climb, Avoid Notice). Add level to skill, gain circumstance bonus from ally.',
-    movementPenaltyFactor: 1.0, // This activity itself doesn't impose a penalty; it depends on the expert's activity.
+    movementPenaltyFactor: 1.0, 
     traits: ['Auditory', 'Concentrate', 'Exploration', 'Visual'],
     source: 'Player Core pg. 438'
   },
@@ -699,7 +659,7 @@ export const PARTY_ACTIVITIES = {
     id: 'hustle',
     name: 'Hustle',
     description: 'Move at double travel speed for Con mod × 10 minutes (min 10 min). Group uses lowest Con.',
-    movementPenaltyFactor: 0.5, // Double speed means time taken is x0.5
+    movementPenaltyFactor: 0.5, 
     traits: ['Exploration', 'Move'],
     source: 'Player Core pg. 438'
   },

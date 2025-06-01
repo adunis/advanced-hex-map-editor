@@ -9,18 +9,12 @@ import * as HexplorationLogic from './hexploration-logic.js';
 
 const APP_MODULE_ID = new URLSearchParams(window.location.search).get('moduleId');
 
-/**
- * Main message handler for communication with the parent window (Foundry bridge).
- */
 window.addEventListener('message', (event) => {
     const { type, payload, moduleId: msgModuleId } = event.data || {};
 
     if (!type || msgModuleId !== APP_MODULE_ID) {
-        // console.warn("AHME IFRAME: Ignoring message - no type or mismatched moduleId.", event.data);
         return;
     }
-
-    // console.log(`AHME IFRAME: Received message: ${type}`, payload);
 
     switch(type) {
         case 'initialData':
@@ -146,40 +140,29 @@ window.addEventListener('message', (event) => {
             }
             break;
         
-case 'partyDataUpdated':
+        case 'partyDataUpdated':
             if (payload && payload.mapId === appState.currentMapId) {
                 let needsRender = false;
-                let centerViewOnMarker = false;
+                let explicitCenteringNeeded = false; 
 
                 if (payload.hasOwnProperty('partyMarkerPosition')) {
-                    if (!appState.isGM) { // Player client
-                        if (JSON.stringify(appState.partyMarkerPosition) !== JSON.stringify(payload.partyMarkerPosition)) {
-                            appState.partyMarkerPosition = payload.partyMarkerPosition;
-                            needsRender = true;
-                            if (appState.partyMarkerPosition) {
-                                centerViewOnMarker = true;
-                            }
-                        }
-                    } else { // GM client
-                        if (JSON.stringify(appState.partyMarkerPosition) !== JSON.stringify(payload.partyMarkerPosition)) {
-                            appState.partyMarkerPosition = payload.partyMarkerPosition;
-                            needsRender = true;
+                    const oldMarkerPosId = appState.partyMarkerPosition ? appState.partyMarkerPosition.id : null;
+                    appState.partyMarkerPosition = payload.partyMarkerPosition; 
+                    
+                    if (appState.partyMarkerPosition && oldMarkerPosId !== appState.partyMarkerPosition.id) {
+                        if (appState.appMode === CONST.AppMode.PLAYER && !appState.isGM) {
+                            appState.centerViewOnHexAfterRender = appState.partyMarkerPosition.id;
+                            explicitCenteringNeeded = true;
                         }
                     }
+                    needsRender = true; 
                 }
 
                 if (payload.discoveredHexIds && Array.isArray(payload.discoveredHexIds)) {
                     const newSet = new Set(payload.discoveredHexIds);
-                    if (!appState.isGM) {
-                        if (appState.playerDiscoveredHexIds.size !== newSet.size || ![...appState.playerDiscoveredHexIds].every(id => newSet.has(id))) {
-                            appState.playerDiscoveredHexIds = newSet;
-                            needsRender = true;
-                        }
-                    } else {
-                        if (appState.playerDiscoveredHexIds.size !== newSet.size || ![...appState.playerDiscoveredHexIds].every(id => newSet.has(id))) {
-                            appState.playerDiscoveredHexIds = newSet;
-                            needsRender = true;
-                        }
+                    if (appState.playerDiscoveredHexIds.size !== newSet.size || ![...appState.playerDiscoveredHexIds].every(id => newSet.has(id))) {
+                        appState.playerDiscoveredHexIds = newSet;
+                        needsRender = true;
                     }
                 }
 
@@ -192,54 +175,35 @@ case 'partyDataUpdated':
                 
                 if (needsRender) {
                     MapLogic.updatePartyMarkerBasedLoS(); 
-                    if (centerViewOnMarker && appState.partyMarkerPosition && appState.appMode === CONST.AppMode.PLAYER && !appState.isGM) {
-                         appState.centerViewOnHexAfterRender = appState.partyMarkerPosition.id;
-                    } else {
-                         centerViewOnMarker = false; // ensure it's reset if not centering
-                    }
-                    renderApp({ preserveScroll: !centerViewOnMarker }); 
+                    
+                    const shouldPreserveScroll = !explicitCenteringNeeded && 
+                                                 !(appState.appMode === CONST.AppMode.PLAYER && appState.partyMarkerPosition);
+
+                    renderApp({ preserveScroll: shouldPreserveScroll }); 
                 }
             }
             break;
         
-                    case 'forceMapReload': // NEW CASE specifically for player clients
+        case 'forceMapReload': 
             if (payload && payload.mapId && !appState.isGM) {
                 if (appState.currentMapId === payload.mapId) {
-                    console.log(`AHME_IFRAME (Player ${appState.userId}): Received 'forceMapReload' for current map ${payload.mapId}. Reloading...`);
-                    MapManagement.handleOpenMap(payload.mapId, true); // true = isAutomaticOpen
-                } else {
-                    console.warn(`AHME_IFRAME (Player ${appState.userId}): Received 'forceMapReload' for map ${payload.mapId}, but current map is ${appState.currentMapId}. Ignoring.`);
+                    MapManagement.handleOpenMap(payload.mapId, true); 
                 }
-            } else if (appState.isGM) {
-                 console.debug(`AHME_IFRAME (GM ${appState.userId}): Received 'forceMapReload', GM typically doesn't force reload itself this way. Ignoring.`);
             }
             break;
             
-
-
         case 'activeMapChanged': 
-            // This handler is primarily for when the GM *switches* their globally active map.
-            // Or when the app first loads and needs to open the GM's active map.
             const newActiveGmMapIdFromSetting = payload.activeGmMapId; 
             const oldActiveGmMapId = appState.activeGmMapId;
             appState.activeGmMapId = newActiveGmMapIdFromSetting; 
 
-            // console.log(`AHME IFRAME: activeMapChanged (from setting hook) from ${oldActiveGmMapId} to ${newActiveGmMapIdFromSetting}. Current loaded map: ${appState.currentMapId}`);
-
             if (newActiveGmMapIdFromSetting) {
-                // If player isn't viewing this map, or map isn't initialized, load it.
                 if (appState.currentMapId !== newActiveGmMapIdFromSetting || !appState.mapInitialized) {
-                    // console.log(`AHME IFRAME: Triggering map open/reload for ${newActiveGmMapIdFromSetting} due to activeMapChanged.`);
-                    MapManagement.handleOpenMap(newActiveGmMapIdFromSetting, true); // isAutomaticOpen = true
+                    MapManagement.handleOpenMap(newActiveGmMapIdFromSetting, true); 
                 } else if (appState.currentMapId === newActiveGmMapIdFromSetting) {
-                    // Player is already viewing this map, but the activeMapId setting was re-affirmed.
-                    // This case *could* also trigger a reload, but activeMapContentRefreshed is more specific for content updates.
-                    // For safety, a reload here ensures sync if other mechanisms fail.
-                    // console.log(`AHME IFRAME: Active map ID ${newActiveGmMapIdFromSetting} re-affirmed. Reloading.`);
                     MapManagement.handleOpenMap(newActiveGmMapIdFromSetting, true);
                 }
             } else {
-                // No map is globally active. Reset if this client was viewing something.
                 if (appState.currentMapId || appState.mapInitialized) {
                     resetActiveMapState();
                     appState.currentMapId = null;
@@ -249,56 +213,36 @@ case 'partyDataUpdated':
             }
             break;
 
-        case 'activeMapContentRefreshed': // NEW CASE from socket
+        case 'activeMapContentRefreshed': 
             if (payload && payload.mapId === appState.currentMapId && !appState.isGM) {
-                // Player client is viewing the map whose content was just updated by GM (e.g. party move).
-                // console.log(`AHME IFRAME (Player): Received activeMapContentRefreshed for current map ${payload.mapId}. Reloading.`);
-                MapManagement.handleOpenMap(payload.mapId, true); // true for automatic, no confirm needed
-            } else if (payload && payload.mapId === appState.currentMapId && appState.isGM) {
-                // GM client also receives this if they have an iframe open.
-                // Their partyDataUpdated handler should have already updated their local state from their own save action.
-                // A full reload might be redundant or even disruptive if they were in the middle of an edit.
-                // However, to ensure consistency if their local update failed, a soft refresh might be considered.
-                // For now, let's assume GM's local `partyDataUpdated` is sufficient.
-                // console.log(`AHME IFRAME (GM): Received activeMapContentRefreshed for current map ${payload.mapId}. GM local updates should suffice.`);
+                MapManagement.handleOpenMap(payload.mapId, true); 
             }
             break;
 
-
         case 'formInputResponse':
-            // console.log("AHME IFRAME: formInputResponse received. Waiting?", appState.isWaitingForFormInput, "Callback?", typeof appState.formInputCallback);
             if (appState.isWaitingForFormInput && typeof appState.formInputCallback === 'function') {
-                appState.formInputCallback(payload); // Callback MUST reset isWaitingForFormInput and formInputCallback itself
+                appState.formInputCallback(payload); 
             } else { 
-                // console.warn("AHME IFRAME: formInputResponse received but not waiting or no callback.");
-                // This case can happen if multiple dialogs were somehow triggered or a race condition.
-                // It's generally safer to reset these if a response comes in unexpectedly.
                 appState.isWaitingForFormInput = false;
                 appState.formInputCallback = null;
-                // Potentially renderApp() if a UI element was expecting this state to be cleared.
             }
             break;
 
         case 'featureDetailsInputResponse':
-            // console.log("AHME IFRAME: featureDetailsInputResponse received. Waiting?", appState.isWaitingForFeatureDetails, "Callback?", typeof appState.featureDetailsCallback);
             if (appState.isWaitingForFeatureDetails && typeof appState.featureDetailsCallback === 'function') {
-                // Ensure response corresponds to the pending request for safety, though not strictly necessary if only one can be pending.
                 if (appState.pendingFeaturePlacement && payload && appState.pendingFeaturePlacement.hexId === payload.hexId) {
-                    appState.featureDetailsCallback(payload); // Callback MUST reset the waiting state and its own reference.
+                    appState.featureDetailsCallback(payload); 
                 } else {
-                    // console.warn("AHME IFRAME: Mismatched or unexpected featureDetailsInputResponse.", { pending: appState.pendingFeaturePlacement, received: payload });
-                    // Mismatched or unexpected response, clear pending state to avoid issues
                     appState.isWaitingForFeatureDetails = false; 
                     appState.featureDetailsCallback = null; 
                     appState.pendingFeaturePlacement = null;
-                    renderApp(); // Render to clear any waiting UI state
+                    renderApp(); 
                 }
             } else {
-                // console.warn("AHME IFRAME: featureDetailsInputResponse received but not waiting or no callback.");
                 appState.isWaitingForFeatureDetails = false;
                 appState.featureDetailsCallback = null;
                 appState.pendingFeaturePlacement = null;
-                renderApp(); // Important to clear UI if it was stuck in a waiting state
+                renderApp(); 
             }
             break;
 
@@ -310,7 +254,6 @@ case 'partyDataUpdated':
             break;
         
         default:
-            // console.warn("AHME IFRAME: Received unhandled message type:", type, payload);
             break;
     }
 });
@@ -329,7 +272,6 @@ async function start() {
 
     if (window.parent && APP_MODULE_ID && typeof window.parent.postMessage === 'function') {
         try {
-            // console.log("AHME IFRAME: Sending jsAppReady to parent.");
             window.parent.postMessage({ type: 'jsAppReady', moduleId: APP_MODULE_ID }, '*');
         } catch (e) {
             console.error("AHME IFRAME: Error sending 'jsAppReady' to parent:", e);

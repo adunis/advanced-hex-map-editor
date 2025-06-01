@@ -151,18 +151,8 @@
       
       {{!-- Grid Admin --}}
       <div class="mt-3 pt-2 border-t border-gray-600">
-        <h4 class="text-md font-semibold text-sky-300 mb-1">Grid Admin</h4>
-        <div class="grid grid-cols-2 gap-1.5 mb-1.5">
-          <div>
-            <label for="gridWidth" class="block text-xs font-medium text-gray-300">Width:</label>
-            <input type="number" id="gridWidth" name="gridWidth" value="{{currentGridWidth}}" min="{{CONST.MIN_GRID_DIMENSION}}" max="{{CONST.MAX_GRID_DIMENSION}}" class="w-full p-1 border border-gray-600 rounded-md bg-gray-800 text-gray-200 text-xs">
-          </div>
-          <div>
-            <label for="gridHeight" class="block text-xs font-medium text-gray-300">Height:</label>
-            <input type="number" id="gridHeight" name="gridHeight" value="{{currentGridHeight}}" min="{{CONST.MIN_GRID_DIMENSION}}" max="{{CONST.MAX_GRID_DIMENSION}}" class="w-full p-1 border border-gray-600 rounded-md bg-gray-800 text-gray-200 text-xs">
-          </div>
-        </div>
-        <button id="applyResizeButton" class="w-full px-3 py-1.5 rounded-md bg-orange-600 hover:bg-orange-700 text-white shadow hover:shadow-md text-xs sm:text-sm mb-1.5">Apply Resize (Resets Hexes)</button>
+        <h4 class="text-md font-semibold text-sky-300 mb-1">Map Reset Options</h4>
+        {{!-- "Apply Resize" button and width/height inputs removed --}}
         <button id="resetGridButton" class="w-full px-3 py-1.5 rounded-md bg-red-700 hover:bg-red-800 text-white shadow hover:shadow-md text-xs sm:text-sm mb-1.5">Reset Grid (Clear All Hexes)</button>
         <button id="resetExplorationButton" class="w-full px-3 py-1.5 rounded-md bg-yellow-600 hover:bg-yellow-700 text-gray-800 shadow hover:shadow-md text-xs sm:text-sm">Reset Exploration & Marker</button>
       </div>

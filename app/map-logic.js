@@ -117,7 +117,14 @@ export function calculateLineOfSight(sourceHexId, currentHexDataMap) {
     return visibleHexIds;
 }
 
-export function initializeGridData(width, height, loadedHexes = [], mapIsNewAndUnsaved = false) {
+export function initializeGridData(
+    width, 
+    height, 
+    loadedHexes = [], 
+    mapIsNewAndUnsaved = false, 
+    defaultElevation = CONST.INITIAL_ELEVATION, 
+    defaultTerrain = CONST.DEFAULT_TERRAIN_TYPE
+) {
     const grid = [], newHexMap = new Map();
     (loadedHexes || []).forEach(hex => {
         if (hex.q === undefined) { const c = HEX_UTILS.offsetToCube(hex.col, hex.row); hex.q = c.q; hex.r = c.r; hex.s = c.s; }
@@ -136,7 +143,7 @@ export function initializeGridData(width, height, loadedHexes = [], mapIsNewAndU
                 const { q, r: cubeR, s } = HEX_UTILS.offsetToCube(c, r_idx);
                 hex = {
                     col: c, row: r_idx, q, r: cubeR, s, id,
-                    elevation: CONST.INITIAL_ELEVATION, terrain: CONST.DEFAULT_TERRAIN_TYPE,
+                    elevation: defaultElevation, terrain: defaultTerrain,
                     baseVisibility: CONST.INITIAL_BASE_VISIBILITY,
                     feature: CONST.TerrainFeature.NONE.toLowerCase(), featureName: "", featureIcon: null,
                     featureIconColor: null
@@ -147,7 +154,6 @@ export function initializeGridData(width, height, loadedHexes = [], mapIsNewAndU
     }
     appState.hexGridData = grid; appState.hexDataMap = newHexMap;
     appState.currentGridWidth = width; appState.currentGridHeight = height;
-    appState.tempGridWidth = width.toString(); appState.tempGridHeight = height.toString();
     appState.editorLosSourceHexId = null; appState.editorVisibleHexIds = new Set();
     appState.isEditorLosSelectMode = false; appState.lastMovementInfo = null;
     appState.mapInitialized = true;
@@ -331,7 +337,7 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
         let terrainModifiedTime = baseTimeValue * targetTerrainConfig.speedMultiplier * overallActivityPenaltyFactor;
 
         let elevationTimePenalty = 0;
-        if (previousHex && !isExploringCurrentHex) { // No elevation penalty if exploring same hex
+        if (previousHex && !isExploringCurrentHex) { 
             const elevationDiff = targetHex.elevation - previousHex.elevation;
             elevationTimePenalty = (Math.abs(elevationDiff) / 100) * CONST.ELEVATION_TIME_PENALTY_FACTOR_PER_100M;
         }
@@ -344,6 +350,7 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
         const direction = getTravelDirection(previousHex, targetHex, isExploringCurrentHex);
         updatePartyMarkerBasedLoS();
         appState.isCurrentMapDirty = true;
+        appState.centerViewOnHexAfterRender = targetHex.id; 
 
         const encounterOnEnterDetails = await checkRandomEncountersOnEnter(targetHex);
 
@@ -388,10 +395,9 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
         if (window.parent && APP_MODULE_ID) { window.parent.postMessage({ type: 'gmPerformedHexplorationAction', payload: { action: hexplorationActionType, kmCost: kmCost, hoursCost: hoursCost, logEntry: travelLogEntry }, moduleId: APP_MODULE_ID }, '*');}
           console.log(`%cAHME_IFRAME (GM ${appState.userId}): Calling handleSaveCurrentMap(true) for map ${appState.currentMapId} after party move.`, "color: magenta; font-weight:bold;");
         if (appState.currentMapId) {
-            handleSaveCurrentMap(true); // true for auto-save
+            handleSaveCurrentMap(true); 
         }
-        appState.centerViewOnHexAfterRender = targetHex.id;
-
+        
         if (!(encounterOnEnterDetails && encounterOnEnterDetails.added)) {
             renderApp();
         }
@@ -494,42 +500,6 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
     }
 }
 
-export function handleGridResize(newWidthStr, newHeightStr) {
-    if (!appState.isGM) { alert("Only GMs can resize map."); return; }
-    const newWidth = parseInt(newWidthStr, 10); const newHeight = parseInt(newHeightStr, 10);
-    if (isNaN(newWidth) || isNaN(newHeight) || newWidth < CONST.MIN_GRID_DIMENSION || newWidth > CONST.MAX_GRID_DIMENSION || newHeight < CONST.MIN_GRID_DIMENSION || newHeight > CONST.MAX_GRID_DIMENSION) {
-        alert(`Invalid dimensions. Min/Max: ${CONST.MIN_GRID_DIMENSION}/${CONST.MAX_GRID_DIMENSION}.`);
-        appState.tempGridWidth = appState.currentGridWidth.toString(); appState.tempGridHeight = appState.currentGridHeight.toString();
-        renderApp(); return;
-    }
-    if (newWidth === appState.currentGridWidth && newHeight === appState.currentGridHeight) return;
-    if (appState.mapInitialized && appState.currentMapName && !confirm("Resizing will reset the current map context (layout, hex data, exploration). Name and scale settings kept. Save required. Continue?")) {
-        appState.tempGridWidth = appState.currentGridWidth.toString(); appState.tempGridHeight = appState.currentGridHeight.toString();
-        renderApp(); return;
-    }
-    const oldName = appState.currentMapName, oldId = appState.currentMapId;
-    const { currentMapHexSizeValue, currentMapHexSizeUnit, currentMapHexTraversalTimeValue, currentMapHexTraversalTimeUnit, zoomLevel } = appState;
-    appState.partyMarkerPosition = null;
-    initializeGridData(newWidth, newHeight, [], true);
-    appState.currentMapName = oldName; appState.currentMapId = oldId;
-    appState.currentMapHexSizeValue = currentMapHexSizeValue;
-    appState.currentMapHexSizeUnit = currentMapHexSizeUnit;
-    appState.currentMapHexTraversalTimeValue = currentMapHexTraversalTimeValue;
-    appState.currentMapHexTraversalTimeUnit = currentMapHexTraversalTimeUnit;
-    appState.zoomLevel = 1.0;
-
-    appState.isCurrentMapDirty = true;
-
-    if (appState.appMode === CONST.AppMode.PLAYER && appState.partyMarkerPosition) {
-        appState.centerViewOnHexAfterRender = appState.partyMarkerPosition.id;
-    } else if (appState.mapInitialized) {
-        const firstHex = appState.hexDataMap.values().next().value;
-        if (firstHex) appState.centerViewOnHexAfterRender = firstHex.id;
-    }
-    renderApp();
-}
-
-
 export function handleAppModeChange(newMode) {
     if (appState.appMode === newMode) return;
     appState.appMode = newMode;
@@ -603,12 +573,9 @@ export function calculateAndApplyScrollForHex(hexId, svgScrollContainerId = 'svg
 export function setTargetScrollForHexBasedOnCurrentCenter(oldZoom, newZoom) {
     const svgScrollContainer = document.getElementById('svg-scroll-container');
     if (!svgScrollContainer) {
-        appState.centerViewOnHexAfterRender = null;
-        return;
-    }
-
-    if (appState.partyMarkerPosition) {
-        requestCenteringOnHex(appState.partyMarkerPosition.id);
+        appState.targetScrollLeft = null;
+        appState.targetScrollTop = null;
+        appState.centerViewOnHexAfterRender = null; 
         return;
     }
 
@@ -619,10 +586,10 @@ export function setTargetScrollForHexBasedOnCurrentCenter(oldZoom, newZoom) {
     const currentViewportCenterY_scaled = svgScrollContainer.scrollTop + containerHeight / 2;
 
     const currentViewportCenterX_unzoomed = currentViewportCenterX_scaled / oldZoom;
-    const currentViewportCenterY_unzoomed = currentViewportCenterY_scaled / oldZoom;
+    const currentViewportCenterY_unzoomed = currentViewportCenterY_scaled / oldZoom; 
 
     appState.targetScrollLeft = (currentViewportCenterX_unzoomed * newZoom) - (containerWidth / 2);
     appState.targetScrollTop = (currentViewportCenterY_unzoomed * newZoom) - (containerHeight / 2);
 
-    appState.centerViewOnHexAfterRender = null;
+    appState.centerViewOnHexAfterRender = null; 
 }

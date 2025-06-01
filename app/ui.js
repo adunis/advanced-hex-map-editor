@@ -8,7 +8,6 @@ import * as HexplorationLogic from "./hexploration-logic.js";
 let mainTemplateCompiled;
 const appContainer = document.getElementById("app-container");
 
-// ... (lerpColor, getDynamicFillColor, compileTemplates - keep these as they are)
 export function lerpColor(color1Str, color2Str, factor) {
   const parse = (s) => s.match(/\d+/g)?.map(Number);
   const c1 = parse(color1Str);
@@ -33,11 +32,10 @@ export function getDynamicFillColor(hexData) {
     const defaultTerrainConfig = CONST.TERRAIN_TYPES_CONFIG[CONST.DEFAULT_TERRAIN_TYPE];
     return defaultTerrainConfig ? defaultTerrainConfig.color : 'rgb(128,128,128)';
   }
-  // This is a simplified version, refer to your original for full color logic
   if (typeof terrainConfig.elevationColor === 'function') { 
     return terrainConfig.elevationColor(elevation, terrainConfig.color); 
   }
-  return terrainConfig.color || 'rgb(128,128,128)'; // Fallback
+  return terrainConfig.color || 'rgb(128,128,128)'; 
 }
 
 export async function compileTemplates() {
@@ -61,7 +59,7 @@ export async function compileTemplates() {
         capitalize: (s) => s ? s.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()) : "", 
         capitalizeFirst: function (string) { if (!string || typeof string !== "string") return ""; return string.charAt(0).toUpperCase() + string.slice(1); }, 
         typeCapitalized: function(logEntry) { if (logEntry && logEntry.type) { return logEntry.type.charAt(0).toUpperCase() + logEntry.type.slice(1); } return "Event"; }, 
-        toPrecise: function (value, precision = 1) { // Defaulted precision to 1 for event log
+        toPrecise: function (value, precision = 1) { 
             if (typeof value === "number") return value.toFixed(precision); 
             const num = parseFloat(value); 
             if (!isNaN(num)) return num.toFixed(precision); 
@@ -275,7 +273,7 @@ export function renderApp(options = {}) {
                 featureAriaLabelString = curHex.featureName || "Secret"; 
                 featureIconComputedClassString = curHex.featureIconColor || CONST.DEFAULT_SECRET_ICON_COLOR_CLASS; 
             } else { 
-                featureDisplayIconString = ""; // Secrets not visible to players
+                featureDisplayIconString = ""; 
             } 
         } 
         
@@ -359,8 +357,8 @@ export function renderApp(options = {}) {
         svgViewBoxWidth, 
         svgViewBoxHeight, 
         hasValidGridDataAndInitialized,
-        activePartyActivitiesCount: appState.activePartyActivities.size, // Added for .size issue
-        isActivePartyActivity: (id) => appState.activePartyActivities.has(id) // Added for .has issue
+        activePartyActivitiesCount: appState.activePartyActivities.size, 
+        isActivePartyActivity: (id) => appState.activePartyActivities.has(id) 
     };
 
     appContainer.innerHTML = mainTemplateCompiled(renderContext);
@@ -375,17 +373,41 @@ export function renderApp(options = {}) {
             svgElement.style.transform = `scale(${appState.zoomLevel})`;
             svgElement.style.transformOrigin = "0 0";
 
+            let scrollSet = false;
+
             if (appState.centerViewOnHexAfterRender) {
-                MapLogic.calculateAndApplyScrollForHex(appState.centerViewOnHexAfterRender, 'svg-scroll-container');
-                appState.centerViewOnHexAfterRender = null;
-            } else if (appState.targetScrollLeft !== null && appState.targetScrollTop !== null) {
-                newSvgScrollContainer.scrollLeft = appState.targetScrollLeft;
-                newSvgScrollContainer.scrollTop = appState.targetScrollTop;
+                MapLogic.calculateAndApplyScrollForHex(appState.centerViewOnHexAfterRender, newSvgScrollContainer.id);
+                appState.centerViewOnHexAfterRender = null; 
+                scrollSet = true;
+            }
+            
+            if (!scrollSet && 
+                appState.appMode === CONST.AppMode.PLAYER &&
+                appState.partyMarkerPosition) {
+                MapLogic.calculateAndApplyScrollForHex(appState.partyMarkerPosition.id, newSvgScrollContainer.id);
+                scrollSet = true;
                 appState.targetScrollLeft = null;
                 appState.targetScrollTop = null;
-            } else if (options.preserveScroll && svgScrollContainerPrior) {
+            }
+
+            if (!scrollSet && appState.targetScrollLeft !== null && appState.targetScrollTop !== null) {
+                newSvgScrollContainer.scrollLeft = appState.targetScrollLeft;
+                newSvgScrollContainer.scrollTop = appState.targetScrollTop;
+                appState.targetScrollLeft = null; 
+                appState.targetScrollTop = null;  
+                scrollSet = true;
+            }
+            
+            if (!scrollSet && options.preserveScroll && svgScrollContainerPrior) {
                 newSvgScrollContainer.scrollLeft = oldScrollLeft;
                 newSvgScrollContainer.scrollTop = oldScrollTop;
+                scrollSet = true;
+            }
+
+            if (!scrollSet && !svgScrollContainerPrior && appState.mapInitialized) { 
+                 const firstHex = appState.hexDataMap.values().next().value;
+                 if(firstHex) MapLogic.calculateAndApplyScrollForHex(firstHex.id, newSvgScrollContainer.id);
+                 scrollSet = true; 
             }
         }
     }
@@ -402,37 +424,30 @@ export function attachEventListeners() {
   const el = (id) => document.getElementById(id);
   const qsa = (sel) => document.querySelectorAll(sel);
 
-  // Terrain Type Select (Hex Editor Mode)
   const terrainSelect = el("terrainTypeSelect");
   if (terrainSelect) {
     terrainSelect.onchange = (e) => {
       appState.selectedTerrainType = e.target.value;
-      // No re-render needed just for selection change
     };
   }
 
-  // Feature Type Select (Hex Editor Mode)
   const featureSelect = el("featureToggleSelect");
   if (featureSelect) {
     featureSelect.onchange = (e) => {
       appState.selectedFeatureType = e.target.value;
-      // No re-render needed just for selection change, it affects next paint click
-      // If UI elements depended on this (e.g. showing name/icon fields), then render would be needed
     };
   }
 
-  // Saved Map Select Dropdown - Auto-load on change
   const savedMapSelect = el("savedMapSelect");
   if (savedMapSelect) {
     savedMapSelect.onchange = (event) => {
       const mapId = event.target.value;
-      if (mapId) { // Ensure an actual map ID is selected, not the placeholder
-        MapManagement.handleOpenMap(mapId, false); // false = not an automatic open, will check for dirty state
+      if (mapId) { 
+        MapManagement.handleOpenMap(mapId, false); 
       }
     };
   }
 
-  // Open Selected Map Button (can be kept as an alternative or removed if auto-load is sufficient)
   const openSelectedMapBtn = el("openSelectedMapButton");
   if (openSelectedMapBtn && savedMapSelect) { 
     openSelectedMapBtn.onclick = () => {
@@ -445,7 +460,6 @@ export function attachEventListeners() {
     };
   }
 
-  // Delete Selected Map Button
   const deleteSelectedMapBtn = el("deleteSelectedMapButton");
   if (deleteSelectedMapBtn && savedMapSelect) {
     deleteSelectedMapBtn.onclick = () => {
@@ -460,7 +474,6 @@ export function attachEventListeners() {
     };
   }
 
-  // View Mode Buttons (2D/3D)
   qsa('[data-action="change-view-mode"]').forEach((b) => {
       b.onclick = () => {
         const oldViewMode = appState.viewMode;
@@ -470,29 +483,26 @@ export function attachEventListeners() {
         appState.targetScrollTop = null;
 
         if (appState.appMode === CONST.AppMode.PLAYER && appState.partyMarkerPosition) {
-            MapLogic.requestCenteringOnHex(appState.partyMarkerPosition.id);
-            renderApp(); // Render to apply centering
+             // Rely on renderApp's new default player mode centering
         } else if (oldViewMode !== appState.viewMode) {
             MapLogic.setTargetScrollForHexBasedOnCurrentCenter(appState.zoomLevel, appState.zoomLevel);
-            renderApp(); // Render to apply scroll targeting
-        } else {
-            renderApp({ preserveScroll: true }); // Just re-render if mode didn't change but button was clicked
         }
+        renderApp(); 
       };
   });
 
-  // Hexploration: Start New Day
   if (el("newHexplorationDayBtn")) {
     el("newHexplorationDayBtn").onclick = HexplorationLogic.startNewHexplorationDay;
   }
 
-  // Zoom Controls
   const zoomInBtn = el("zoomInButton"); 
   if (zoomInBtn) zoomInBtn.onclick = () => { 
       const oldZoom = appState.zoomLevel; 
       appState.zoomLevel = Math.min(appState.maxZoom, appState.zoomLevel + appState.zoomStep); 
       if (el("zoomSlider")) el("zoomSlider").value = appState.zoomLevel; 
-      MapLogic.setTargetScrollForHexBasedOnCurrentCenter(oldZoom,appState.zoomLevel); 
+      if (!(appState.appMode === CONST.AppMode.PLAYER && appState.partyMarkerPosition)) {
+        MapLogic.setTargetScrollForHexBasedOnCurrentCenter(oldZoom,appState.zoomLevel); 
+      }
       renderApp(); 
   };
   const zoomOutBtn = el("zoomOutButton"); 
@@ -500,14 +510,18 @@ export function attachEventListeners() {
       const oldZoom = appState.zoomLevel; 
       appState.zoomLevel = Math.max(appState.minZoom, appState.zoomLevel - appState.zoomStep); 
       if (el("zoomSlider")) el("zoomSlider").value = appState.zoomLevel; 
-      MapLogic.setTargetScrollForHexBasedOnCurrentCenter(oldZoom,appState.zoomLevel); 
+      if (!(appState.appMode === CONST.AppMode.PLAYER && appState.partyMarkerPosition)) {
+        MapLogic.setTargetScrollForHexBasedOnCurrentCenter(oldZoom,appState.zoomLevel); 
+      }
       renderApp(); 
   };
   const zoomSlider = el("zoomSlider"); 
   if (zoomSlider) zoomSlider.oninput = (e) => { 
       const oldZoom = appState.zoomLevel; 
       appState.zoomLevel = parseFloat(e.target.value); 
-      MapLogic.setTargetScrollForHexBasedOnCurrentCenter(oldZoom,appState.zoomLevel); 
+      if (!(appState.appMode === CONST.AppMode.PLAYER && appState.partyMarkerPosition)) {
+        MapLogic.setTargetScrollForHexBasedOnCurrentCenter(oldZoom,appState.zoomLevel); 
+      }
       renderApp(); 
   };
   const resetZoomBtn = el("resetZoomButton"); 
@@ -515,28 +529,19 @@ export function attachEventListeners() {
       const oldZoom = appState.zoomLevel; 
       appState.zoomLevel = 1.0; 
       if (el("zoomSlider")) el("zoomSlider").value = appState.zoomLevel; 
-      MapLogic.setTargetScrollForHexBasedOnCurrentCenter(oldZoom,appState.zoomLevel); 
+      if (!(appState.appMode === CONST.AppMode.PLAYER && appState.partyMarkerPosition)) {
+        MapLogic.setTargetScrollForHexBasedOnCurrentCenter(oldZoom,appState.zoomLevel); 
+      }
       renderApp(); 
   };
 
-  // App Mode Toggle (Hex Editor / Player View)
   qsa('[data-action="change-app-mode"]').forEach((b) => { 
       b.onclick = () => { MapLogic.handleAppModeChange(b.dataset.mode); }; 
   });
 
-  // Grid Resize Inputs
-  const gwIn = el("gridWidth"); 
-  if (gwIn) gwIn.onchange = (e) => (appState.tempGridWidth = parseInt(e.target.value,10) || CONST.INITIAL_GRID_WIDTH);
-  const ghIn = el("gridHeight"); 
-  if (ghIn) ghIn.onchange = (e) => (appState.tempGridHeight = parseInt(e.target.value,10) || CONST.INITIAL_GRID_HEIGHT);
-  if (el("applyResizeButton")) el("applyResizeButton").onclick = () => { MapLogic.handleGridResize(appState.tempGridWidth, appState.tempGridHeight); };
-
-  // Helper for editor tool changes that need a re-render but should preserve scroll
   const createRenderAppWithScrollPreservation = (callback) => {
     return (...args) => {
       if (callback) callback(...args);
-      // For these minor UI state changes, we don't want to trigger complex recentering logic.
-      // Just preserve scroll.
       appState.centerViewOnHexAfterRender = null; 
       appState.targetScrollLeft = null;
       appState.targetScrollTop = null;
@@ -544,10 +549,8 @@ export function attachEventListeners() {
     };
   };
 
-  // Editor Paint Mode Buttons
   qsa('[data-action="change-paint-mode"]').forEach((b) => (b.onclick = createRenderAppWithScrollPreservation(() => { appState.paintMode = b.dataset.mode; })));
   
-  // Editor Brush Size Slider
   const bsIn = el("brushSize"); 
   if (bsIn) bsIn.oninput = createRenderAppWithScrollPreservation((e) => { 
       appState.brushSize = parseInt(e.target.value, 10);
@@ -555,15 +558,13 @@ export function attachEventListeners() {
       if (brushSizeValueDisplay) brushSizeValueDisplay.textContent = appState.brushSize;
   });
   
-  // Editor Elevation Mode Buttons
   qsa('[data-action="change-elevation-mode"]').forEach((b) => (b.onclick = createRenderAppWithScrollPreservation(() => { appState.elevationBrushMode = b.dataset.mode; })));
 
-  // Map Management Buttons
   const createBtn = el("createNewMapButton"); if (createBtn) createBtn.onclick = () => MapManagement.handleCreateNewMap();
   
   const saveBtn = el("saveCurrentMapButton"); 
   if (saveBtn) {
-      saveBtn.onclick = (event) => MapManagement.handleSaveCurrentMap(event); // Pass event for isAutoSave logic
+      saveBtn.onclick = (event) => MapManagement.handleSaveCurrentMap(event); 
   }
 
   const saveAsBtn = el("saveMapAsButton"); if (saveAsBtn) saveAsBtn.onclick = MapManagement.handleSaveMapAs;
@@ -576,8 +577,7 @@ export function attachEventListeners() {
   if (el("resetGridButton")) el("resetGridButton").onclick = MapManagement.handleResetGrid;
   if (el("resetExplorationButton")) el("resetExplorationButton").onclick = MapManagement.handleResetExplorationAndMarker;
 
-  // Editor LoS Tools
-  if (el("toggleLosButton")) el("toggleLosButton").onclick = () => { MapLogic.toggleEditorLosSelectMode(); } // toggleEditorLosSelectMode handles its own render
+  if (el("toggleLosButton")) el("toggleLosButton").onclick = () => { MapLogic.toggleEditorLosSelectMode(); } 
   if (el("clearLosButton")) {
     el("clearLosButton").onclick = createRenderAppWithScrollPreservation(() => {
         if (appState.appMode === CONST.AppMode.HEX_EDITOR) {
@@ -587,7 +587,6 @@ export function attachEventListeners() {
     });
   }
 
-  // Hex Grid Click Handler
   const hgSvg = el("hexGridSvg");
   if (hgSvg) hgSvg.onclick = (evt) => {
       const g = evt.target.closest("g[data-hex-id]");
@@ -596,9 +595,6 @@ export function attachEventListeners() {
         const c = parseInt(colStr, 10);
         const r = parseInt(rowStr, 10);
         if (!isNaN(c) && !isNaN(r)) {
-            // When clicking a hex for painting or party movement, we don't want to trigger
-            // the generic "preserve scroll" logic that might fight with "center on hex" logic.
-            // Let handleHexClick decide if centering is needed.
             appState.centerViewOnHexAfterRender = null; 
             appState.targetScrollLeft = null;
             appState.targetScrollTop = null;
@@ -607,7 +603,6 @@ export function attachEventListeners() {
       }
     };
 
-  // Event delegation for dynamically added checkboxes in the right panel (Party Activities)
   const rightPanel = el("right-panel");
   if (rightPanel) {
       rightPanel.addEventListener('change', (event) => {
@@ -621,8 +616,6 @@ export function attachEventListeners() {
               renderApp({ preserveScroll: true }); 
           }
       });
-      // Event delegation for Explore Current Hex Button (if it's dynamically added or part of right panel)
-      // Assuming 'exploreCurrentHexBtn' is inside 'right-panel'
       rightPanel.addEventListener('click', (event) => {
           if (event.target.id === 'exploreCurrentHexBtn' || event.target.closest('#exploreCurrentHexBtn')) {
               if (appState.partyMarkerPosition && appState.isGM && appState.appMode === CONST.AppMode.PLAYER) {
