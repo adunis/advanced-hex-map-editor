@@ -1,0 +1,23 @@
+{{! app/templates/hex-grid.hbs - Revised for dynamic SVG sizing }}
+{{!-- The div that was here with id="svg-scroll-container" has been removed.
+     The scrolling responsibility is now solely on the div with this ID in main.hbs --}}
+{{#if currentGridWidth}}
+    {{#if currentGridHeight}}
+        <svg
+            id="hexGridSvg"
+            viewBox="0 0 {{svgViewBoxWidth}} {{svgViewBoxHeight}}"
+            preserveAspectRatio="xMidYMid meet"
+            class="block"
+            aria-label="Hexagonal map grid"
+            style="transform-origin: 0 0;"
+        >
+            {{#each hexGridRenderData}}
+                {{> hexagon . }}
+            {{/each}}
+        </svg>
+    {{else}}
+        <p class="text-gray-400">Grid height is zero. Nothing to display.</p>
+    {{/if}}
+{{else}}
+        <p class="text-gray-400">Grid width is zero. Nothing to display.</p>
+{{/if}}

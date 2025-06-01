@@ -1,0 +1,128 @@
+<div class="flex flex-col h-screen antialiased text-gray-200 bg-gray-800">
+  {{!-- Header --}}
+  <header class="flex-shrink-0 flex items-center justify-between p-2 sm:p-3 bg-gray-900 shadow-md z-10">
+    <div class="flex items-center">
+      <svg class="w-6 h-6 sm:w-8 sm:h-8 text-sky-400 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+        <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.54.886.061 2.042 2.106 2.106 1.372.836 2.942-.734 2.106-2.106a1.532 1.532 0 012.287-.947c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-2.287-.947c.54-.886-.061-2.042-2.106-2.106a1.532 1.532 0 01-2.287.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+      </svg>
+      <h1 class="text-lg sm:text-xl font-semibold text-sky-300">Advanced Hex Map Editor</h1>
+    </div>
+    <div class="text-xs sm:text-sm text-gray-400">
+      {{#if currentMapName}}
+        <span class="font-medium">{{currentMapName}}</span>
+        {{#if currentMapId}}<span class="text-gray-500 ml-1">(ID: {{currentMapId}})</span>{{/if}}
+        {{#if isCurrentMapDirty}}<span class="text-yellow-400 ml-2">* Unsaved</span>{{/if}}
+      {{else}}
+        No Map Loaded
+      {{/if}}
+    </div>
+  </header>
+
+  {{!-- Main Content Area --}}
+  <main class="flex-grow flex p-2 sm:p-3 overflow-hidden">
+    {{!-- Left Control Panel --}}
+    {{> controls}}
+
+    {{!-- Center SVG Map Area --}}
+    <section id="center-panel" class="flex-grow flex flex-col bg-gray-850 rounded-lg shadow-inner overflow-hidden mx-2">
+      <div id="svg-scroll-container" class="flex-grow overflow-auto bg-gray-900 border border-gray-700 rounded-md relative">
+        {{#if hasValidGridDataAndInitialized}}
+          {{> hexGrid}}
+        {{else}}
+          <div class="flex items-center justify-center h-full">
+            <p class="text-gray-400 text-lg p-5 text-center">
+              {{#if currentMapName}}
+                Loading map "{{currentMapName}}"... If this persists, the map data might be corrupted or missing.
+              {{else}}
+                No map is currently active. Create or open a map using the controls.
+              {{/if}}
+            </p>
+          </div>
+        {{/if}}
+      </div>
+    </section>
+
+    {{!-- Right Panel: Hexploration Info & Event Log --}}
+    <aside id="right-panel" class="w-1/3 max-w-xs sm:max-w-sm flex flex-col flex-shrink-0 bg-gray-750 p-2 sm:p-3 ml-0 md:ml-2 rounded-lg shadow-lg overflow-hidden">
+      {{!-- Non-scrolling Hexploration Status part --}}
+      <div class="flex-shrink-0">
+        <h3 class="text-lg font-semibold text-sky-300 mb-2 border-b border-gray-600 pb-1">Hexploration Status</h3>
+        <div class="text-sm space-y-1 text-gray-200 mb-2">
+          <p><span class="text-gray-400">Mode:</span> <span class="font-semibold capitalize">{{capitalize appMode}}</span> ({{#if isGM}}GM{{else}}Player{{/if}} View)</p>
+          {{#if mapInitialized}}
+            <p><span class="text-gray-400">Hex Scale:</span> <span class="font-semibold">{{currentMapHexSizeValue}} {{getUnitLabelByKey currentMapHexSizeUnit "distance"}}</span></p>
+            <p><span class="text-gray-400">Base Travel:</span> <span class="font-semibold">{{currentMapHexTraversalTimeValue}} {{getUnitLabelByKey currentMapHexTraversalTimeUnit "time"}} / hex</span></p>
+          {{else}}
+             <p><span class="text-gray-400">Hex Scale:</span> <span class="font-semibold">N/A (No map loaded)</span></p>
+             <p><span class="text-gray-400">Base Travel:</span> <span class="font-semibold">N/A (No map loaded)</span></p>
+          {{/if}}
+          <p><span class="text-gray-400">Time Today:</span> <span class="font-semibold">{{toFixed hexplorationTimeElapsedHoursToday 1}}</span> / 24.0 h</p>
+          <p><span class="text-gray-400">KM Today:</span> <span class="font-semibold">{{toFixed hexplorationKmTraveledToday 1}}</span> km</p>
+          {{#if isGM}}
+            <button id="newHexplorationDayBtn" class="mt-2 w-full px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm shadow hover:shadow-md">Start New Day</button>
+          {{/if}}
+        </div>
+        
+        {{#if (eq appMode CONST.AppMode.PLAYER)}}
+        <hr class="my-2 sm:my-3 border-gray-600">
+        <h4 class="text-md font-semibold text-sky-300 mb-1">Active Party Activities:</h4>
+        <div id="active-party-activities-display" class="text-xs space-y-0.5 text-gray-300 mb-2">
+            {{!-- MODIFIED HERE --}}
+            {{#if activePartyActivitiesCount}}
+                <ul class="list-disc list-inside pl-1">
+                    {{#each (objValues CONST.PARTY_ACTIVITIES)}}
+                        {{!-- AND HERE --}}
+                        {{#if (../isActivePartyActivity this.id)}}
+                            <li title="{{this.source}}">
+                                <strong class="text-sky-400">{{this.name}}</strong>: {{this.description}} 
+                                (Speed x{{div 1 this.movementPenaltyFactor}})
+                            </li>
+                        {{/if}}
+                    {{/each}}
+                </ul>
+            {{else}}
+                <p class="italic text-gray-400">None (Party moving at normal speed for terrain).</p>
+            {{/if}}
+        </div>
+        {{/if}}
+
+        <hr class="my-2 sm:my-3 border-gray-600">
+        <h4 class="text-md font-semibold text-sky-300 mb-1">Event Log</h4>
+      </div>
+
+      {{!-- Scrolling Event Log part --}}
+      <div class="flex-grow overflow-y-auto bg-gray-800 p-1.5 rounded border border-gray-600 text-xs">
+        {{#if currentMapEventLog.length}}
+          <ul class="space-y-2">
+            {{#each currentMapEventLog}}
+              <li class="p-1.5 rounded {{#if (eq type 'travel')}}bg-gray-700{{else if (eq type 'explore_in_place')}}bg-blue-900 bg-opacity-50{{else if (eq type 'encounter')}}bg-red-800 bg-opacity-40{{else}}bg-gray-650{{/if}}">
+                <div class="flex justify-between items-center mb-0.5">
+                  <strong class="text-sky-400 text-xs">{{typeCapitalized this}}</strong>
+                  <span class="text-gray-500 text-xxs">{{this.timestamp}}</span>
+                </div>
+                <p class="text-gray-300 leading-tight text-xxs sm:text-xs">
+                  {{#if (eq type "travel")}}
+                    Moved {{this.direction}} from {{this.from}} to <strong>{{this.to}}</strong> ({{this.targetTerrain}}).
+                    Dist: {{this.distanceValue}} {{getUnitLabelByKey this.distanceUnit "distance"}}.
+                    Time: {{toPrecise this.totalTimeValue 1}} {{getUnitLabelByKey this.totalTimeUnit "time"}}.
+                    {{#if this.encounterStatus}}<span class="block mt-0.5 text-yellow-400">{{this.encounterStatus}}</span>{{/if}}
+                  {{else if (eq type "explore_in_place")}}
+                    Explored hex <strong>{{this.to}}</strong> ({{this.targetTerrain}}).
+                    Time: {{toPrecise this.totalTimeValue 1}} {{getUnitLabelByKey this.totalTimeUnit "time"}}.
+                     {{#if this.encounterStatus}}<span class="block mt-0.5 text-yellow-400">{{this.encounterStatus}}</span>{{/if}}
+                  {{else if (eq type "encounter")}}
+                    {{this.description}} at {{this.hexId}} ({{this.terrain}}).
+                  {{else}}
+                    {{this.message}}
+                  {{/if}}
+                </p>
+              </li>
+            {{/each}}
+          </ul>
+        {{else}}
+          <p class="text-gray-500 italic text-center py-4">No events logged for this map yet.</p>
+        {{/if}}
+      </div>
+    </aside>
+  </main>
+</div>
