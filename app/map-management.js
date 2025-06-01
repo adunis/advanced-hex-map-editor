@@ -323,6 +323,192 @@ export function handleCreateNewMap(silent = false) {
 }
 
 
+function populateStandaloneModalSelects() {
+    const terrainSelect = document.getElementById('modalDefaultTerrain');
+    if (terrainSelect) {
+        terrainSelect.innerHTML = ''; // Clear existing
+        Object.entries(CONST.TERRAIN_TYPES_CONFIG).forEach(([key, conf]) => {
+            const option = document.createElement('option');
+            option.value = key;
+            option.textContent = `${conf.name} (${conf.symbol})`;
+            if (key === CONST.DEFAULT_TERRAIN_TYPE) option.selected = true;
+            terrainSelect.appendChild(option);
+        });
+    }
+    const hexSizeUnitSelect = document.getElementById('modalHexSizeUnit');
+    if (hexSizeUnitSelect) {
+        hexSizeUnitSelect.innerHTML = '';
+        CONST.DISTANCE_UNITS.forEach(unit => {
+            const option = document.createElement('option');
+            option.value = unit.key;
+            option.textContent = unit.label;
+            if (unit.key === CONST.DEFAULT_HEX_SIZE_UNIT) option.selected = true;
+            hexSizeUnitSelect.appendChild(option);
+        });
+    }
+    const hexTraversalTimeUnitSelect = document.getElementById('modalHexTraversalTimeUnit');
+    if (hexTraversalTimeUnitSelect) {
+        hexTraversalTimeUnitSelect.innerHTML = '';
+        CONST.TIME_UNITS.forEach(unit => {
+            const option = document.createElement('option');
+            option.value = unit.key;
+            option.textContent = unit.label;
+            if (unit.key === CONST.DEFAULT_HEX_TRAVERSAL_TIME_UNIT) option.selected = true;
+            hexTraversalTimeUnitSelect.appendChild(option);
+        });
+    }
+     // Set default values for inputs
+    const modalMapName = document.getElementById('modalMapName');
+    if (modalMapName) modalMapName.value = `My Map ${Date.now() % 10000}`;
+    const modalGridWidth = document.getElementById('modalGridWidth');
+    if (modalGridWidth) modalGridWidth.value = CONST.INITIAL_GRID_WIDTH;
+    const modalGridHeight = document.getElementById('modalGridHeight');
+    if (modalGridHeight) modalGridHeight.value = CONST.INITIAL_GRID_HEIGHT;
+    const modalDefaultElevation = document.getElementById('modalDefaultElevation');
+    if (modalDefaultElevation) modalDefaultElevation.value = CONST.INITIAL_ELEVATION;
+    const modalHexSizeValue = document.getElementById('modalHexSizeValue');
+    if(modalHexSizeValue) modalHexSizeValue.value = CONST.DEFAULT_HEX_SIZE_VALUE;
+    const modalHexTraversalTimeValue = document.getElementById('modalHexTraversalTimeValue');
+    if(modalHexTraversalTimeValue) modalHexTraversalTimeValue.value = CONST.DEFAULT_HEX_TRAVERSAL_TIME_VALUE;
+
+}
+
+
+// This function will be called by handleCreateNewMap
+function createMapLogic(formDataFromDialog) {
+    const finalMapName = formDataFromDialog.mapName.trim();
+    const gridWidth = parseInt(formDataFromDialog.gridWidth, 10) || CONST.INITIAL_GRID_WIDTH;
+    const gridHeight = parseInt(formDataFromDialog.gridHeight, 10) || CONST.INITIAL_GRID_HEIGHT;
+    const rawDefaultElevation = parseFloat(formDataFromDialog.defaultElevation);
+    const defaultElevation = !isNaN(rawDefaultElevation) ? rawDefaultElevation : CONST.INITIAL_ELEVATION;
+    const defaultTerrainType = formDataFromDialog.defaultTerrainType || CONST.DEFAULT_TERRAIN_TYPE;
+
+    resetActiveMapState();
+    appState.currentMapId = appState.isStandaloneMode ? `standalone-${Date.now()}` : null;
+    appState.currentMapName = finalMapName;
+    appState.currentMapHexSizeValue = parseFloat(formDataFromDialog.hexSizeValue) || CONST.DEFAULT_HEX_SIZE_VALUE;
+    appState.currentMapHexSizeUnit = formDataFromDialog.hexSizeUnit || CONST.DEFAULT_HEX_SIZE_UNIT;
+    appState.currentMapHexTraversalTimeValue = parseFloat(formDataFromDialog.hexTraversalTimeValue) || CONST.DEFAULT_HEX_TRAVERSAL_TIME_VALUE;
+    appState.currentMapHexTraversalTimeUnit = formDataFromDialog.hexTraversalTimeUnit || CONST.DEFAULT_HEX_TRAVERSAL_TIME_UNIT;
+    appState.isCurrentMapDirty = true;
+
+    if (appState.isGM && !appState.isStandaloneMode) {
+        window.parent.postMessage({ type: 'gmSetActiveMap', payload: { mapId: null }, moduleId: APP_MODULE_ID }, '*');
+        appState.activeGmMapId = null;
+    }
+
+    initializeGridData(gridWidth, gridHeight, [], true, defaultElevation, defaultTerrainType);
+    const firstHex = appState.hexDataMap.values().next().value;
+    if(firstHex) requestCenteringOnHex(firstHex.id);
+    renderApp();
+};
+
+
+export function handleCreateNewMap(silent = false) {
+    if (!appState.isGM && !appState.isStandaloneMode) { alert("Operation not allowed."); return; }
+
+    if (appState.isCurrentMapDirty && (appState.currentMapId || appState.isStandaloneMode) && !silent) {
+        const message = appState.isStandaloneMode
+            ? "You have unsaved changes on the current local map. Create a new map anyway? Unsaved changes will be lost if not exported/saved."
+            : "You have unsaved changes on the current map. Create a new map anyway? Unsaved changes will be lost.";
+        if (!window.confirm(message)) {
+            return;
+        }
+    }
+    const defaultMapName = appState.isStandaloneMode ? `My Standalone Map` : `New Hex Map ${appState.mapList.length + 1}`;
+
+
+    if (appState.isStandaloneMode && silent) { // For initial load in standalone
+        const defaultData = {
+            mapName: "Standalone Default Map",
+            gridWidth: CONST.INITIAL_GRID_WIDTH,
+            gridHeight: CONST.INITIAL_GRID_HEIGHT,
+            defaultElevation: CONST.INITIAL_ELEVATION,
+            defaultTerrainType: CONST.DEFAULT_TERRAIN_TYPE,
+            hexSizeValue: CONST.DEFAULT_HEX_SIZE_VALUE,
+            hexSizeUnit: CONST.DEFAULT_HEX_SIZE_UNIT,
+            hexTraversalTimeValue: CONST.DEFAULT_HEX_TRAVERSAL_TIME_VALUE,
+            hexTraversalTimeUnit: CONST.DEFAULT_HEX_TRAVERSAL_TIME_UNIT,
+        };
+        createMapLogic(defaultData);
+        return;
+    }
+
+    if (appState.isStandaloneMode && !silent) {
+        const modal = document.getElementById('standaloneCreateMapModal');
+        const form = document.getElementById('standaloneCreateMapForm');
+        const cancelButton = document.getElementById('cancelStandaloneCreateMap');
+
+        if (!modal || !form || !cancelButton) {
+            console.error("Standalone create map modal elements not found!");
+            // Fallback to simple prompt if modal is broken
+            const mapName = prompt("Enter Map Name:", defaultMapName);
+            if (!mapName || !mapName.trim()) { renderApp(); return; }
+            const formData = { mapName: mapName.trim(), /* add other defaults here */ };
+             formFields.forEach(f => formData[f.name] = formData[f.name] || f.default);
+            createMapLogic(formData);
+            return;
+        }
+
+        populateStandaloneModalSelects(); // Populate dropdowns with current data
+        modal.classList.remove('hidden');
+
+        const submitHandler = (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            // Ensure numeric types
+            data.gridWidth = parseInt(data.gridWidth, 10);
+            data.gridHeight = parseInt(data.gridHeight, 10);
+            data.defaultElevation = parseFloat(data.defaultElevation);
+            data.hexSizeValue = parseFloat(data.hexSizeValue);
+            data.hexTraversalTimeValue = parseFloat(data.hexTraversalTimeValue);
+
+
+            modal.classList.add('hidden');
+            form.removeEventListener('submit', submitHandler); // Clean up
+            createMapLogic(data);
+        };
+
+        const cancelHandler = () => {
+            modal.classList.add('hidden');
+            form.removeEventListener('submit', submitHandler);
+            cancelButton.removeEventListener('click', cancelHandler);
+            renderApp({ preserveScroll: true }); // Re-render to clear any app mode changes
+        };
+
+        form.addEventListener('submit', submitHandler);
+        cancelButton.addEventListener('click', cancelHandler);
+        return;
+    }
+
+    // Foundry mode - use form dialog via bridge
+    appState.isWaitingForFormInput = true;
+    appState.formInputCallback = function(formDataFromDialog) {
+        appState.isWaitingForFormInput = false; appState.formInputCallback = null;
+        if (!formDataFromDialog || formDataFromDialog.cancelled || !formDataFromDialog.mapName || formDataFromDialog.mapName.trim() === "") {
+            renderApp();
+            return;
+        }
+        createMapLogic(formDataFromDialog);
+    };
+
+    const formFieldsForBridge = [ // Define here for bridge, as CONST might not be accessible in bridge context
+        { name: "mapName", label: "Map Name:", type: "text", default: defaultMapName },
+        { name: "gridWidth", label: "Grid Width:", type: "number", default: CONST.INITIAL_GRID_WIDTH, min: CONST.MIN_GRID_DIMENSION, max: CONST.MAX_GRID_DIMENSION, step: 1 },
+        { name: "gridHeight", label: "Grid Height:", type: "number", default: CONST.INITIAL_GRID_HEIGHT, min: CONST.MIN_GRID_DIMENSION, max: CONST.MAX_GRID_DIMENSION, step: 1 },
+        { name: "defaultElevation", label: "Default Hex Elevation (m):", type: "number", default: CONST.INITIAL_ELEVATION, min: CONST.MIN_ELEVATION, max: CONST.MAX_ELEVATION, step: 10 },
+        { name: "defaultTerrainType", label: "Default Hex Terrain:", type: "select", default: CONST.DEFAULT_TERRAIN_TYPE, options: Object.entries(CONST.TERRAIN_TYPES_CONFIG).map(([key, conf]) => ({value: key, label: `${conf.name} (${conf.symbol})`})) },
+        { name: "hexSizeValue", label: "Hex Size Value:", type: "number", default: CONST.DEFAULT_HEX_SIZE_VALUE, min: 0.01, step: 0.01 },
+        { name: "hexSizeUnit", label: "Hex Size Unit:", type: "select", default: CONST.DEFAULT_HEX_SIZE_UNIT, options: CONST.DISTANCE_UNITS.map(u => ({value: u.key, label: u.label})) },
+        { name: "hexTraversalTimeValue", label: "Traversal Time:", type: "number", default: CONST.DEFAULT_HEX_TRAVERSAL_TIME_VALUE, min: 0.01, step: 0.01 },
+        { name: "hexTraversalTimeUnit", label: "Traversal Unit:", type: "select", default: CONST.DEFAULT_HEX_TRAVERSAL_TIME_UNIT, options: CONST.TIME_UNITS.map(u => ({value: u.key, label: u.label})) },
+    ];
+    const formPayload = { title: "Create New Map", fields: formFieldsForBridge, dialogWidth: 500 };
+    window.parent.postMessage({ type: 'requestFormInput', payload: formPayload, moduleId: APP_MODULE_ID }, '*');
+}
+
+
 export function handleOpenMap(mapIdToOpen, isAutomaticOpen = false) {
     if (appState.isStandaloneMode) {
         alert("Opening saved maps from server is not available in standalone mode. Use 'Load File...'");
