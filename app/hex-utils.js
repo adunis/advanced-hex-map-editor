@@ -1,5 +1,3 @@
-// app/hex-utils.js
-
 export function offsetToCube(col, row) {
   const q = col - (row - (row & 1)) / 2;
   const r = row;

@@ -1,14 +1,13 @@
-// app/state.js
 import * as CONST from './constants.js';
 
 export const appState = {
   isGM: new URLSearchParams(window.location.search).get('isGM') === 'true',
   userId: new URLSearchParams(window.location.search).get('userId') || 'unknown_player_iframe',
-  appMode: null, 
-  viewMode: CONST.DEFAULT_VIEW_MODE, 
-  hexplorationTimeElapsedHoursToday: 0, 
-  hexplorationKmTraveledToday: 0,   
-  
+  appMode: null,
+  viewMode: CONST.DEFAULT_VIEW_MODE,
+  hexplorationTimeElapsedHoursToday: 0,
+  hexplorationKmTraveledToday: 0,
+
   currentMapHexSizeValue: CONST.DEFAULT_HEX_SIZE_VALUE,
   currentMapHexSizeUnit: CONST.DEFAULT_HEX_SIZE_UNIT,
   currentMapHexTraversalTimeValue: CONST.DEFAULT_HEX_TRAVERSAL_TIME_VALUE,
@@ -16,83 +15,82 @@ export const appState = {
 
   isWaitingForFeatureDetails: false,
   featureDetailsCallback: null,
-  pendingFeaturePlacement: null,  
+  pendingFeaturePlacement: null,
 
   currentGridWidth: CONST.INITIAL_GRID_WIDTH,
   currentGridHeight: CONST.INITIAL_GRID_HEIGHT,
-  hexGridData: [], 
+  hexGridData: [],
   hexDataMap: new Map(),
-  currentMapEventLog: [], 
+  currentMapEventLog: [],
   elevationBrushMode: CONST.ElevationBrushMode.INCREASE,
   paintMode: CONST.PaintMode.ELEVATION,
   brushSize: CONST.DEFAULT_BRUSH_SIZE,
   selectedTerrainType: CONST.DEFAULT_TERRAIN_TYPE,
   selectedFeatureType: CONST.TerrainFeature.NONE,
-  
+
   editorLosSourceHexId: null,
   editorVisibleHexIds: new Set(),
   isEditorLosSelectMode: false,
-  
-  partyMarkerPosition: null, 
-  playerDiscoveredHexIds: new Set(), 
-  playerCurrentVisibleHexIds: new Set(), 
-  lastMovementInfo: null, 
-  
-  mapInitialized: false, 
+
+  partyMarkerPosition: null,
+  playerDiscoveredHexIds: new Set(),
+  playerCurrentVisibleHexIds: new Set(),
+  lastMovementInfo: null,
+
+  mapInitialized: false,
   tempGridWidth: CONST.INITIAL_GRID_WIDTH.toString(),
   tempGridHeight: CONST.INITIAL_GRID_HEIGHT.toString(),
 
-  mapList: [], 
-  currentMapId: null, 
-  currentMapName: null, 
-  isCurrentMapDirty: false, 
-  activeGmMapId: null, 
-  
-  isWaitingForFormInput: false, 
+  mapList: [],
+  currentMapId: null,
+  currentMapName: null,
+  isCurrentMapDirty: false,
+  activeGmMapId: null,
+
+  isWaitingForFormInput: false,
   formInputCallback: null,
 
-  // Zoom state
-  zoomLevel: 1.0, // Default zoom level
-  minZoom: 0.2,   // Minimum zoom factor
-  maxZoom: 3.0,   // Maximum zoom factor
-  zoomStep: 0.1,  // How much to change zoom by each step
+  zoomLevel: 1.0,
+  minZoom: 0.2,
+  maxZoom: 3.0,
+  zoomStep: 0.1,
 
-    // State for scroll management
-  targetScrollLeft: null, // Desired scrollLeft for the container
-  targetScrollTop: null,  // Desired scrollTop for the container
-  // No scrollActionPending flag needed if targetScrollLeft/Top being non-null is the trigger.
-  // We can also add a flag to explicitly request centering on a specific hex ID after render.
-  centerViewOnHexAfterRender: null, // Stores hexId to center on, or null
+  targetScrollLeft: null,
+  targetScrollTop: null,
+  centerViewOnHexAfterRender: null,
+
+  activePartyActivities: new Set(), // Store IDs of active activities
 };
 
 export function resetActiveMapState() {
     appState.hexGridData = []; appState.hexDataMap = new Map();
     appState.editorLosSourceHexId = null; appState.editorVisibleHexIds = new Set();
     appState.isEditorLosSelectMode = false;
-    appState.partyMarkerPosition = null; 
+    appState.partyMarkerPosition = null;
     appState.playerCurrentVisibleHexIds = new Set();
-    appState.playerDiscoveredHexIds = new Set(); 
+    appState.playerDiscoveredHexIds = new Set();
     appState.lastMovementInfo = null;
     appState.isWaitingForFeatureDetails = false;
-    
-    appState.currentMapEventLog = []; 
+
+    appState.currentMapEventLog = [];
     appState.mapInitialized = false; appState.isCurrentMapDirty = false;
     appState.featureDetailsCallback = null;
     appState.pendingFeaturePlacement = null;
-    
+
     appState.currentMapHexSizeValue = CONST.DEFAULT_HEX_SIZE_VALUE;
     appState.currentMapHexSizeUnit = CONST.DEFAULT_HEX_SIZE_UNIT;
     appState.currentMapHexTraversalTimeValue = CONST.DEFAULT_HEX_TRAVERSAL_TIME_VALUE;
     appState.currentMapHexTraversalTimeUnit = CONST.DEFAULT_HEX_TRAVERSAL_TIME_UNIT;
 
-        // Reset scroll targets
     appState.targetScrollLeft = null;
     appState.targetScrollTop = null;
     appState.centerViewOnHexAfterRender = null;
-    
-    // appState.zoomLevel = 1.0; // Reset zoom on map change/reset? Or keep user preference? Let's keep it for now.
 
-    if (!appState.currentMapName) { 
+    appState.zoomLevel = 1.0;
+    appState.activePartyActivities = new Set();
+
+
+    if (!appState.currentMapName) {
         appState.currentGridWidth = CONST.INITIAL_GRID_WIDTH;
         appState.currentGridHeight = CONST.INITIAL_GRID_HEIGHT;
         appState.tempGridWidth = CONST.INITIAL_GRID_WIDTH.toString();

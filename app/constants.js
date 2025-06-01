@@ -1,5 +1,3 @@
-// app/constants.js
-
 export const AppMode = {
   HEX_EDITOR: 'hex_editor',
   PLAYER: 'player',
@@ -11,45 +9,41 @@ export const ViewMode = {
 };
 
 export const TerrainType = {
-  // Standard Overworld
   PLAINS: 'plains',
   FOREST: 'forest',
   THICK_FOREST: 'thick_forest',
   YOUNG_FOREST: 'young_forest',
   HILLS: 'hills',
   MOUNTAIN: 'mountain',
-  SWAMP: 'swamp', // Generic swamp
+  SWAMP: 'swamp',
   DESERT: 'desert',
   JUNGLE: 'jungle',
   BADLANDS: 'badlands',
   ROAD: 'road',
   SETTLEMENT: 'settlement',
-  WATER: 'water', // Generic open water
+  WATER: 'water',
 
-  // Underdark / Dungeon
   CAVERN_FLOOR: 'cavern_floor',
   TUNNEL: 'tunnel',
-  MUSHROOM_FOREST: 'mushroom_forest', // Your Mushroom Forest
+  MUSHROOM_FOREST: 'mushroom_forest',
   CRYSTAL_CAVE: 'crystal_cave',
   UNDERGROUND_RIVER: 'underground_river',
   LAVA_TUBE: 'lava_tube',
 
-  // Underwater
-  SHALLOW_WATER: 'shallow_water', // Coastal / fordable
+  SHALLOW_WATER: 'shallow_water',
   DEEP_OCEAN: 'deep_ocean',
   CORAL_REEF: 'coral_reef',
   KELP_FOREST: 'kelp_forest',
-  TRENCH: 'trench', // Deep underwater trench
+  TRENCH: 'trench',
 
-  // Special / Magical / Planar
-  SKELETAL_FOREST: 'skeletal_forest', // Your Skeletal Forest
-  ASHEN_WASTELAND: 'ashen_wasteland', // Your Ashen Wasteland
-  BLOOD_MARSH: 'blood_marsh', // Replaced Blood Water with Blood Marsh for swampy feel
-  MAGMA_LAKE: 'magma_lake', // Your Magma Lake
-  VOLCANIC_WASTELAND: 'volcanic_wasteland', // Your Volcanic Wasteland
+  SKELETAL_FOREST: 'skeletal_forest',
+  ASHEN_WASTELAND: 'ashen_wasteland',
+  BLOOD_MARSH: 'blood_marsh',
+  MAGMA_LAKE: 'magma_lake',
+  VOLCANIC_WASTELAND: 'volcanic_wasteland',
   FLOATING_ISLANDS: 'floating_islands',
   ETHEREAL_MIST: 'ethereal_mist',
-  QUICKSAND: 'quicksand', // Could be in deserts or swamps
+  QUICKSAND: 'quicksand',
   ICE_PLAIN: 'ice_plain',
   OBSIDIAN_FIELD: 'obsidian_field',
 };
@@ -77,7 +71,7 @@ export const INITIAL_GRID_HEIGHT = 8;
 export const MIN_GRID_DIMENSION = 1;
 export const MAX_GRID_DIMENSION = 50;
 
-export const MIN_ELEVATION = -200; // Might need re-evaluation for deep underwater/underdark
+export const MIN_ELEVATION = -200;
 export const MAX_ELEVATION = 6000;
 export const ELEVATION_STEP = 100;
 export const INITIAL_ELEVATION = 0;
@@ -120,7 +114,7 @@ export const THICK_FOREST_CANOPY_BLOCKAGE_ADDITION = 20;
 export const YOUNG_FOREST_CANOPY_BLOCKAGE_ADDITION = 10;
 export const JUNGLE_CANOPY_BLOCKAGE_ADDITION = 25;
 export const HILLS_TERRAIN_BLOCKAGE_ADDITION = 5;
-export const ENCOUNTER_FEATURE_ICON = "⚔";
+export const ENCOUNTER_FEATURE_ICON = "⚠️";
 
 
 export const FEATURE_ICON_COLORS = [
@@ -136,143 +130,141 @@ export const FEATURE_ICON_COLORS = [
     { name: "Gray", class: "fill-gray-300" }
 ];
 
-export const DEFAULT_LANDMARK_ICON_COLOR_CLASS = "fill-yellow-200"; // CSS class
-export const DEFAULT_ENCOUNTER_ICON_COLOR_CLASS = "fill-red-500";   // CSS class
-export const DEFAULT_SECRET_ICON_COLOR_CLASS = "fill-purple-400";   // CSS class
+export const DEFAULT_LANDMARK_ICON_COLOR_CLASS = "fill-yellow-200";
+export const DEFAULT_ENCOUNTER_ICON_COLOR_CLASS = "fill-red-500";
+export const DEFAULT_SECRET_ICON_COLOR_CLASS = "fill-purple-400";
 
 
-// Elevation Color Constants (some are pre-defined, others are new for reference)
-export const PLAINS_LOW_ELEV_COLOR = 'rgb(134, 239, 172)'; // ~fill-green-300
-export const PLAINS_MID_ELEV_COLOR = 'rgb(74, 222, 128)';  // ~fill-green-400
-export const PLAINS_HIGH_ELEV_COLOR = 'rgb(34, 197, 94)'; // ~fill-green-500
+export const PLAINS_LOW_ELEV_COLOR = 'rgb(134, 239, 172)';
+export const PLAINS_MID_ELEV_COLOR = 'rgb(74, 222, 128)';
+export const PLAINS_HIGH_ELEV_COLOR = 'rgb(34, 197, 94)';
 
-export const FOREST_LOW_ELEV_COLOR = 'rgb(22, 163, 74)';   // ~fill-green-600
-export const FOREST_MID_ELEV_COLOR = 'rgb(21, 128, 61)';   // ~fill-green-700
-export const FOREST_HIGH_ELEV_COLOR = 'rgb(22, 101, 52)';  // ~fill-green-800
+export const FOREST_LOW_ELEV_COLOR = 'rgb(22, 163, 74)';
+export const FOREST_MID_ELEV_COLOR = 'rgb(21, 128, 61)';
+export const FOREST_HIGH_ELEV_COLOR = 'rgb(22, 101, 52)';
 
-export const THICK_FOREST_LOW_ELEV_COLOR = 'rgb(22, 101, 52)'; // ~fill-green-800
-export const THICK_FOREST_MID_ELEV_COLOR = 'rgb(20, 83, 45)';  // ~fill-green-900
-export const THICK_FOREST_HIGH_ELEV_COLOR = 'rgb(18, 70, 38)'; // Darker green-900
+export const THICK_FOREST_LOW_ELEV_COLOR = 'rgb(22, 101, 52)';
+export const THICK_FOREST_MID_ELEV_COLOR = 'rgb(20, 83, 45)';
+export const THICK_FOREST_HIGH_ELEV_COLOR = 'rgb(18, 70, 38)';
 
-export const YOUNG_FOREST_LOW_ELEV_COLOR = 'rgb(163, 230, 53)'; // ~fill-lime-400
-export const YOUNG_FOREST_MID_ELEV_COLOR = 'rgb(132, 204, 22)'; // ~fill-lime-500
-export const YOUNG_FOREST_HIGH_ELEV_COLOR = 'rgb(101, 163, 13)';// ~fill-lime-600
+export const YOUNG_FOREST_LOW_ELEV_COLOR = 'rgb(163, 230, 53)';
+export const YOUNG_FOREST_MID_ELEV_COLOR = 'rgb(132, 204, 22)';
+export const YOUNG_FOREST_HIGH_ELEV_COLOR = 'rgb(101, 163, 13)';
 
-export const HILLS_COLOR_LOW = 'rgb(245, 222, 179)';      // Provided, ~fill-yellow-200 / wheat
-export const HILLS_COLOR_MID = 'rgb(229, 195, 101)';     // Mid-tone for hills, between low and high
-export const HILLS_COLOR_HIGH = 'rgb(218, 165, 32)';     // Provided, ~fill-yellow-600 / goldenrod
+export const HILLS_COLOR_LOW = 'rgb(245, 222, 179)';
+export const HILLS_COLOR_MID = 'rgb(229, 195, 101)';
+export const HILLS_COLOR_HIGH = 'rgb(218, 165, 32)';
 
-export const MOUNTAIN_COLOR_LOW_SLOPE = 'rgb(160, 120, 80)';    // Provided
-export const MOUNTAIN_COLOR_MID_SLOPE = 'rgb(100, 70, 40)';     // Provided
-export const MOUNTAIN_ELEV_MID_SLOPE_END = 1999;               // Provided (used as upper bound for MID_SLOPE)
-export const MOUNTAIN_COLOR_SNOW_LINE = 'rgb(250, 250, 250)';   // Provided
-export const MOUNTAIN_ELEV_SNOW_LINE_START = 2000;             // Provided
-export const MOUNTAIN_COLOR_ICE_PEAK = 'rgb(200, 220, 255)';    // Provided
-export const MOUNTAIN_ELEV_ICE_TRANSITION_START = 3000;        // Provided
-export const MOUNTAIN_ELEV_ICE_PEAK_END = 5000;                // Provided
-export const MOUNTAIN_LIGHT_SURFACE_TEXT_COLOR = 'fill-gray-800'; // Provided
+export const MOUNTAIN_COLOR_LOW_SLOPE = 'rgb(160, 120, 80)';
+export const MOUNTAIN_COLOR_MID_SLOPE = 'rgb(100, 70, 40)';
+export const MOUNTAIN_ELEV_MID_SLOPE_END = 1999;
+export const MOUNTAIN_COLOR_SNOW_LINE = 'rgb(250, 250, 250)';
+export const MOUNTAIN_ELEV_SNOW_LINE_START = 2000;
+export const MOUNTAIN_COLOR_ICE_PEAK = 'rgb(200, 220, 255)';
+export const MOUNTAIN_ELEV_ICE_TRANSITION_START = 3000;
+export const MOUNTAIN_ELEV_ICE_PEAK_END = 5000;
+export const MOUNTAIN_LIGHT_SURFACE_TEXT_COLOR = 'fill-gray-800';
 
-export const SWAMP_LOW_ELEV_COLOR = 'rgb(17, 94, 89)';    // ~fill-teal-800
-export const SWAMP_MID_ELEV_COLOR = 'rgb(15, 118, 110)';  // ~fill-teal-700
-export const SWAMP_HIGH_ELEV_COLOR = 'rgb(13, 148, 136)'; // ~fill-teal-600
+export const SWAMP_LOW_ELEV_COLOR = 'rgb(17, 94, 89)';
+export const SWAMP_MID_ELEV_COLOR = 'rgb(15, 118, 110)';
+export const SWAMP_HIGH_ELEV_COLOR = 'rgb(13, 148, 136)';
 
-export const DESERT_LOW_ELEV_COLOR = 'rgb(254, 240, 138)'; // ~fill-yellow-200 (sandier)
-export const DESERT_MID_ELEV_COLOR = 'rgb(253, 224, 71)';  // ~fill-yellow-300 (base)
-export const DESERT_HIGH_ELEV_COLOR = 'rgb(250, 204, 21)'; // ~fill-yellow-400 (rockier)
+export const DESERT_LOW_ELEV_COLOR = 'rgb(254, 240, 138)';
+export const DESERT_MID_ELEV_COLOR = 'rgb(253, 224, 71)';
+export const DESERT_HIGH_ELEV_COLOR = 'rgb(250, 204, 21)';
 
-export const JUNGLE_LOW_ELEV_COLOR = 'rgb(6, 78, 59)';   // ~fill-emerald-900
-export const JUNGLE_MID_ELEV_COLOR = 'rgb(6, 95, 70)';   // ~fill-emerald-800
-export const JUNGLE_HIGH_ELEV_COLOR = 'rgb(4, 120, 87)'; // ~fill-emerald-700
+export const JUNGLE_LOW_ELEV_COLOR = 'rgb(6, 78, 59)';
+export const JUNGLE_MID_ELEV_COLOR = 'rgb(6, 95, 70)';
+export const JUNGLE_HIGH_ELEV_COLOR = 'rgb(4, 120, 87)';
 
-export const BADLANDS_LOW_ELEV_COLOR = 'rgb(154, 52, 18)'; // ~fill-orange-800
-export const BADLANDS_MID_ELEV_COLOR = 'rgb(194, 65, 12)'; // ~fill-orange-700
-export const BADLANDS_HIGH_ELEV_COLOR = 'rgb(234, 88, 12)';// ~fill-orange-600
+export const BADLANDS_LOW_ELEV_COLOR = 'rgb(154, 52, 18)';
+export const BADLANDS_MID_ELEV_COLOR = 'rgb(194, 65, 12)';
+export const BADLANDS_HIGH_ELEV_COLOR = 'rgb(234, 88, 12)';
 
-export const WATER_SURFACE_COLOR = 'rgb(3, 105, 161)';       // ~fill-sky-700
-export const WATER_SHALLOW_DEPTH_COLOR = 'rgb(7, 89, 133)';  // ~fill-sky-800
-export const WATER_MID_DEPTH_COLOR = 'rgb(30, 58, 138)';     // ~fill-blue-900
-export const WATER_DEEP_DEPTH_COLOR = 'rgb(30, 64, 175)';    // ~fill-indigo-800
+export const WATER_SURFACE_COLOR = 'rgb(3, 105, 161)';
+export const WATER_SHALLOW_DEPTH_COLOR = 'rgb(7, 89, 133)';
+export const WATER_MID_DEPTH_COLOR = 'rgb(30, 58, 138)';
+export const WATER_DEEP_DEPTH_COLOR = 'rgb(30, 64, 175)';
 
-export const CAVERN_DEEP_COLOR = 'rgb(55, 65, 81)';    // ~fill-gray-700
-export const CAVERN_MID_COLOR = 'rgb(75, 85, 99)';     // ~fill-gray-600
-export const CAVERN_HIGH_COLOR = 'rgb(107, 114, 128)'; // ~fill-gray-500
+export const CAVERN_DEEP_COLOR = 'rgb(55, 65, 81)';
+export const CAVERN_MID_COLOR = 'rgb(75, 85, 99)';
+export const CAVERN_HIGH_COLOR = 'rgb(107, 114, 128)';
 
-export const TUNNEL_COLOR = 'rgb(31, 41, 55)'; // ~fill-gray-800
+export const TUNNEL_COLOR = 'rgb(31, 41, 55)';
 
-export const MUSHROOM_FOREST_DEEP_COLOR = 'rgb(126, 34, 206)'; // ~fill-purple-700
-export const MUSHROOM_FOREST_MID_COLOR = 'rgb(147, 51, 234)';  // ~fill-purple-600
-export const MUSHROOM_FOREST_HIGH_COLOR = 'rgb(168, 85, 247)'; // ~fill-purple-500
+export const MUSHROOM_FOREST_DEEP_COLOR = 'rgb(126, 34, 206)';
+export const MUSHROOM_FOREST_MID_COLOR = 'rgb(147, 51, 234)';
+export const MUSHROOM_FOREST_HIGH_COLOR = 'rgb(168, 85, 247)';
 
-export const CRYSTAL_CAVE_DEEP_COLOR = 'rgb(6, 182, 212)';   // ~fill-cyan-500
-export const CRYSTAL_CAVE_MID_COLOR = 'rgb(34, 211, 238)';  // ~fill-cyan-400
-export const CRYSTAL_CAVE_HIGH_COLOR = 'rgb(103, 232, 249)';// ~fill-cyan-300
+export const CRYSTAL_CAVE_DEEP_COLOR = 'rgb(6, 182, 212)';
+export const CRYSTAL_CAVE_MID_COLOR = 'rgb(34, 211, 238)';
+export const CRYSTAL_CAVE_HIGH_COLOR = 'rgb(103, 232, 249)';
 
-export const UNDERGROUND_RIVER_SURFACE_COLOR = 'rgb(30, 64, 175)'; // ~fill-blue-800
-export const UNDERGROUND_RIVER_DEEP_COLOR = 'rgb(30, 58, 138)';    // ~fill-blue-900
-export const UNDERGROUND_RIVER_VERY_DEEP_COLOR = 'rgb(31, 41, 55)';// ~fill-gray-800
+export const UNDERGROUND_RIVER_SURFACE_COLOR = 'rgb(30, 64, 175)';
+export const UNDERGROUND_RIVER_DEEP_COLOR = 'rgb(30, 58, 138)';
+export const UNDERGROUND_RIVER_VERY_DEEP_COLOR = 'rgb(31, 41, 55)';
 
-export const LAVA_TUBE_COLOR = 'rgb(55, 25, 25)'; // Darkened fill-red-900 'rgb(127, 29, 29)'
+export const LAVA_TUBE_COLOR = 'rgb(55, 25, 25)';
 
-export const SHALLOW_WATER_VERY_SHALLOW_COLOR = 'rgb(56, 189, 248)'; // ~fill-sky-400
-export const SHALLOW_WATER_MID_DEPTH_COLOR = 'rgb(14, 165, 233)';    // ~fill-sky-500
-export const SHALLOW_WATER_DEEP_COLOR = 'rgb(2, 132, 199)';       // ~fill-sky-600
+export const SHALLOW_WATER_VERY_SHALLOW_COLOR = 'rgb(56, 189, 248)';
+export const SHALLOW_WATER_MID_DEPTH_COLOR = 'rgb(14, 165, 233)';
+export const SHALLOW_WATER_DEEP_COLOR = 'rgb(2, 132, 199)';
 
-export const DEEP_OCEAN_SURFACE_COLOR = 'rgb(30, 58, 138)';   // ~fill-blue-900
-export const DEEP_OCEAN_MID_DEPTH_COLOR = 'rgb(23, 37, 84)';  // ~fill-indigo-900
-export const DEEP_OCEAN_VERY_DEEP_COLOR = 'rgb(17, 24, 39)';  // ~fill-gray-900 (almost black)
+export const DEEP_OCEAN_SURFACE_COLOR = 'rgb(30, 58, 138)';
+export const DEEP_OCEAN_MID_DEPTH_COLOR = 'rgb(23, 37, 84)';
+export const DEEP_OCEAN_VERY_DEEP_COLOR = 'rgb(17, 24, 39)';
 
-export const CORAL_REEF_SHALLOW_COLOR = 'rgb(249, 168, 212)'; // ~fill-pink-300
-export const CORAL_REEF_MID_COLOR = 'rgb(244, 114, 182)';     // ~fill-pink-400
-export const CORAL_REEF_DEEP_COLOR = 'rgb(236, 72, 153)';      // ~fill-pink-500
+export const CORAL_REEF_SHALLOW_COLOR = 'rgb(249, 168, 212)';
+export const CORAL_REEF_MID_COLOR = 'rgb(244, 114, 182)';
+export const CORAL_REEF_DEEP_COLOR = 'rgb(236, 72, 153)';
 
-export const KELP_FOREST_SHALLOW_COLOR = 'rgb(20, 184, 166)'; // ~fill-teal-500
-export const KELP_FOREST_MID_COLOR = 'rgb(13, 148, 136)';     // ~fill-teal-600
-export const KELP_FOREST_DEEP_COLOR = 'rgb(15, 118, 110)';    // ~fill-teal-700
+export const KELP_FOREST_SHALLOW_COLOR = 'rgb(20, 184, 166)';
+export const KELP_FOREST_MID_COLOR = 'rgb(13, 148, 136)';
+export const KELP_FOREST_DEEP_COLOR = 'rgb(15, 118, 110)';
 
-export const TRENCH_UPPER_COLOR = 'rgb(39, 39, 42)';   // ~fill-neutral-800
-export const TRENCH_MID_COLOR = 'rgb(24, 24, 27)';     // ~fill-neutral-900
-export const TRENCH_DEEPEST_COLOR = 'rgb(0, 0, 0)';    // fill-black
+export const TRENCH_UPPER_COLOR = 'rgb(39, 39, 42)';
+export const TRENCH_MID_COLOR = 'rgb(24, 24, 27)';
+export const TRENCH_DEEPEST_COLOR = 'rgb(0, 0, 0)';
 
-export const SKELETAL_FOREST_LOW_COLOR = 'rgb(156, 163, 175)'; // ~fill-gray-400
-export const SKELETAL_FOREST_MID_COLOR = 'rgb(209, 213, 219)'; // ~fill-gray-300
-export const SKELETAL_FOREST_HIGH_COLOR = 'rgb(229, 231, 235)';// ~fill-gray-200
+export const SKELETAL_FOREST_LOW_COLOR = 'rgb(156, 163, 175)';
+export const SKELETAL_FOREST_MID_COLOR = 'rgb(209, 213, 219)';
+export const SKELETAL_FOREST_HIGH_COLOR = 'rgb(229, 231, 235)';
 
-export const ASHEN_WASTELAND_LOW_COLOR = 'rgb(71, 85, 105)';   // ~fill-slate-600
-export const ASHEN_WASTELAND_MID_COLOR = 'rgb(100, 116, 139)'; // ~fill-slate-500
-export const ASHEN_WASTELAND_HIGH_COLOR = 'rgb(148, 163, 184)';// ~fill-slate-400
+export const ASHEN_WASTELAND_LOW_COLOR = 'rgb(71, 85, 105)';
+export const ASHEN_WASTELAND_MID_COLOR = 'rgb(100, 116, 139)';
+export const ASHEN_WASTELAND_HIGH_COLOR = 'rgb(148, 163, 184)';
 
-export const BLOOD_MARSH_DEEP_COLOR = 'rgb(153, 27, 27)';  // ~fill-red-800
-export const BLOOD_MARSH_MID_COLOR = 'rgb(185, 28, 28)';   // ~fill-red-700
-export const BLOOD_MARSH_SHALLOW_COLOR = 'rgb(220, 38, 38)';// ~fill-red-600
+export const BLOOD_MARSH_DEEP_COLOR = 'rgb(153, 27, 27)';
+export const BLOOD_MARSH_MID_COLOR = 'rgb(185, 28, 28)';
+export const BLOOD_MARSH_SHALLOW_COLOR = 'rgb(220, 38, 38)';
 
-export const MAGMA_LAKE_HOT_COLOR = 'rgb(250, 204, 21)';    // ~fill-yellow-400
-export const MAGMA_LAKE_MID_COLOR = 'rgb(249, 115, 22)';    // ~fill-orange-500 (base)
-export const MAGMA_LAKE_COOLER_COLOR = 'rgb(220, 38, 38)';  // ~fill-red-600
+export const MAGMA_LAKE_HOT_COLOR = 'rgb(250, 204, 21)';
+export const MAGMA_LAKE_MID_COLOR = 'rgb(249, 115, 22)';
+export const MAGMA_LAKE_COOLER_COLOR = 'rgb(220, 38, 38)';
 
-export const VOLCANIC_LOW_COLOR = 'rgb(82, 82, 91)';   // ~fill-neutral-600
-export const VOLCANIC_MID_COLOR = 'rgb(63, 63, 70)';   // ~fill-neutral-700
-export const VOLCANIC_HIGH_COLOR = 'rgb(39, 39, 42)';  // ~fill-neutral-800
+export const VOLCANIC_LOW_COLOR = 'rgb(82, 82, 91)';
+export const VOLCANIC_MID_COLOR = 'rgb(63, 63, 70)';
+export const VOLCANIC_HIGH_COLOR = 'rgb(39, 39, 42)';
 
-export const FLOATING_ISLAND_LOW_COLOR = 'rgb(252, 211, 77)';  // ~fill-amber-300
-export const FLOATING_ISLAND_MID_COLOR = 'rgb(253, 230, 138)'; // ~fill-amber-200
-export const FLOATING_ISLAND_HIGH_COLOR = 'rgb(254, 249, 195)';// ~fill-yellow-100
+export const FLOATING_ISLAND_LOW_COLOR = 'rgb(252, 211, 77)';
+export const FLOATING_ISLAND_MID_COLOR = 'rgb(253, 230, 138)';
+export const FLOATING_ISLAND_HIGH_COLOR = 'rgb(254, 249, 195)';
 
-export const ETHEREAL_MIST_DENSE_COLOR = 'rgb(167, 139, 250)'; // ~fill-purple-400
-export const ETHEREAL_MIST_MID_COLOR = 'rgb(192, 132, 252)';   // ~fill-purple-300
-export const ETHEREAL_MIST_THIN_COLOR = 'rgb(221, 190, 253)';  // ~custom lighter purple
+export const ETHEREAL_MIST_DENSE_COLOR = 'rgb(167, 139, 250)';
+export const ETHEREAL_MIST_MID_COLOR = 'rgb(192, 132, 252)';
+export const ETHEREAL_MIST_THIN_COLOR = 'rgb(221, 190, 253)';
 
-export const QUICKSAND_COLOR = 'rgb(161, 98, 7)'; // ~fill-yellow-700
+export const QUICKSAND_COLOR = 'rgb(161, 98, 7)';
 
-export const ICE_PLAIN_LOW_COLOR = 'rgb(103, 232, 249)';   // ~fill-cyan-300
-export const ICE_PLAIN_MID_COLOR = 'rgb(165, 243, 252)';   // ~fill-cyan-200
-export const ICE_PLAIN_HIGH_COLOR = 'rgb(207, 250, 254)';  // ~fill-cyan-100 / white
+export const ICE_PLAIN_LOW_COLOR = 'rgb(103, 232, 249)';
+export const ICE_PLAIN_MID_COLOR = 'rgb(165, 243, 252)';
+export const ICE_PLAIN_HIGH_COLOR = 'rgb(207, 250, 254)';
 
-export const OBSIDIAN_FIELD_LOW_COLOR = 'rgb(0,0,0)';          // fill-black
-export const OBSIDIAN_FIELD_MID_COLOR = 'rgb(17, 24, 39)';     // ~fill-gray-900
-export const OBSIDIAN_FIELD_HIGH_COLOR = 'rgb(39, 39, 42)';    // ~fill-neutral-800 (slight highlight)
+export const OBSIDIAN_FIELD_LOW_COLOR = 'rgb(0,0,0)';
+export const OBSIDIAN_FIELD_MID_COLOR = 'rgb(17, 24, 39)';
+export const OBSIDIAN_FIELD_HIGH_COLOR = 'rgb(39, 39, 42)';
 
 export const TERRAIN_TYPES_CONFIG = {
-  // Standard Overworld
   [TerrainType.PLAINS]: {
     name: 'Plains', symbol: '🌾', color: 'fill-green-400',
     speedMultiplier: 1, visibilityFactor: 1,
@@ -327,8 +319,7 @@ export const TERRAIN_TYPES_CONFIG = {
     canopyBlockage: HILLS_TERRAIN_BLOCKAGE_ADDITION,
     encounterChanceOnEnter: 10, encounterChanceOnDiscover: 7,
     elevationColor: (elevation) => {
-      // Hills typically from INITIAL_ELEVATION up to MOUNTAIN_THRESHOLD
-      const typicalHillBase = 50; // Assumed lowest elevation for "Hills" terrain
+      const typicalHillBase = 50;
       const hillRange = MOUNTAIN_THRESHOLD - typicalHillBase;
       if (elevation < typicalHillBase + hillRange * 0.33) return HILLS_COLOR_LOW;
       if (elevation < typicalHillBase + hillRange * 0.66) return HILLS_COLOR_MID;
@@ -342,13 +333,13 @@ export const TERRAIN_TYPES_CONFIG = {
     canopyBlockage: 0,
     encounterChanceOnEnter: 20, encounterChanceOnDiscover: 15,
     elevationColor: (elevation) => {
-      if (elevation < MOUNTAIN_THRESHOLD) return MOUNTAIN_COLOR_LOW_SLOPE; // Base of mountain if below threshold
-      const midSlopeStart = MOUNTAIN_THRESHOLD + (MOUNTAIN_ELEV_SNOW_LINE_START - MOUNTAIN_THRESHOLD) * 0.4; // Heuristic split
+      if (elevation < MOUNTAIN_THRESHOLD) return MOUNTAIN_COLOR_LOW_SLOPE;
+      const midSlopeStart = MOUNTAIN_THRESHOLD + (MOUNTAIN_ELEV_SNOW_LINE_START - MOUNTAIN_THRESHOLD) * 0.4;
       if (elevation < midSlopeStart) return MOUNTAIN_COLOR_LOW_SLOPE;
-      if (elevation <= MOUNTAIN_ELEV_MID_SLOPE_END) return MOUNTAIN_COLOR_MID_SLOPE; // Up to 1999m
-      if (elevation < MOUNTAIN_ELEV_ICE_TRANSITION_START) return MOUNTAIN_COLOR_SNOW_LINE; // 2000m to 2999m
-      if (elevation <= MOUNTAIN_ELEV_ICE_PEAK_END) return MOUNTAIN_COLOR_ICE_PEAK; // 3000m to 5000m
-      return 'rgb(180, 200, 235)'; // Very high peaks, slightly icier blue
+      if (elevation <= MOUNTAIN_ELEV_MID_SLOPE_END) return MOUNTAIN_COLOR_MID_SLOPE;
+      if (elevation < MOUNTAIN_ELEV_ICE_TRANSITION_START) return MOUNTAIN_COLOR_SNOW_LINE;
+      if (elevation <= MOUNTAIN_ELEV_ICE_PEAK_END) return MOUNTAIN_COLOR_ICE_PEAK;
+      return 'rgb(180, 200, 235)';
     },
   },
   [TerrainType.SWAMP]: {
@@ -357,10 +348,10 @@ export const TERRAIN_TYPES_CONFIG = {
     baseInherentVisibilityBonus: -1, prominence: 1,
     canopyBlockage: 8,
     encounterChanceOnEnter: 30, encounterChanceOnDiscover: 5,
-    elevationColor: (elevation) => { // Swamps are usually low, near 0 or slightly negative
-      if (elevation < -10) return SWAMP_LOW_ELEV_COLOR;  // Wetter, deeper parts
-      if (elevation < 20) return SWAMP_MID_ELEV_COLOR;   // Average swamp level
-      return SWAMP_HIGH_ELEV_COLOR;                      // Drier edges
+    elevationColor: (elevation) => {
+      if (elevation < -10) return SWAMP_LOW_ELEV_COLOR;
+      if (elevation < 20) return SWAMP_MID_ELEV_COLOR;
+      return SWAMP_HIGH_ELEV_COLOR;
     },
   },
   [TerrainType.DESERT]: {
@@ -370,9 +361,9 @@ export const TERRAIN_TYPES_CONFIG = {
     canopyBlockage: 0,
     encounterChanceOnEnter: 8, encounterChanceOnDiscover: 3,
     elevationColor: (elevation) => {
-      if (elevation < 100) return DESERT_LOW_ELEV_COLOR;  // Lower, sandier
-      if (elevation < 500) return DESERT_MID_ELEV_COLOR;  // Mid-elevation desert
-      return DESERT_HIGH_ELEV_COLOR;                     // Higher, rockier desert
+      if (elevation < 100) return DESERT_LOW_ELEV_COLOR;
+      if (elevation < 500) return DESERT_MID_ELEV_COLOR;
+      return DESERT_HIGH_ELEV_COLOR;
     },
   },
   [TerrainType.JUNGLE]: {
@@ -382,9 +373,9 @@ export const TERRAIN_TYPES_CONFIG = {
     canopyBlockage: JUNGLE_CANOPY_BLOCKAGE_ADDITION,
     encounterChanceOnEnter: 35, encounterChanceOnDiscover: 10,
     elevationColor: (elevation) => {
-      if (elevation < 50) return JUNGLE_LOW_ELEV_COLOR;   // Low-lying, dense
-      if (elevation < 300) return JUNGLE_MID_ELEV_COLOR;  // Standard jungle
-      return JUNGLE_HIGH_ELEV_COLOR;                      // Higher ground jungle
+      if (elevation < 50) return JUNGLE_LOW_ELEV_COLOR;
+      if (elevation < 300) return JUNGLE_MID_ELEV_COLOR;
+      return JUNGLE_HIGH_ELEV_COLOR;
     },
   },
   [TerrainType.BADLANDS]: {
@@ -405,7 +396,7 @@ export const TERRAIN_TYPES_CONFIG = {
     baseInherentVisibilityBonus: 0, prominence: 0,
     canopyBlockage: 0,
     encounterChanceOnEnter: 2, encounterChanceOnDiscover: 0,
-    elevationColor: (elevation) => 'rgb(168, 162, 158)', // Consistent stone/gravel color
+    elevationColor: (elevation) => 'rgb(168, 162, 158)',
   },
   [TerrainType.SETTLEMENT]: {
     name: 'Settlement', symbol: '🏘️', color: 'fill-orange-500',
@@ -413,22 +404,21 @@ export const TERRAIN_TYPES_CONFIG = {
     baseInherentVisibilityBonus: 1, prominence: 5,
     canopyBlockage: 5,
     encounterChanceOnEnter: 3, encounterChanceOnDiscover: 1,
-    elevationColor: (elevation) => 'rgb(200, 150, 100)', // Generic 'earthy building material' color
+    elevationColor: (elevation) => 'rgb(200, 150, 100)',
   },
   [TerrainType.WATER]: {
     name: 'Open Water', symbol: '🌊', color: 'fill-sky-700',
     speedMultiplier: 3, visibilityFactor: 1,
     baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
     encounterChanceOnEnter: 10, encounterChanceOnDiscover: 5,
-    elevationColor: (elevation) => { // elevation is depth from surface (0)
-      if (elevation <= -100) return WATER_DEEP_DEPTH_COLOR;  // Deep parts
-      if (elevation < -20) return WATER_MID_DEPTH_COLOR;     // Mid depth
-      if (elevation < 0) return WATER_SHALLOW_DEPTH_COLOR; // Near surface
-      return WATER_SURFACE_COLOR;                           // Surface
+    elevationColor: (elevation) => {
+      if (elevation <= -100) return WATER_DEEP_DEPTH_COLOR;
+      if (elevation < -20) return WATER_MID_DEPTH_COLOR;
+      if (elevation < 0) return WATER_SHALLOW_DEPTH_COLOR;
+      return WATER_SURFACE_COLOR;
     },
   },
 
-  // Underdark / Dungeon (elevation often negative or low positive)
   [TerrainType.CAVERN_FLOOR]: {
     name: 'Cavern Floor', symbol: '🕳️', color: 'fill-gray-600',
     speedMultiplier: 1, visibilityFactor: 0.7,
@@ -437,7 +427,7 @@ export const TERRAIN_TYPES_CONFIG = {
     elevationColor: (elevation) => {
       if (elevation < -50) return CAVERN_DEEP_COLOR;
       if (elevation < 0) return CAVERN_MID_COLOR;
-      return CAVERN_HIGH_COLOR; // Higher ledges/areas in cavern
+      return CAVERN_HIGH_COLOR;
     },
   },
   [TerrainType.TUNNEL]: {
@@ -455,7 +445,7 @@ export const TERRAIN_TYPES_CONFIG = {
     elevationColor: (elevation) => {
       if (elevation < -30) return MUSHROOM_FOREST_DEEP_COLOR;
       if (elevation < 10) return MUSHROOM_FOREST_MID_COLOR;
-      return MUSHROOM_FOREST_HIGH_COLOR; // Taller mushroom caps / higher ground
+      return MUSHROOM_FOREST_HIGH_COLOR;
     },
   },
   [TerrainType.CRYSTAL_CAVE]: {
@@ -466,7 +456,7 @@ export const TERRAIN_TYPES_CONFIG = {
     elevationColor: (elevation) => {
       if (elevation < -40) return CRYSTAL_CAVE_DEEP_COLOR;
       if (elevation < 5) return CRYSTAL_CAVE_MID_COLOR;
-      return CRYSTAL_CAVE_HIGH_COLOR; // Higher crystal formations
+      return CRYSTAL_CAVE_HIGH_COLOR;
     },
   },
   [TerrainType.UNDERGROUND_RIVER]: {
@@ -474,7 +464,7 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 3, visibilityFactor: 0.4,
     baseInherentVisibilityBonus: -3, prominence: 0, canopyBlockage: 0,
     encounterChanceOnEnter: 18, encounterChanceOnDiscover: 6,
-    elevationColor: (elevation) => { // elevation is depth from surface (0)
+    elevationColor: (elevation) => {
       if (elevation <= -50) return UNDERGROUND_RIVER_VERY_DEEP_COLOR;
       if (elevation < -10) return UNDERGROUND_RIVER_DEEP_COLOR;
       return UNDERGROUND_RIVER_SURFACE_COLOR;
@@ -485,16 +475,15 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 1.2, visibilityFactor: 0.1,
     baseInherentVisibilityBonus: -5, prominence: 0, canopyBlockage: 0,
     encounterChanceOnEnter: 5, encounterChanceOnDiscover: 1,
-    elevationColor: (elevation) => LAVA_TUBE_COLOR, // Cooled, dark rock
+    elevationColor: (elevation) => LAVA_TUBE_COLOR,
   },
 
-  // Underwater (elevation is depth, always negative or zero)
   [TerrainType.SHALLOW_WATER]: {
     name: 'Shallow Water', symbol: '얕', color: 'fill-sky-400',
     speedMultiplier: 1.5, visibilityFactor: 0.8,
     baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
     encounterChanceOnEnter: 8, encounterChanceOnDiscover: 3,
-    elevationColor: (elevation) => { // Max depth for shallow water might be -50 or -100
+    elevationColor: (elevation) => {
       if (elevation <= -30) return SHALLOW_WATER_DEEP_COLOR;
       if (elevation < -5) return SHALLOW_WATER_MID_DEPTH_COLOR;
       return SHALLOW_WATER_VERY_SHALLOW_COLOR;
@@ -508,7 +497,7 @@ export const TERRAIN_TYPES_CONFIG = {
     elevationColor: (elevation) => {
       if (elevation <= -500) return DEEP_OCEAN_VERY_DEEP_COLOR;
       if (elevation < -100) return DEEP_OCEAN_MID_DEPTH_COLOR;
-      return DEEP_OCEAN_SURFACE_COLOR; // Surface layer of deep ocean
+      return DEEP_OCEAN_SURFACE_COLOR;
     },
   },
   [TerrainType.CORAL_REEF]: {
@@ -516,10 +505,10 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 1.8, visibilityFactor: 0.7,
     baseInherentVisibilityBonus: -1, prominence: 2, canopyBlockage: 5,
     encounterChanceOnEnter: 15, encounterChanceOnDiscover: 10,
-    elevationColor: (elevation) => { // Reefs are in shallow depths
-      if (elevation <= -20) return CORAL_REEF_DEEP_COLOR;    // Base of reef
-      if (elevation < -5) return CORAL_REEF_MID_COLOR;     // Mid reef
-      return CORAL_REEF_SHALLOW_COLOR;                     // Top of reef
+    elevationColor: (elevation) => {
+      if (elevation <= -20) return CORAL_REEF_DEEP_COLOR;
+      if (elevation < -5) return CORAL_REEF_MID_COLOR;
+      return CORAL_REEF_SHALLOW_COLOR;
     },
   },
   [TerrainType.KELP_FOREST]: {
@@ -527,7 +516,7 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 2.5, visibilityFactor: 0.4,
     baseInherentVisibilityBonus: -2, prominence: 3, canopyBlockage: 15,
     encounterChanceOnEnter: 18, encounterChanceOnDiscover: 8,
-    elevationColor: (elevation) => { // Kelp in moderate depths
+    elevationColor: (elevation) => {
       if (elevation <= -40) return KELP_FOREST_DEEP_COLOR;
       if (elevation < -10) return KELP_FOREST_MID_COLOR;
       return KELP_FOREST_SHALLOW_COLOR;
@@ -538,14 +527,13 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 3, visibilityFactor: 0.05,
     baseInherentVisibilityBonus: -5, prominence: 0, canopyBlockage: 0,
     encounterChanceOnEnter: 25, encounterChanceOnDiscover: 2,
-    elevationColor: (elevation) => { // Very deep
+    elevationColor: (elevation) => {
       if (elevation <= -2000) return TRENCH_DEEPEST_COLOR;
       if (elevation < -1000) return TRENCH_MID_COLOR;
-      return TRENCH_UPPER_COLOR; // Upper part of trench
+      return TRENCH_UPPER_COLOR;
     },
   },
 
-  // Special / Magical / Planar
   [TerrainType.SKELETAL_FOREST]: {
     name: 'Skeletal Forest', symbol: '💀', color: 'fill-gray-300',
     speedMultiplier: 2.2, visibilityFactor: 0.6,
@@ -573,10 +561,10 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 2.8, visibilityFactor: 0.5,
     baseInherentVisibilityBonus: -1, prominence: 1, canopyBlockage: 6,
     encounterChanceOnEnter: 35, encounterChanceOnDiscover: 12,
-    elevationColor: (elevation) => { // Usually low elevation
-      if (elevation < -5) return BLOOD_MARSH_DEEP_COLOR;    // Deeper pools
-      if (elevation < 10) return BLOOD_MARSH_MID_COLOR;     // Average level
-      return BLOOD_MARSH_SHALLOW_COLOR;                     // Drier edges
+    elevationColor: (elevation) => {
+      if (elevation < -5) return BLOOD_MARSH_DEEP_COLOR;
+      if (elevation < 10) return BLOOD_MARSH_MID_COLOR;
+      return BLOOD_MARSH_SHALLOW_COLOR;
     },
   },
   [TerrainType.MAGMA_LAKE]: {
@@ -584,10 +572,10 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 10, visibilityFactor: 0.8,
     baseInherentVisibilityBonus: 1, prominence: 2, canopyBlockage: 0,
     encounterChanceOnEnter: 40, encounterChanceOnDiscover: 10,
-    elevationColor: (elevation) => { // Elevation might indicate intensity or depth of lake
-      if (elevation < -10) return MAGMA_LAKE_COOLER_COLOR; // Cooler, deeper, or crusting parts
-      if (elevation < 10) return MAGMA_LAKE_MID_COLOR;    // Main body of magma
-      return MAGMA_LAKE_HOT_COLOR;                        // Hotter, brighter, or shallower parts
+    elevationColor: (elevation) => {
+      if (elevation < -10) return MAGMA_LAKE_COOLER_COLOR;
+      if (elevation < 10) return MAGMA_LAKE_MID_COLOR;
+      return MAGMA_LAKE_HOT_COLOR;
     },
   },
   [TerrainType.VOLCANIC_WASTELAND]: {
@@ -597,9 +585,9 @@ export const TERRAIN_TYPES_CONFIG = {
     canopyBlockage: 0,
     encounterChanceOnEnter: 18, encounterChanceOnDiscover: 8,
     elevationColor: (elevation) => {
-      if (elevation < 300) return VOLCANIC_LOW_COLOR;  // Ash fields, lower slopes
-      if (elevation < 1000) return VOLCANIC_MID_COLOR; // Rocky slopes, old flows
-      return VOLCANIC_HIGH_COLOR;                     // Higher, darker rock
+      if (elevation < 300) return VOLCANIC_LOW_COLOR;
+      if (elevation < 1000) return VOLCANIC_MID_COLOR;
+      return VOLCANIC_HIGH_COLOR;
     },
   },
   [TerrainType.FLOATING_ISLANDS]: {
@@ -607,11 +595,10 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 1.5, visibilityFactor: 1.5,
     baseInherentVisibilityBonus: 2, prominence: 30, canopyBlockage: 2,
     encounterChanceOnEnter: 10, encounterChanceOnDiscover: 15,
-    elevationColor: (elevation) => { // Elevation is relative to the island's own 'surface'
-      // Assuming elevation value given is the height of the landmass itself
-      if (elevation < 100) return FLOATING_ISLAND_LOW_COLOR; // Lower parts of the island mass
-      if (elevation < 300) return FLOATING_ISLAND_MID_COLOR; // Mid-section of island
-      return FLOATING_ISLAND_HIGH_COLOR;                     // Peaks or highest points on island
+    elevationColor: (elevation) => {
+      if (elevation < 100) return FLOATING_ISLAND_LOW_COLOR;
+      if (elevation < 300) return FLOATING_ISLAND_MID_COLOR;
+      return FLOATING_ISLAND_HIGH_COLOR;
     },
   },
   [TerrainType.ETHEREAL_MIST]: {
@@ -619,10 +606,10 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 1.2, visibilityFactor: 0.1,
     baseInherentVisibilityBonus: -4, prominence: 0, canopyBlockage: 0,
     encounterChanceOnEnter: 20, encounterChanceOnDiscover: 5,
-    elevationColor: (elevation) => { // Elevation could affect mist density
-      if (elevation < 0) return ETHEREAL_MIST_DENSE_COLOR; // Lower, denser mist
-      if (elevation < 50) return ETHEREAL_MIST_MID_COLOR;  // Average mist
-      return ETHEREAL_MIST_THIN_COLOR;                     // Higher, thinner mist
+    elevationColor: (elevation) => {
+      if (elevation < 0) return ETHEREAL_MIST_DENSE_COLOR;
+      if (elevation < 50) return ETHEREAL_MIST_MID_COLOR;
+      return ETHEREAL_MIST_THIN_COLOR;
     },
   },
   [TerrainType.QUICKSAND]: {
@@ -638,9 +625,9 @@ export const TERRAIN_TYPES_CONFIG = {
     baseInherentVisibilityBonus: 1, prominence: 0, canopyBlockage: 0,
     encounterChanceOnEnter: 10, encounterChanceOnDiscover: 4,
     elevationColor: (elevation) => {
-      if (elevation < 0) return ICE_PLAIN_LOW_COLOR;     // Older, bluer ice
-      if (elevation < 50) return ICE_PLAIN_MID_COLOR;    // Standard ice plain
-      return ICE_PLAIN_HIGH_COLOR;                       // Fresh snow, whiter ice
+      if (elevation < 0) return ICE_PLAIN_LOW_COLOR;
+      if (elevation < 50) return ICE_PLAIN_MID_COLOR;
+      return ICE_PLAIN_HIGH_COLOR;
     },
   },
   [TerrainType.OBSIDIAN_FIELD]: {
@@ -649,9 +636,9 @@ export const TERRAIN_TYPES_CONFIG = {
     baseInherentVisibilityBonus: 0, prominence: 1, canopyBlockage: 0,
     encounterChanceOnEnter: 15, encounterChanceOnDiscover: 6,
     elevationColor: (elevation) => {
-      if (elevation < 0) return OBSIDIAN_FIELD_LOW_COLOR;    // Cracks, depressions (pure black)
-      if (elevation < 50) return OBSIDIAN_FIELD_MID_COLOR;   // Main field
-      return OBSIDIAN_FIELD_HIGH_COLOR;                      // Ridges, slight highlights
+      if (elevation < 0) return OBSIDIAN_FIELD_LOW_COLOR;
+      if (elevation < 50) return OBSIDIAN_FIELD_MID_COLOR;
+      return OBSIDIAN_FIELD_HIGH_COLOR;
     },
   },
 };
@@ -669,9 +656,83 @@ export const DISCOVERED_DIM_OPACITY = 0.6;
 export const DEFAULT_APP_MODE = AppMode.HEX_EDITOR;
 export const DEFAULT_VIEW_MODE = ViewMode.TWOD;
 
-// For 3D Projection
 export const HEX_3D_PROJECTED_Y_SHIFT_PER_ELEVATION_UNIT = 0.05;
 export const HEX_3D_PROJECTED_DEPTH_PER_ELEVATION_UNIT = 0.05;
 export const HEX_3D_Y_SQUASH_FACTOR = 1.0;
 export const HEX_3D_SIDE_COLOR_DARKEN_FACTOR = 0.25;
 export const HEX_3D_MIN_VISUAL_DEPTH = 1.5;
+
+export const PARTY_ACTIVITIES = {
+  avoid_notice: {
+    id: 'avoid_notice',
+    name: 'Avoid Notice',
+    description: 'Attempt Stealth (Perception DC) while traveling at half speed. On encounter start, use Stealth for initiative and detection.',
+    movementPenaltyFactor: 2.0, // Half speed means time taken is x2
+    traits: ['Exploration'],
+    source: 'Player Core pg. 438'
+  },
+  defend: {
+    id: 'defend',
+    name: 'Defend',
+    description: 'Move at half speed with shield raised. Gain Raise a Shield benefits before first turn in combat.',
+    movementPenaltyFactor: 2.0,
+    traits: ['Exploration'],
+    source: 'Player Core pg. 438'
+  },
+  detect_magic: {
+    id: 'detect_magic',
+    name: 'Detect Magic',
+    description: 'Cast detect magic at intervals. Half speed or slower. Specific speeds for thoroughness.',
+    movementPenaltyFactor: 2.0,
+    traits: ['Concentrate', 'Exploration'],
+    source: 'Player Core pg. 438'
+  },
+  follow_expert: {
+    id: 'follow_expert',
+    name: 'Follow the Expert',
+    description: 'Match ally\'s skill check (e.g., Climb, Avoid Notice). Add level to skill, gain circumstance bonus from ally.',
+    movementPenaltyFactor: 1.0, // This activity itself doesn't impose a penalty; it depends on the expert's activity.
+    traits: ['Auditory', 'Concentrate', 'Exploration', 'Visual'],
+    source: 'Player Core pg. 438'
+  },
+  hustle: {
+    id: 'hustle',
+    name: 'Hustle',
+    description: 'Move at double travel speed for Con mod × 10 minutes (min 10 min). Group uses lowest Con.',
+    movementPenaltyFactor: 0.5, // Double speed means time taken is x0.5
+    traits: ['Exploration', 'Move'],
+    source: 'Player Core pg. 438'
+  },
+  investigate: {
+    id: 'investigate',
+    name: 'Investigate',
+    description: 'Seek info with Recall Knowledge (secret) at half speed.',
+    movementPenaltyFactor: 2.0,
+    traits: ['Concentrate', 'Exploration'],
+    source: 'Player Core pg. 439'
+  },
+  repeat_spell: {
+    id: 'repeat_spell',
+    name: 'Repeat a Spell',
+    description: 'Repeatedly cast a 2-action or less spell (usually cantrip) at half speed.',
+    movementPenaltyFactor: 2.0,
+    traits: ['Concentrate', 'Exploration'],
+    source: 'Player Core pg. 439'
+  },
+  scout: {
+    id: 'scout',
+    name: 'Scout',
+    description: 'Scout ahead/behind at half speed. Party gains +1 initiative next encounter.',
+    movementPenaltyFactor: 2.0,
+    traits: ['Concentrate', 'Exploration'],
+    source: 'Player Core pg. 439'
+  },
+  search: {
+    id: 'search',
+    name: 'Search',
+    description: 'Meticulously Seek for hidden things. Half speed usually; slower for thoroughness. GM makes free secret Seek.',
+    movementPenaltyFactor: 2.0,
+    traits: ['Concentrate', 'Exploration'],
+    source: 'Player Core pg. 439'
+  }
+};
