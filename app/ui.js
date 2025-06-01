@@ -362,25 +362,16 @@ export function renderApp(options = {}) {
 
     appContainer.innerHTML = mainTemplateCompiled(renderContext);
 
-if (hasValidGridDataAndInitialized) {
-                // Get the NEWLY created elements
-                const svgElement = document.getElementById("hexGridSvg");
-                const newSvgScrollContainer = document.getElementById("svg-scroll-container");
+    if (hasValidGridDataAndInitialized) {
+        const svgElement = document.getElementById("hexGridSvg");
+        const newSvgScrollContainer = document.getElementById("svg-scroll-container");
 
-                if (svgElement && newSvgScrollContainer) {
-                    svgElement.style.width = svgViewBoxWidth + "px";
-                    svgElement.style.height = svgViewBoxHeight + "px";
-                    svgElement.style.transform = `scale(${appState.zoomLevel})`;
-                    svgElement.style.transformOrigin = "0 0";
+        if (svgElement && newSvgScrollContainer) {
+            svgElement.style.width = svgViewBoxWidth + "px";
+            svgElement.style.height = svgViewBoxHeight + "px";
+            svgElement.style.transform = `scale(${appState.zoomLevel})`;
+            svgElement.style.transformOrigin = "0 0";
 
-                    // The scroll application logic now happens in the next animation frame
-                    // This ensures the DOM from innerHTML is fully parsed and ready.
-// ui.js (inside renderApp function)
-
-            // ... (previous code in renderApp up to svgElement.style.transformOrigin) ...
-
-            // The scroll application logic now happens in the next animation frame
-            // This ensures the DOM from innerHTML is fully parsed and ready.
             requestAnimationFrame(() => {
                 if (!newSvgScrollContainer || !document.body.contains(newSvgScrollContainer)) {
                         console.warn("AHME_UI_SCROLL: svg-scroll-container no longer in DOM for rAF scroll application.");
@@ -405,8 +396,7 @@ if (hasValidGridDataAndInitialized) {
 
                 if (appState.centerViewOnHexAfterRender) {
                     scrollAppliedBy = `centerOnHex: ${appState.centerViewOnHexAfterRender}`;
-                    // Get the calculated scroll values, but don't apply them in MapLogic
-                    const scrollPos = MapLogic.getCalculatedScrollForHex( // NEW FUNCTION NAME
+                    const scrollPos = MapLogic.getCalculatedScrollForHex(
                         appState.centerViewOnHexAfterRender,
                         newSvgScrollContainer.id,
                         currentUnscaledSvgWidth,
@@ -444,7 +434,7 @@ if (hasValidGridDataAndInitialized) {
                 } else if (appState.mapInitialized) {
                     scrollAppliedBy = "defaultCentering";
                     const defaultPos = getDefaultCenteringScroll(newSvgScrollContainer, currentUnscaledSvgWidth, currentUnscaledSvgHeight);
-                     if (defaultPos) {
+                        if (defaultPos) {
                         finalScrollLeft = defaultPos.scrollLeft;
                         finalScrollTop = defaultPos.scrollTop;
                     }
@@ -455,7 +445,7 @@ if (hasValidGridDataAndInitialized) {
                 newSvgScrollContainer.scrollTop = finalScrollTop;
 
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                const _unused = newSvgScrollContainer.offsetHeight; 
+                const _unused = newSvgScrollContainer.offsetHeight;
 
                 setTimeout(() => {
                     if (document.body.contains(newSvgScrollContainer)) {
@@ -471,12 +461,11 @@ if (hasValidGridDataAndInitialized) {
                 appState.targetScrollLeft = null;
                 appState.targetScrollTop = null;
             });
-        } // end if (svgElement && newSvgScrollContainer)
-    } // end if (hasValidGridDataAndInitialized)
+        }
+    }
     attachEventListeners();
-} // End of renderApp
+}
 
-// Helper function for default centering scroll calculation (extracted)
 function getDefaultCenteringScroll(scrollContainer, unscaledWidth, unscaledHeight) {
     let hexToCenterOnId = null;
     if (appState.partyMarkerPosition && appState.hexDataMap.has(appState.partyMarkerPosition.id)) {
@@ -492,6 +481,7 @@ function getDefaultCenteringScroll(scrollContainer, unscaledWidth, unscaledHeigh
     }
     return { scrollLeft: 0, scrollTop: 0 };
 }
+
 
 function capitalizeFirstLetter(string) {
   if (!string || typeof string !== "string") return "";
@@ -521,7 +511,7 @@ export function attachEventListeners() {
   if (savedMapSelect) {
     savedMapSelect.onchange = (event) => {
       const mapId = event.target.value;
-      if (mapId) {
+      if (mapId && !appState.isStandaloneMode) { // Prevent open if standalone
         MapManagement.handleOpenMap(mapId, false);
       }
     };
@@ -530,6 +520,10 @@ export function attachEventListeners() {
   const openSelectedMapBtn = el("openSelectedMapButton");
   if (openSelectedMapBtn && savedMapSelect) {
     openSelectedMapBtn.onclick = () => {
+      if (appState.isStandaloneMode) {
+          alert("Opening saved maps from server is not available in standalone mode.");
+          return;
+      }
       const mapId = savedMapSelect.value;
       if (mapId) {
         MapManagement.handleOpenMap(mapId, false);
@@ -542,6 +536,10 @@ export function attachEventListeners() {
   const deleteSelectedMapBtn = el("deleteSelectedMapButton");
   if (deleteSelectedMapBtn && savedMapSelect) {
     deleteSelectedMapBtn.onclick = () => {
+        if (appState.isStandaloneMode) {
+             alert("Deleting maps is not applicable in standalone mode.");
+             return;
+        }
         const mapId = savedMapSelect.value;
         const selectedOption = savedMapSelect.options[savedMapSelect.selectedIndex];
         const mapName = selectedOption && selectedOption.value ? selectedOption.text.split(' (')[0] : 'the selected map';
@@ -620,7 +618,7 @@ export function attachEventListeners() {
 
   qsa('[data-action="change-elevation-mode"]').forEach((b) => (b.onclick = createRenderAppWithScrollPreservation(() => { appState.elevationBrushMode = b.dataset.mode; })));
 
-  const createBtn = el("createNewMapButton"); if (createBtn) createBtn.onclick = () => MapManagement.handleCreateNewMap();
+  const createBtn = el("createNewMapButton"); if (createBtn) createBtn.onclick = () => MapManagement.handleCreateNewMap(false); // Not silent
 
   const saveBtn = el("saveCurrentMapButton");
   if (saveBtn) {
@@ -628,6 +626,8 @@ export function attachEventListeners() {
   }
 
   const saveAsBtn = el("saveMapAsButton"); if (saveAsBtn) saveAsBtn.onclick = MapManagement.handleSaveMapAs;
+  const exportMapBtn = el("exportMapButton"); if (exportMapBtn) exportMapBtn.onclick = () => MapManagement.handleExportMapFile(false);
+
 
   const lmffBtn = el("loadMapFromFileButton");
   const flIn = el("fileLoadInput");

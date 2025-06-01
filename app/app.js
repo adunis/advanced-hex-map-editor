@@ -8,16 +8,26 @@ import * as MapManagement from './map-management.js';
 import * as HexplorationLogic from './hexploration-logic.js';
 
 const APP_MODULE_ID = new URLSearchParams(window.location.search).get('moduleId');
+appState.isStandaloneMode = !APP_MODULE_ID; // Determine if running standalone
 
 window.addEventListener('message', (event) => {
     const { type, payload, moduleId: msgModuleId } = event.data || {};
 
-    if (!type || msgModuleId !== APP_MODULE_ID) {
+    // In standalone mode, we don't expect messages from a parent, so ignore if not matching module ID (unless no module ID, implying standalone dev)
+    if (!type || (!appState.isStandaloneMode && msgModuleId !== APP_MODULE_ID)) {
+        return;
+    }
+    if (appState.isStandaloneMode && msgModuleId === APP_MODULE_ID) {
+        // If in standalone but somehow got a message with its own ID, likely a misconfiguration or test, log it.
+        console.warn("AHME Standalone: Received a message with its own module ID. This is unexpected.", event.data);
+        // Potentially ignore these messages in standalone to prevent loops if testing postMessage locally
         return;
     }
 
+
     switch(type) {
         case 'initialData':
+            if (appState.isStandaloneMode) return; // Standalone doesn't get initialData from bridge
             if (payload) {
                 appState.mapList = payload.mapList || [];
                 appState.activeGmMapId = payload.activeGmMapId || null;
@@ -26,7 +36,7 @@ window.addEventListener('message', (event) => {
                     MapManagement.handleOpenMap(appState.activeGmMapId, true);
                 } else {
                     resetActiveMapState();
-                    renderApp(); // Will use default centering (first hex or nothing)
+                    renderApp();
                 }
             } else {
                 resetActiveMapState();
@@ -35,6 +45,7 @@ window.addEventListener('message', (event) => {
             break;
 
         case 'mapDataLoaded':
+            if (appState.isStandaloneMode) return; // Standalone handles its own data via file load
             if (payload && payload.mapId && Array.isArray(payload.hexes)) {
                 resetActiveMapState();
 
@@ -49,6 +60,7 @@ window.addEventListener('message', (event) => {
                     appState.currentMapHexTraversalTimeUnit = payload.mapSettings.hexTraversalTimeUnit || CONST.DEFAULT_HEX_TRAVERSAL_TIME_UNIT;
                     appState.zoomLevel = parseFloat(payload.mapSettings.zoomLevel) || 1.0;
                 } else {
+                    // Defaults
                     appState.currentMapHexSizeValue = CONST.DEFAULT_HEX_SIZE_VALUE;
                     appState.currentMapHexSizeUnit = CONST.DEFAULT_HEX_SIZE_UNIT;
                     appState.currentMapHexTraversalTimeValue = CONST.DEFAULT_HEX_TRAVERSAL_TIME_VALUE;
@@ -95,6 +107,7 @@ window.addEventListener('message', (event) => {
             break;
 
         case 'mapLoadFailed':
+            if (appState.isStandaloneMode) return;
             alert(`Failed to load map: ${payload?.mapId || 'Unknown ID'} - ${payload?.error || 'Unknown reason'}`);
             if (appState.currentMapId === payload?.mapId || (appState.currentMapName && appState.currentMapName.startsWith("Loading"))) {
                 resetActiveMapState();
@@ -105,6 +118,7 @@ window.addEventListener('message', (event) => {
             break;
 
         case 'mapListUpdated':
+            if (appState.isStandaloneMode) return;
             if (payload && Array.isArray(payload.mapList)) {
                 appState.mapList = payload.mapList;
                 let needsFullRender = true;
@@ -138,76 +152,80 @@ window.addEventListener('message', (event) => {
             }
             break;
 
-        case 'partyDataUpdated':
+        case 'partyDataUpdated': // Can be relevant for GM in standalone if they are also "player"
             if (payload && payload.mapId === appState.currentMapId) {
-                let needsRender = false;
-                let explicitCenteringRequestedThisUpdate = false;
+                // Allow in standalone IF the GM is acting as player.
+                // The bridge would not send this in pure standalone, but if testing, good to handle.
+                if (!appState.isStandaloneMode || (appState.isStandaloneMode && appState.isGM)) {
+                    let needsRender = false;
+                    let explicitCenteringRequestedThisUpdate = false;
 
-                if (payload.hasOwnProperty('partyMarkerPosition')) {
-                    const oldMarkerPosId = appState.partyMarkerPosition ? appState.partyMarkerPosition.id : null;
-                    appState.partyMarkerPosition = payload.partyMarkerPosition;
+                    if (payload.hasOwnProperty('partyMarkerPosition')) {
+                        const oldMarkerPosId = appState.partyMarkerPosition ? appState.partyMarkerPosition.id : null;
+                        appState.partyMarkerPosition = payload.partyMarkerPosition;
 
-                    if (appState.partyMarkerPosition && oldMarkerPosId !== appState.partyMarkerPosition.id) {
-                         // Always try to center on party marker if it moves, regardless of mode, unless GM is actively editing hexes
-                        if (appState.appMode === CONST.AppMode.PLAYER || (appState.isGM && appState.appMode !== CONST.AppMode.HEX_EDITOR)) {
-                            MapLogic.requestCenteringOnHex(appState.partyMarkerPosition.id);
-                            explicitCenteringRequestedThisUpdate = true;
+                        if (appState.partyMarkerPosition && oldMarkerPosId !== appState.partyMarkerPosition.id) {
+                            if (appState.appMode === CONST.AppMode.PLAYER || (appState.isGM && appState.appMode !== CONST.AppMode.HEX_EDITOR)) {
+                                if (appState.mapInitialized) {
+                                    MapLogic.requestCenteringOnHex(appState.partyMarkerPosition.id);
+                                    explicitCenteringRequestedThisUpdate = true;
+                                }
+                            }
+                        }
+                        needsRender = true;
+                    }
+
+                    if (payload.discoveredHexIds && Array.isArray(payload.discoveredHexIds)) {
+                        const newSet = new Set(payload.discoveredHexIds);
+                        if (appState.playerDiscoveredHexIds.size !== newSet.size || ![...appState.playerDiscoveredHexIds].every(id => newSet.has(id))) {
+                            appState.playerDiscoveredHexIds = newSet;
+                            needsRender = true;
                         }
                     }
-                    needsRender = true;
-                }
 
-                if (payload.discoveredHexIds && Array.isArray(payload.discoveredHexIds)) {
-                    const newSet = new Set(payload.discoveredHexIds);
-                    if (appState.playerDiscoveredHexIds.size !== newSet.size || ![...appState.playerDiscoveredHexIds].every(id => newSet.has(id))) {
-                        appState.playerDiscoveredHexIds = newSet;
-                        needsRender = true;
+                    if (payload.eventLog && Array.isArray(payload.eventLog)) {
+                        if (JSON.stringify(appState.currentMapEventLog) !== JSON.stringify(payload.eventLog)) {
+                            appState.currentMapEventLog = [...payload.eventLog];
+                            needsRender = true;
+                        }
                     }
-                }
 
-                if (payload.eventLog && Array.isArray(payload.eventLog)) {
-                     if (JSON.stringify(appState.currentMapEventLog) !== JSON.stringify(payload.eventLog)) {
-                        appState.currentMapEventLog = [...payload.eventLog];
-                        needsRender = true;
-                     }
-                }
-
-                if (needsRender) {
-                    MapLogic.updatePartyMarkerBasedLoS();
-                    // If explicit centering was requested, renderApp will pick it up via appState.centerViewOnHexAfterRender.
-                    // Otherwise, preserve scroll.
-                    renderApp({ preserveScroll: !explicitCenteringRequestedThisUpdate });
+                    if (needsRender) {
+                        if (appState.mapInitialized) { // Ensure this check
+                           MapLogic.updatePartyMarkerBasedLoS();
+                        }
+                        renderApp({ preserveScroll: !explicitCenteringRequestedThisUpdate });
+                    }
                 }
             }
             break;
 
         case 'forceMapReload':
+            if (appState.isStandaloneMode) return;
             if (payload && payload.mapId && !appState.isGM) {
                 if (appState.currentMapId === payload.mapId) {
-                    MapManagement.handleOpenMap(payload.mapId, true); // true = automatic, bypasses unsaved changes prompt
+                    MapManagement.handleOpenMap(payload.mapId, true);
                 }
             }
             break;
 
-        case 'activeMapChanged': // Sent from bridge when GM's active map setting changes
+        case 'activeMapChanged':
+            if (appState.isStandaloneMode) return;
             const newActiveGmMapIdFromSetting = payload.activeGmMapId;
             appState.activeGmMapId = newActiveGmMapIdFromSetting;
 
             if (newActiveGmMapIdFromSetting) {
-                // If the map is already current and initialized, a forced open isn't always needed.
-                // However, if it's a player, or the GM is in player view, they should see the active map.
                 if (appState.currentMapId !== newActiveGmMapIdFromSetting || !appState.mapInitialized) {
                     MapManagement.handleOpenMap(newActiveGmMapIdFromSetting, true);
                 } else if (appState.currentMapId === newActiveGmMapIdFromSetting && appState.mapInitialized) {
-                    // If current map IS the new active map, and player view, ensure party marker is centered
                      if (appState.appMode === CONST.AppMode.PLAYER && appState.partyMarkerPosition) {
                         MapLogic.requestCenteringOnHex(appState.partyMarkerPosition.id);
-                        renderApp(); // Render with the centering request
+                        renderApp();
                     } else {
-                        renderApp({preserveScroll: true}); // Just a cosmetic update for the map list perhaps
+                        renderApp({preserveScroll: true});
                     }
                 }
-            } else { // No active GM map
+            } else {
                 if (appState.currentMapId || appState.mapInitialized) {
                     resetActiveMapState();
                     appState.currentMapId = null;
@@ -218,12 +236,18 @@ window.addEventListener('message', (event) => {
             break;
 
         case 'activeMapContentRefreshed':
+            if (appState.isStandaloneMode) return;
             if (payload && payload.mapId === appState.currentMapId && !appState.isGM) {
                 MapManagement.handleOpenMap(payload.mapId, true);
             }
             break;
 
         case 'formInputResponse':
+             if (appState.isStandaloneMode && payload && payload.cancelled && !appState.isWaitingForFormInput) {
+                // This might happen if a standalone "Create New Map" was cancelled by user dismissing prompt
+                renderApp(); // Just re-render to clear any interim state
+                return;
+            }
             if (appState.isWaitingForFormInput && typeof appState.formInputCallback === 'function') {
                 appState.formInputCallback(payload);
             } else {
@@ -233,6 +257,10 @@ window.addEventListener('message', (event) => {
             break;
 
         case 'featureDetailsInputResponse':
+             if (appState.isStandaloneMode && payload && payload.cancelled && !appState.isWaitingForFeatureDetails) {
+                renderApp();
+                return;
+            }
             if (appState.isWaitingForFeatureDetails && typeof appState.featureDetailsCallback === 'function') {
                 if (appState.pendingFeaturePlacement && payload && appState.pendingFeaturePlacement.hexId === payload.hexId) {
                     appState.featureDetailsCallback(payload);
@@ -250,10 +278,13 @@ window.addEventListener('message', (event) => {
             }
             break;
 
-        case 'hexplorationDataUpdated':
+        case 'hexplorationDataUpdated': // Can be relevant for GM in standalone
             if (payload) {
-                HexplorationLogic.updateLocalHexplorationDisplayValues(payload);
-                renderApp({ preserveScroll: true });
+                // Allow in standalone IF the GM is acting as player and bridge communication is simulated or not strictly checked
+                if (!appState.isStandaloneMode || (appState.isStandaloneMode && appState.isGM)) {
+                    HexplorationLogic.updateLocalHexplorationDisplayValues(payload);
+                    renderApp({ preserveScroll: true });
+                }
             }
             break;
 
@@ -267,6 +298,9 @@ export function handleAppModeChange(newMode) {
 }
 
 async function start() {
+    appState.isGM = appState.isStandaloneMode ? true : (new URLSearchParams(window.location.search).get('isGM') === 'true'); // GM is true in standalone
+    appState.userId = appState.isStandaloneMode ? 'standalone_gm' : (new URLSearchParams(window.location.search).get('userId') || 'unknown_player_iframe');
+
     appState.appMode = appState.isGM ? CONST.DEFAULT_APP_MODE : CONST.AppMode.PLAYER;
 
     const templatesReady = await compileTemplates();
@@ -274,7 +308,12 @@ async function start() {
         return;
     }
 
-    if (window.parent && APP_MODULE_ID && typeof window.parent.postMessage === 'function') {
+    if (appState.isStandaloneMode) {
+        // For standalone, initialize with a default new map or let user load one.
+        // We'll use a silent create new map as a starting point.
+        MapManagement.handleCreateNewMap(true); // true for silent
+        // renderApp() will be called by handleCreateNewMap's logic
+    } else if (window.parent && APP_MODULE_ID && typeof window.parent.postMessage === 'function') {
         try {
             window.parent.postMessage({ type: 'jsAppReady', moduleId: APP_MODULE_ID }, '*');
         } catch (e) {
@@ -283,8 +322,13 @@ async function start() {
             renderApp();
         }
     } else {
-        resetActiveMapState();
-        renderApp();
+        // This case should ideally not be hit if !isStandaloneMode and no parent comms
+        // but as a fallback, treat as standalone.
+        appState.isStandaloneMode = true;
+        appState.isGM = true; 
+        appState.userId = 'fallback_standalone_gm';
+        appState.appMode = CONST.DEFAULT_APP_MODE;
+        MapManagement.handleCreateNewMap(true); 
     }
 }
 
