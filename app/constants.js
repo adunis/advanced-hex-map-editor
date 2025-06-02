@@ -260,7 +260,18 @@ export const HEX_PREVIEW_STROKE_WIDTH_ADDITION = 1.5;
 // Config for auto terrain change based on elevation
 export const AUTO_TERRAIN_CHANGE_ENABLED_DEFAULT = true; // New constant
 // Weather System Constants
-export const WEATHER_UPDATE_INTERVAL_HOURS = 12;
+export const WEATHER_UPDATE_INTERVAL_HOURS = 1; // Changed to 1
+export const WEATHER_MOVEMENT_DIRECTIONS = {
+    STATIONARY: { dCol: 0, dRow: 0, name: 'Stationary' },
+    EAST: { dCol: 1, dRow: 0, name: 'East' },
+    WEST: { dCol: -1, dRow: 0, name: 'West' },
+    SOUTH_EAST: { dCol: 1, dRow: 1, name: 'South-East (approx)' }, // Imperfect on hex grid
+    NORTH_WEST: { dCol: -1, dRow: -1, name: 'North-West (approx)' }, // Imperfect on hex grid
+    // More directions could be added, e.g., dCol: 0, dRow: 1 (South), dCol: 0, dRow: -1 (North)
+    // For true hex grid neighbors, cube coordinate math or specific neighbor functions are better.
+};
+export const NEW_WEATHER_SYSTEM_SPAWN_INTERVAL_HOURS = 8;
+export const MAX_ACTIVE_WEATHER_SYSTEMS = 5;
 export const AUTO_TERRAIN_IGNORE_TYPES = [ // Types not to change automatically
     TerrainType.ROAD, TerrainType.SETTLEMENT, TerrainType.WATER,
     TerrainType.SHALLOW_WATER, TerrainType.DEEP_OCEAN,

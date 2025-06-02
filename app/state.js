@@ -77,13 +77,19 @@ export const appState = {
     { id: 'sunny', name: 'Sunny', icon: '☀️', effects: { travelSpeed: 1, visibility: 1 } },
     { id: 'cloudy', name: 'Cloudy', icon: '☁️', effects: { travelSpeed: 1, visibility: 0.8 } },
     { id: 'rainy', name: 'Rainy', icon: '🌧️', effects: { travelSpeed: 0.8, visibility: 0.6 } },
+    { id: 'stormy', name: 'Stormy', icon: '⛈️', effects: { travelSpeed: 0.5, visibility: 0.2 } },
     { id: 'foggy', name: 'Foggy', icon: '🌫️', effects: { travelSpeed: 0.9, visibility: 0.4 } },
   ],
   weatherGrid: {},
-  weatherForecast: [],
-  weatherSettings: { sunny: 70, cloudy: 15, rainy: 10, foggy: 5 },
+  // weatherForecast: [], // Removed
+  weatherSettings: { sunny: 70, cloudy: 15, rainy: 10, foggy: 5, stormy: 1 },
   timeSinceLastWeatherChange: 0,
-  playerCanSeeForecast: false,
+  // playerCanSeeForecast: false, // Removed (or will be if it was tied to old forecast)
+  forecastHoursAhead: null,
+  displayingForecastWeatherGrid: null,
+  playerCanSeeCurrentWeather: true,
+  activeWeatherSystems: [],
+  timeSinceLastNewWeatherSystemSpawn: 0,
 };
 
 export function resetActiveMapState() {
@@ -116,10 +122,15 @@ export function resetActiveMapState() {
     // Reset weather system properties
     appState.isWeatherEnabled = false;
     appState.weatherGrid = {};
-    appState.weatherForecast = [];
-    appState.weatherSettings = { sunny: 70, cloudy: 15, rainy: 10, foggy: 5 };
+    // appState.weatherForecast = []; // Removed
+    appState.weatherSettings = { sunny: 70, cloudy: 15, rainy: 10, foggy: 5, stormy: 1 };
     appState.timeSinceLastWeatherChange = 0;
-    appState.playerCanSeeForecast = false;
+    // appState.playerCanSeeForecast = false; // Removed
+    appState.forecastHoursAhead = null;
+    appState.displayingForecastWeatherGrid = null;
+    appState.playerCanSeeCurrentWeather = true;
+    appState.activeWeatherSystems = [];
+    appState.timeSinceLastNewWeatherSystemSpawn = 0;
 
     // Reset new elevation states too if needed, or they can persist across maps
     appState.elevationBrushMode = CONST.ElevationBrushMode.INCREASE;
