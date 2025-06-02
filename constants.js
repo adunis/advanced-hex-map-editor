@@ -22,6 +22,11 @@ export const PaintMode = {
   FEATURE: 'feature',
 };
 
+export const FeatureBrushAction = {
+    ADD: 'add',
+    REMOVE: 'remove'
+};
+
 export const TerrainFeature = {
   NONE: 'none',
   LANDMARK: 'LANDMARK',
@@ -250,6 +255,7 @@ export const HEX_3D_PROJECTED_DEPTH_PER_ELEVATION_UNIT = 0.05;
 export const HEX_3D_Y_SQUASH_FACTOR = 1.0;
 export const HEX_3D_SIDE_COLOR_DARKEN_FACTOR = 0.25;
 export const HEX_3D_MIN_VISUAL_DEPTH = 1.5;
+export const HEX_PREVIEW_STROKE_WIDTH_ADDITION = 1.5;
 
 // Config for auto terrain change based on elevation
 export const AUTO_TERRAIN_CHANGE_ENABLED_DEFAULT = true; // New constant

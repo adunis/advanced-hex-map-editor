@@ -273,9 +273,22 @@ async function handleEncounterFeatureCreation(hexForEncounter, encounterTypeDesc
         if (!appState.isStandaloneMode) {
             window.parent.postMessage({ type: 'requestFeatureDetailsInput', payload: messagePayloadToBridgeForEncounter, moduleId: APP_MODULE_ID }, '*');
         } else {
-            // In standalone, we might need a different way to prompt or auto-accept
-            console.warn("Standalone mode: Feature detail input requested, auto-resolving/skipping for now.");
-            appState.featureDetailsCallback({ ...appState.pendingFeaturePlacement, cancelled: false }); // Auto-accept with defaults
+            const featureName = prompt("Enter Landmark Name:", appState.pendingFeaturePlacement.currentName || "");
+            if (featureName === null) {
+                appState.featureDetailsCallback({ ...appState.pendingFeaturePlacement, cancelled: true });
+                return;
+            }
+            const featureIcon = prompt("Enter Landmark Icon (e.g., ★, 🌲, 🏛️):", appState.pendingFeaturePlacement.currentIcon || "★");
+            if (featureIcon === null) {
+                appState.featureDetailsCallback({ ...appState.pendingFeaturePlacement, cancelled: true });
+                return;
+            }
+            const featureIconColor = prompt("Enter Landmark Icon Color (Tailwind class, e.g., fill-red-500, text-blue-300):", appState.pendingFeaturePlacement.currentIconColor || "fill-yellow-400");
+            if (featureIconColor === null) {
+                appState.featureDetailsCallback({ ...appState.pendingFeaturePlacement, cancelled: true });
+                return;
+            }
+            appState.featureDetailsCallback({ ...appState.pendingFeaturePlacement, featureName, featureIcon, featureIconColor, cancelled: false });
         }
     });
 }
@@ -427,17 +440,58 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
                     } 
                     break;
                 case CONST.PaintMode.FEATURE:
-                    const selectedFeatureTypeConst = appState.selectedFeatureType;
-                    const featureTypeToApplyLower = selectedFeatureTypeConst.toLowerCase();
-                    if (targetHexCoords.id === clickedHexId && (selectedFeatureTypeConst === CONST.TerrainFeature.LANDMARK || selectedFeatureTypeConst === CONST.TerrainFeature.SECRET)) {
-                        appState.pendingFeaturePlacement = { /* ... (same as before) ... */ };
-                        requiresFeatureDetailsDialog = true;
-                    } else if (newHexData.feature === featureTypeToApplyLower && selectedFeatureTypeConst !== CONST.TerrainFeature.NONE) {
-                        newHexData.feature = CONST.TerrainFeature.NONE.toLowerCase(); /* ... (clear feature details) ... */ hexSpecificChange = true;
-                    } else if (selectedFeatureTypeConst === CONST.TerrainFeature.NONE) {
-                        if (newHexData.feature !== CONST.TerrainFeature.NONE.toLowerCase()) { /* ... (clear feature details) ... */ hexSpecificChange = true; }
-                    } else if (selectedFeatureTypeConst !== CONST.TerrainFeature.LANDMARK && selectedFeatureTypeConst !== CONST.TerrainFeature.SECRET) {
-                        if (newHexData.feature !== featureTypeToApplyLower) { /* ... (set basic feature, clear details) ... */ hexSpecificChange = true; }
+                    if (appState.featureBrushAction === CONST.FeatureBrushAction.REMOVE) {
+                        if (newHexData.feature !== CONST.TerrainFeature.NONE.toLowerCase() || newHexData.featureName !== "" || newHexData.featureIcon !== null) {
+                            newHexData.feature = CONST.TerrainFeature.NONE.toLowerCase();
+                            newHexData.featureName = "";
+                            newHexData.featureIcon = null;
+                            newHexData.featureIconColor = null;
+                            hexSpecificChange = true;
+                        }
+                    } else { // This is ADD mode
+                        const selectedFeatureTypeConst = appState.selectedFeatureType;
+                        const featureTypeToApplyLower = selectedFeatureTypeConst.toLowerCase();
+
+                        // Specific handling for LANDMARK or SECRET (requires dialog) only on the primary clicked hex
+                        if (targetHexCoords.id === clickedHexId &&
+                            (selectedFeatureTypeConst === CONST.TerrainFeature.LANDMARK || selectedFeatureTypeConst === CONST.TerrainFeature.SECRET)) {
+
+                            // Only trigger dialog if we are actually changing to this feature or if it's currently NONE
+                            // This prevents re-triggering dialog if clicking on an already existing landmark of the same type to "change" it.
+                            // If changing from a different landmark/secret, it should still trigger.
+                            if (newHexData.feature !== featureTypeToApplyLower || featureTypeToApplyLower === CONST.TerrainFeature.NONE.toLowerCase()) {
+                                appState.pendingFeaturePlacement = {
+                                    hexId: clickedHexId,
+                                    featureType: featureTypeToApplyLower,
+                                    currentName: newHexData.featureName || `New ${selectedFeatureTypeConst}`,
+                                    currentIcon: newHexData.featureIcon || (selectedFeatureTypeConst === CONST.TerrainFeature.LANDMARK ? '★' : '❓'),
+                                    currentIconColor: newHexData.featureIconColor || CONST.DEFAULT_LANDMARK_ICON_COLOR_CLASS,
+                                    isEncounterContext: false
+                                };
+                                requiresFeatureDetailsDialog = true;
+                                // No hexSpecificChange = true here; it's handled by the dialog callback
+                            }
+                        } else if (selectedFeatureTypeConst === CONST.TerrainFeature.NONE) {
+                            // If "None" is selected, remove any existing feature
+                            if (newHexData.feature !== CONST.TerrainFeature.NONE.toLowerCase()) {
+                                newHexData.feature = CONST.TerrainFeature.NONE.toLowerCase();
+                                newHexData.featureName = "";
+                                newHexData.featureIcon = null;
+                                newHexData.featureIconColor = null;
+                                hexSpecificChange = true;
+                            }
+                        } else if (selectedFeatureTypeConst !== CONST.TerrainFeature.LANDMARK && selectedFeatureTypeConst !== CONST.TerrainFeature.SECRET) {
+                            // For simple, non-dialog features (if any were to exist)
+                            if (newHexData.feature !== featureTypeToApplyLower) {
+                                newHexData.feature = featureTypeToApplyLower;
+                                newHexData.featureName = ""; // Clear name/icon for non-landmark/secret types
+                                newHexData.featureIcon = null;
+                                newHexData.featureIconColor = null;
+                                hexSpecificChange = true;
+                            }
+                        }
+                        // Note: Clicking on an existing feature of the same type (non-dialog) does nothing here, which is fine.
+                        // Clicking on an existing feature with a *different* simple type selected will change it.
                     }
                     break;
             }
@@ -446,13 +500,72 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
 
         if (requiresFeatureDetailsDialog) {
             appState.isWaitingForFeatureDetails = true;
-            appState.featureDetailsCallback = (details) => { /* ... (same as before, but ensure renderApp is called) ... */ renderApp({ preserveScroll: true }); }; // Added renderApp here
-            const messagePayloadToBridge = { /* ... */ };
+            // The actual callback that processes the details after they are received (either from bridge or standalone prompts)
+            appState.featureDetailsCallback = (details) => {
+                appState.isWaitingForFeatureDetails = false;
+                const pendingInfo = appState.pendingFeaturePlacement; // Capture before clearing
+                appState.pendingFeaturePlacement = null;
+                appState.featureDetailsCallback = null; // Clear callback
+
+                if (details && !details.cancelled && pendingInfo && details.hexId === pendingInfo.hexId) {
+                    const hexToUpdate = appState.hexDataMap.get(details.hexId);
+                    if (hexToUpdate) {
+                        const updatedHex = {
+                            ...hexToUpdate,
+                            feature: pendingInfo.featureType, // Use featureType from pendingInfo
+                            featureName: details.featureName,
+                            featureIcon: details.featureIcon,
+                            featureIconColor: details.featureIconColor,
+                        };
+                        appState.hexDataMap.set(details.hexId, updatedHex);
+                        if (appState.hexGridData[updatedHex.row]?.[updatedHex.col]) {
+                            appState.hexGridData[updatedHex.row][updatedHex.col] = updatedHex;
+                        }
+                        appState.isCurrentMapDirty = true;
+                        if (appState.editorLosSourceHexId) {
+                            appState.editorVisibleHexIds = calculateLineOfSight(appState.editorLosSourceHexId, appState.hexDataMap);
+                        }
+                        updatePartyMarkerBasedLoS();
+                        renderApp({ preserveScroll: true, specificallyUpdatedHex: updatedHex });
+                    } else {
+                        console.error("Hex to update not found after feature details input:", details.hexId);
+                        renderApp({ preserveScroll: true });
+                    }
+                } else {
+                    // Cancelled or invalid details
+                    renderApp({ preserveScroll: true });
+                }
+            };
+
+            const messagePayloadToBridge = {
+                hexId: appState.pendingFeaturePlacement.hexId,
+                featureType: appState.pendingFeaturePlacement.featureType,
+                currentName: appState.pendingFeaturePlacement.currentName,
+                currentIcon: appState.pendingFeaturePlacement.currentIcon,
+                currentIconColor: appState.pendingFeaturePlacement.currentIconColor,
+                availableIconColors: CONST.FEATURE_ICON_COLORS
+            };
+
             if (!appState.isStandaloneMode) {
                  window.parent.postMessage({ type: 'requestFeatureDetailsInput', payload: messagePayloadToBridge, moduleId: APP_MODULE_ID }, '*');
             } else {
-                // Potentially open a simple prompt or auto-accept in standalone
-                appState.featureDetailsCallback({ ...appState.pendingFeaturePlacement, ...messagePayloadToBridge, cancelled: false });
+                // Standalone mode: use prompts
+                const featureName = prompt("Enter Landmark Name:", messagePayloadToBridge.currentName || "");
+                if (featureName === null) {
+                    appState.featureDetailsCallback({ ...messagePayloadToBridge, cancelled: true });
+                    return;
+                }
+                const featureIcon = prompt("Enter Landmark Icon (e.g., ★, 🌲, 🏛️):", messagePayloadToBridge.currentIcon || "★");
+                if (featureIcon === null) {
+                    appState.featureDetailsCallback({ ...messagePayloadToBridge, cancelled: true });
+                    return;
+                }
+                const featureIconColor = prompt("Enter Landmark Icon Color (Tailwind class, e.g., fill-red-500, text-blue-300):", messagePayloadToBridge.currentIconColor || "fill-yellow-400");
+                if (featureIconColor === null) {
+                    appState.featureDetailsCallback({ ...messagePayloadToBridge, cancelled: true });
+                    return;
+                }
+                appState.featureDetailsCallback({ ...messagePayloadToBridge, featureName, featureIcon, featureIconColor, cancelled: false });
             }
             return; 
         }
@@ -561,4 +674,68 @@ export function setTargetScrollForHexBasedOnCurrentCenter(oldZoom, newZoom) {
     appState.targetScrollLeft = (currentViewportCenterX_unzoomed * newZoom) - (containerWidth / 2);
     appState.targetScrollTop = (currentViewportCenterY_unzoomed * newZoom) - (containerHeight / 2);
     appState.centerViewOnHexAfterRender = null;
+}
+
+export function handleMouseMoveOnGrid(event) {
+    if (!appState.mapInitialized || appState.appMode !== CONST.AppMode.HEX_EDITOR || !appState.paintMode || appState.paintMode === CONST.PaintMode.NONE) { // Added check for PaintMode.NONE
+        if (appState.brushPreviewHexIds.size > 0) {
+            appState.brushPreviewHexIds.clear();
+            renderApp({ preserveScroll: true });
+        }
+        return;
+    }
+
+    let hoveredHex = null;
+    const targetGroup = event.target.closest('g[data-hex-id]');
+
+    if (targetGroup && targetGroup.dataset.hexId) {
+        hoveredHex = appState.hexDataMap.get(targetGroup.dataset.hexId);
+    }
+
+    if (hoveredHex) {
+        const affectedHexes = HEX_UTILS.getHexesInRadius(
+            hoveredHex,
+            appState.brushSize,
+            appState.hexDataMap,
+            appState.currentGridWidth,
+            appState.currentGridHeight
+        );
+        const newPreviewIds = new Set(affectedHexes.map(h => h.id));
+
+        // Check if the set of previewed hex IDs has actually changed
+        let changed = newPreviewIds.size !== appState.brushPreviewHexIds.size;
+        if (!changed) {
+            for (const id of newPreviewIds) {
+                if (!appState.brushPreviewHexIds.has(id)) {
+                    changed = true;
+                    break;
+                }
+            }
+            if (!changed) { // If still not changed, check the reverse (old ones not in new)
+                 for (const id of appState.brushPreviewHexIds) {
+                    if (!newPreviewIds.has(id)) {
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (changed) {
+            appState.brushPreviewHexIds = newPreviewIds;
+            renderApp({ preserveScroll: true });
+        }
+    } else { // Not hovering a specific hex, clear preview
+        if (appState.brushPreviewHexIds.size > 0) {
+            appState.brushPreviewHexIds.clear();
+            renderApp({ preserveScroll: true });
+        }
+    }
+}
+
+export function handleMouseLeaveFromGrid() {
+    if (appState.brushPreviewHexIds.size > 0) {
+        appState.brushPreviewHexIds.clear();
+        renderApp({ preserveScroll: true });
+    }
 }

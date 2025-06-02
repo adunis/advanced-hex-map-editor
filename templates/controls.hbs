@@ -162,6 +162,22 @@
             <option value="{{this}}" {{#if (eq ../selectedFeatureType this)}}selected{{/if}}>{{capitalizeFirst this}}</option>
           {{/each}}
         </select>
+        <div class="grid grid-cols-2 gap-1.5 mt-1.5">
+          <button id="featureAddModeButton"
+                  data-action="set-feature-brush-action"
+                  data-feature-action="{{@root.CONST.FeatureBrushAction.ADD}}"
+                  class="px-2 py-1 text-xs border rounded {{#if (eq @root.featureBrushAction @root.CONST.FeatureBrushAction.ADD)}}bg-green-500 text-white{{else}}bg-gray-600 text-gray-200 hover:bg-gray-500{{/if}}"
+                  title="Add features with brush (selected type)">
+            Add Mode
+          </button>
+          <button id="featureRemoveModeButton"
+                  data-action="set-feature-brush-action"
+                  data-feature-action="{{@root.CONST.FeatureBrushAction.REMOVE}}"
+                  class="px-2 py-1 text-xs border rounded {{#if (eq @root.featureBrushAction @root.CONST.FeatureBrushAction.REMOVE)}}bg-red-500 text-white{{else}}bg-gray-600 text-gray-200 hover:bg-gray-500{{/if}}"
+                  title="Remove features with brush">
+            Remove Mode
+          </button>
+        </div>
       {{/if}}
 
       {{!-- LoS Tools --}}
