@@ -1,5 +1,3 @@
-// File: foundry-bridge.js
-
 const MODULE_ID = "advanced-hex-map-editor";
 const SETTING_MAP_DATA = "hexMapData";
 const SETTING_ACTIVE_GM_MAP_ID = "activeGmMapId";
@@ -60,7 +58,6 @@ async function saveModuleData(data) {
     return true;
   } catch (e) {
     ui.notifications.error(`CRITICAL: Failed to save ${MODULE_ID} data.`);
-    console.error(`AHME_BRIDGE: Error saving module data`, e);
     return false;
   }
 }
@@ -79,9 +76,9 @@ function broadcastToAllIframes(messageType, messagePayload) {
 Hooks.once("ready", () => {
     if (game.socket) {
         game.socket.on(AHME_SOCKET_NAME, (data) => {
-            if (!data || !data.ahmeEvent || !data.payload || !game.user || data.senderId === game.user.id) return; // Ignore self-sent
+            if (!data || !data.ahmeEvent || !data.payload || !game.user || data.senderId === game.user.id) return;
 
-            if (data.ahmeEvent === "ahme_force_player_map_refresh" && !game.user.isGM) { // Players act
+            if (data.ahmeEvent === "ahme_force_player_map_refresh" && !game.user.isGM) {
                 Object.values(ui.windows).forEach((appWindow) => {
                     if (appWindow.id === "hexmap-app" && appWindow.element?.length && appWindow instanceof HexMapApplication) {
                         const iframeInstance = appWindow.element.find("#hexmap-iframe")[0];
@@ -92,7 +89,7 @@ Hooks.once("ready", () => {
                 });
             }
         });
-    } else { console.warn(`AHME_BRIDGE: game.socket not available. Real-time player map updates will be limited.`); }
+    }
 });
 
 class HexMapApplication extends Application {
@@ -103,12 +100,12 @@ class HexMapApplication extends Application {
   activateListeners(html) {
     super.activateListeners(html);
     const iframe = html.find("#hexmap-iframe")[0];
-    if (!iframe) { console.error("AHME_BRIDGE: Iframe not found"); return; }
+    if (!iframe) { return; }
 
     const messageHandler = async (event) => {
       if (!event.data || typeof event.data !== "object" || event.data.moduleId !== MODULE_ID) return;
       const { type, payload } = event.data;
-      if (type === undefined) { console.warn("AHME_BRIDGE: Received message with undefined type", payload); return; }
+      if (type === undefined) { return; }
 
       let moduleData;
       switch (type) {
@@ -160,32 +157,27 @@ class HexMapApplication extends Application {
               let activeMapIdSettingChangedByThisSaveAction = false;
 
               if (game.user.isGM && currentActiveGmMapId !== mapIdToSave && !payload.isAutoSave) {
-                  await game.settings.set(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID, mapIdToSave); // Triggers onChange
+                  await game.settings.set(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID, mapIdToSave);
                   activeMapIdSettingChangedByThisSaveAction = true;
               }
 
-              if (currentActiveGmMapId === mapIdToSave) { // Content of the active map was updated
-                  let socketAttempted = false;
+              if (currentActiveGmMapId === mapIdToSave) {
                   if (game.user.isGM && game.socket) {
                       try {
                           game.socket.emit(AHME_SOCKET_NAME, { ahmeEvent: "ahme_force_player_map_refresh", payload: { mapId: mapIdToSave }, senderId: game.user.id });
-                          socketAttempted = true;
                       } catch (socketError) { console.error("AHME_BRIDGE: Error emitting socket event:", socketError); }
                   }
 
-                  // Fallback: Force onChange if not already triggered by making a *different* map active
                   if (!activeMapIdSettingChangedByThisSaveAction) {
-                      console.debug("AHME_BRIDGE: Fallback - Toggling active map ID to force update for map:", mapIdToSave);
                       await game.settings.set(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID, null);
-                      await game.settings.set(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID, mapIdToSave); // Should trigger onChange twice
+                      await game.settings.set(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID, mapIdToSave);
                   }
               }
 
-              // Update GM's own iframe immediately
               if (iframe.contentWindow) {
                   const localPartyDataPayload = { mapId: mapIdToSave, partyMarkerPosition: moduleData.maps[mapIdToSave].partyMarkerPosition, discoveredHexIds: moduleData.maps[mapIdToSave].exploration.discoveredHexIds, eventLog: moduleData.maps[mapIdToSave].eventLog };
                   iframe.contentWindow.postMessage({ type: "partyDataUpdated", payload: localPartyDataPayload, moduleId: MODULE_ID }, "*");
-                  if (!activeMapIdSettingChangedByThisSaveAction) { // If onChange wasn't triggered by *this save making a new map active*
+                  if (!activeMapIdSettingChangedByThisSaveAction) {
                       const mapListForThisGM = Object.entries(moduleData.maps).map(([id_entry, mapInfo]) => ({ id: id_entry, name: mapInfo.name }));
                       iframe.contentWindow.postMessage({ type: 'mapListUpdated', payload: { mapList: mapListForThisGM, savedMapId: mapIdToSave, newActiveGmMapId: currentActiveGmMapId }, moduleId: MODULE_ID }, '*');
                   }
@@ -204,8 +196,8 @@ class HexMapApplication extends Application {
             if (await saveModuleData(moduleData)) {
               ui.notifications.info(`Map '${mapNameToDelete}' deleted.`);
               if (game.settings.get(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID) === mapIdToDelete) {
-                await game.settings.set(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID, null); // Triggers onChange
-              } else { // Active map didn't change, but list did. Manually inform iframes.
+                await game.settings.set(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID, null);
+              } else {
                  const mapListUpdatePayload = { mapList: Object.entries(moduleData.maps).map( ([id, mapInfo]) => ({ id, name: mapInfo.name }) ), deletedMapId: mapIdToDelete, newActiveGmMapId: game.settings.get(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID) };
                  broadcastToAllIframes("mapListUpdated", mapListUpdatePayload);
               }
@@ -220,11 +212,11 @@ class HexMapApplication extends Application {
           new Dialog({ title: payload.title || "Input Required", content: formContent, buttons: { ok: { icon: '<i class="fas fa-check"></i>', label: "OK", callback: (htmlEl) => { const formData = {}; payload.fields.forEach(field => { const inputElement = htmlEl.find(`[name="${field.name}"]`); if (inputElement.length) { formData[field.name] = inputElement.val(); if (field.type === 'number') { const parsedVal = parseFloat(inputElement.val()); formData[field.name] = isNaN(parsedVal) ? (typeof field.default === 'number' ? field.default : 0) : parsedVal; } } }); if (iframe.contentWindow) iframe.contentWindow.postMessage( { type: "formInputResponse", payload: { ...formData, cancelled: false }, moduleId: MODULE_ID }, "*"); } }, cancel: { icon: '<i class="fas fa-times"></i>', label: "Cancel", callback: () => { if (iframe.contentWindow) iframe.contentWindow.postMessage( { type: "formInputResponse", payload: { cancelled: true }, moduleId: MODULE_ID }, "*"); } } }, default: "ok", render: (htmlEl) => { if (payload.fields.length > 0) { setTimeout(() => htmlEl.find(`[name="${payload.fields[0].name}"]`).focus(), 50); } }, }, {width: payload.dialogWidth || 450} ).render(true);
           break;
 
-        case "gmSetActiveMap": // From iframe when GM loads/creates a map
+        case "gmSetActiveMap":
           if (!game.user?.isGM) return;
           const newActiveMapIdFromIframe = payload && (typeof payload.mapId === "string" || payload.mapId === null) ? payload.mapId : null;
           if (game.settings.get(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID) !== newActiveMapIdFromIframe) {
-            await game.settings.set(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID, newActiveMapIdFromIframe); // Triggers onChange
+            await game.settings.set(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID, newActiveMapIdFromIframe);
           }
           break;
 
@@ -247,10 +239,9 @@ class HexMapApplication extends Application {
           ChatMessage.create({ speaker: ChatMessage.getSpeaker({ alias: "Hexploration" }), content: "A new day of hexploration begins!" });
           break;
 
- case "gmPerformedHexplorationAction":
+        case "gmPerformedHexplorationAction":
           if (!game.user?.isGM) return;
           if (payload && typeof payload.kmCost === 'number' && typeof payload.hoursCost === 'number' && payload.logEntry && typeof payload.logEntry === 'object') {
-            // These variables should be fetched and updated correctly
             let currentKmTraveled = game.settings.get(MODULE_ID, SETTING_HEXPLORATION_KM_TRAVELED_TODAY) || 0;
             let currentHoursElapsed = game.settings.get(MODULE_ID, SETTING_HEXPLORATION_TIME_ELAPSED_HOURS) || 0;
 
@@ -267,28 +258,26 @@ class HexMapApplication extends Application {
             }
 
             const log = payload.logEntry;
-            const direction = typeof log.direction === 'string' ? log.direction : '';
-            let chatMessageContent = `<b>Travel Log:</b> Party ${direction.includes('exploring') ? 'explored at' : 'moved ' + direction + ' to'} hex ${log.to} (<i>${log.targetTerrain || 'Unknown Terrain'}</i>).<br>`;
-            if (!direction.includes('exploring')) {
+            let chatMessageContent = `<b>Travel Log:</b> Party ${log.direction.includes('exploring') ? 'explored at' : 'moved ' + log.direction + ' to'} hex ${log.to} (<i>${log.targetTerrain || 'Unknown Terrain'}</i>).<br>`;
+            if (!log.direction.includes('exploring')) {
                 chatMessageContent += `Distance: ${log.distanceValue} ${log.distanceUnit || 'units'}. `;
             }
-            chatMessageContent += `Base time: ${(typeof log.baseTimeValue === 'number' ? log.baseTimeValue : 0).toFixed(1)} ${log.baseTimeUnit || 'units'}.<br>`;
+            chatMessageContent += `Base time: ${parseFloat(log.baseTimeValue).toFixed(1)} ${log.baseTimeUnit || 'units'}.<br>`;
             let adjustmentsDetail = "";
-            const baseTimeForEffect = typeof log.baseTimeValue === 'number' ? log.baseTimeValue : 0;
-            const terrainModifiedTimeForEffect = typeof log.terrainModifiedTime === 'number' ? log.terrainModifiedTime : baseTimeForEffect;
-            const terrainTimeEffect = terrainModifiedTimeForEffect - baseTimeForEffect;
+            const terrainTimeEffect = (log.terrainModifiedTime || log.baseTimeValue) - log.baseTimeValue;
+
             if (Math.abs(terrainTimeEffect) > 0.01) {
-                if (terrainTimeEffect < 0) { adjustmentsDetail += `Terrain bonus (${log.targetTerrain || 'terrain'}): <span style="color: green;">-${Math.abs(terrainTimeEffect).toFixed(1)} ${log.baseTimeUnit || 'units'}</span>. `; }
-                else { adjustmentsDetail += `Terrain penalty (${log.targetTerrain || 'terrain'}): <span style="color: red;">+${terrainTimeEffect.toFixed(1)} ${log.baseTimeUnit || 'units'}</span>. `; }
+                 const terrainEffectVal = parseFloat(terrainTimeEffect).toFixed(1);
+                if (terrainTimeEffect < 0) { adjustmentsDetail += `Terrain bonus (${log.targetTerrain || 'terrain'}): <span style="color: green;">-${Math.abs(terrainEffectVal)} ${log.baseTimeUnit || 'units'}</span>. `; }
+                else { adjustmentsDetail += `Terrain penalty (${log.targetTerrain || 'terrain'}): <span style="color: red;">+${terrainEffectVal} ${log.baseTimeUnit || 'units'}</span>. `; }
             }
             if (log.elevationPenalty > 0.01) {
                 const elevChangeFormatted = `${log.elevationChange > 0 ? '+' : ''}${log.elevationChange}m`;
-                adjustmentsDetail += `Elevation penalty (${elevChangeFormatted}): <span style="color: red;">+${(typeof log.elevationPenalty === 'number' ? log.elevationPenalty : 0).toFixed(1)} ${log.baseTimeUnit || 'units'}</span>. `;
+                adjustmentsDetail += `Elevation penalty (${elevChangeFormatted}): <span style="color: red;">+${parseFloat(log.elevationPenalty).toFixed(1)} ${log.baseTimeUnit || 'units'}</span>. `;
             }
             if (adjustmentsDetail) { chatMessageContent += `Adjustments: ${adjustmentsDetail.trim()}<br>`; }
-            chatMessageContent += `Total time for this leg: <b>${(typeof log.totalTimeValue === 'number' ? log.totalTimeValue : 0).toFixed(1)} ${log.totalTimeUnit || 'units'}</b>.<br>`;
-            // Use the new accumulated values for the chat log
-            chatMessageContent += `<i>Day totals: ${(typeof newTimeElapsedToday === 'number' ? newTimeElapsedToday : 0).toFixed(1)}h, ${(typeof newKmTraveledToday === 'number' ? newKmTraveledToday : 0).toFixed(1)}km.</i>`;
+            chatMessageContent += `Total time for this leg: <b>${parseFloat(log.totalTimeValue).toFixed(1)} ${log.totalTimeUnit || 'units'}</b>.<br>`;
+            chatMessageContent += `<i>Day totals: ${newTimeElapsedToday.toFixed(1)}h, ${newKmTraveledToday.toFixed(1)}km.</i>`;
             if(log.encounterStatus && log.encounterStatus !== "No significant event on entering hex." && log.encounterStatus !== "No significant event while exploring current hex.") {
                chatMessageContent += `<br><i>${log.encounterStatus}</i>`;
             }
@@ -299,14 +288,11 @@ class HexMapApplication extends Application {
                 console.error("AHME_BRIDGE: Error creating Hexploration Log chat message:", chatError);
             }
 
-            // Ensure the payload for hexplorationDataUpdated uses the correct, updated variables
             const updatedHexplorationDataForUI = {
-                timeElapsedHoursToday: newTimeElapsedToday, // Corrected variable name
-                kmTraveledToday: newKmTraveledToday     // Corrected variable name
+                timeElapsedHoursToday: newTimeElapsedToday,
+                kmTraveledToday: newKmTraveledToday
             };
             broadcastToAllIframes("hexplorationDataUpdated", updatedHexplorationDataForUI);
-          } else {
-            console.warn("AHME_BRIDGE: Invalid payload for 'gmPerformedHexplorationAction'.", payload);
           }
           break;
 
@@ -333,9 +319,8 @@ Hooks.once("init", () => {
   game.settings.register(MODULE_ID, SETTING_MAP_DATA, { name: "AHME Map Data", scope: "world", config: false, type: String, default: "{}" });
   game.settings.register(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID, { name: "AHME Active GM Map ID", scope: "world", config: false, type: String, default: null,
     onChange: async (newActiveMapId) => {
-        console.debug(`AHME_BRIDGE: Setting '${SETTING_ACTIVE_GM_MAP_ID}' onChange hook fired. New Value: ${newActiveMapId}.`);
         broadcastToAllIframes("activeMapChanged", { activeGmMapId: newActiveMapId });
-        const currentModuleData = await getModuleData(); // Fetch fresh map list
+        const currentModuleData = await getModuleData();
         const mapListPayload = { mapList: Object.entries(currentModuleData.maps || {}).map(([id, mapInfo]) => ({ id, name: mapInfo.name })), newActiveGmMapId: newActiveMapId };
         broadcastToAllIframes("mapListUpdated", mapListPayload);
     },

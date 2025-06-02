@@ -4,46 +4,37 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Map</title>
-  <!-- Tailwind CSS via CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Handlebars.js via CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.7.7/handlebars.min.js"></script>
-  <!-- Link to your custom styles for the app -->
   <link rel="stylesheet" href="styles.css">
 
   <style>
-    /* Basic body styles */
     body { 
       margin: 0; 
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 
                    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', 
                    sans-serif; 
-      /* Ensure body takes full height for flex layout if app-container needs it */
       min-height: 100vh;
-      display: flex; /* Helps if app-container is also flex */
+      display: flex;
     }
 
-    /* Custom scrollbar for webkit browsers for better aesthetics with dark theme */
     ::-webkit-scrollbar {
       width: 8px;
       height: 8px;
     }
     ::-webkit-scrollbar-track {
-      background: #374151; /* Tailwind gray-700 */
+      background: #374151;
     }
     ::-webkit-scrollbar-thumb {
-      background: #4b5563; /* Tailwind gray-600 */
+      background: #4b5563;
       border-radius: 4px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: #6b7280; /* Tailwind gray-500 */
+      background: #6b7280;
     }
 
-    /* Ensure the app container can take up full space if needed */
     #app-container {
       width: 100%;
-      /* display: flex; /* Uncomment if app.js root element needs to be a flex container */
-      /* flex-direction: column; /* Uncomment if app.js root element needs to be a flex container */
     }
   </style>
 </head>
@@ -60,42 +51,38 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label for="modalGridWidth" class="block text-sm font-medium text-gray-300">Grid Width:</label>
-            <input type="number" id="modalGridWidth" name="gridWidth" value="{{CONST.INITIAL_GRID_WIDTH}}" min="{{CONST.MIN_GRID_DIMENSION}}" max="{{CONST.MAX_GRID_DIMENSION}}" step="1" required class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2">
+            <input type="number" id="modalGridWidth" name="gridWidth" value="12" min="1" max="50" step="1" required class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2">
           </div>
           <div>
             <label for="modalGridHeight" class="block text-sm font-medium text-gray-300">Grid Height:</label>
-            <input type="number" id="modalGridHeight" name="gridHeight" value="{{CONST.INITIAL_GRID_HEIGHT}}" min="{{CONST.MIN_GRID_DIMENSION}}" max="{{CONST.MAX_GRID_DIMENSION}}" step="1" required class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2">
+            <input type="number" id="modalGridHeight" name="gridHeight" value="8" min="1" max="50" step="1" required class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2">
           </div>
         </div>
         <div>
           <label for="modalDefaultElevation" class="block text-sm font-medium text-gray-300">Default Elevation (m):</label>
-          <input type="number" id="modalDefaultElevation" name="defaultElevation" value="{{CONST.INITIAL_ELEVATION}}" min="{{CONST.MIN_ELEVATION}}" max="{{CONST.MAX_ELEVATION}}" step="10" required class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2">
+          <input type="number" id="modalDefaultElevation" name="defaultElevation" value="0" min="-200" max="6000" step="10" required class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2">
         </div>
         <div>
           <label for="modalDefaultTerrain" class="block text-sm font-medium text-gray-300">Default Terrain:</label>
           <select id="modalDefaultTerrain" name="defaultTerrainType" required class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2">
-            {{!-- Options will be populated by JavaScript --}}
           </select>
         </div>
-        {{!-- Hex Scale and Traversal Time inputs (optional, can use defaults or add them) --}}
         <div>
             <label for="modalHexSizeValue" class="block text-sm font-medium text-gray-300">Hex Size Value:</label>
-            <input type="number" id="modalHexSizeValue" name="hexSizeValue" value="{{CONST.DEFAULT_HEX_SIZE_VALUE}}" min="0.01" step="0.01" required class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2">
+            <input type="number" id="modalHexSizeValue" name="hexSizeValue" value="5" min="0.01" step="0.01" required class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2">
         </div>
          <div>
             <label for="modalHexSizeUnit" class="block text-sm font-medium text-gray-300">Hex Size Unit:</label>
             <select id="modalHexSizeUnit" name="hexSizeUnit" required class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2">
-                {{!-- Options for distance units --}}
             </select>
         </div>
         <div>
             <label for="modalHexTraversalTimeValue" class="block text-sm font-medium text-gray-300">Base Traversal Time:</label>
-            <input type="number" id="modalHexTraversalTimeValue" name="hexTraversalTimeValue" value="{{CONST.DEFAULT_HEX_TRAVERSAL_TIME_VALUE}}" min="0.01" step="0.01" required class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2">
+            <input type="number" id="modalHexTraversalTimeValue" name="hexTraversalTimeValue" value="1" min="0.01" step="0.01" required class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2">
         </div>
         <div>
             <label for="modalHexTraversalTimeUnit" class="block text-sm font-medium text-gray-300">Traversal Time Unit:</label>
             <select id="modalHexTraversalTimeUnit" name="hexTraversalTimeUnit" required class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2">
-                {{!-- Options for time units --}}
             </select>
         </div>
 
@@ -107,13 +94,9 @@
     </form>
   </div>
 </div>
-  <!-- This div is where your app.js will render its content -->
   <div id="app-container">
-    <!-- Fallback content if JS fails spectacularly early -->
     <p style="color: white; padding: 20px;">Loading Advanced Hex Map Editor...</p>
   </div>
-
-  <!-- Load your main application JavaScript file as a module -->
   <script type="module" src="app.js"></script>
 </body>
 </html>
