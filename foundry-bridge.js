@@ -267,8 +267,9 @@ class HexMapApplication extends Application {
             }
 
             const log = payload.logEntry;
-            let chatMessageContent = `<b>Travel Log:</b> Party ${log.direction.includes('exploring') ? 'explored at' : 'moved ' + log.direction + ' to'} hex ${log.to} (<i>${log.targetTerrain || 'Unknown Terrain'}</i>).<br>`;
-            if (!log.direction.includes('exploring')) {
+            const direction = typeof log.direction === 'string' ? log.direction : '';
+            let chatMessageContent = `<b>Travel Log:</b> Party ${direction.includes('exploring') ? 'explored at' : 'moved ' + direction + ' to'} hex ${log.to} (<i>${log.targetTerrain || 'Unknown Terrain'}</i>).<br>`;
+            if (!direction.includes('exploring')) {
                 chatMessageContent += `Distance: ${log.distanceValue} ${log.distanceUnit || 'units'}. `;
             }
             chatMessageContent += `Base time: ${log.baseTimeValue.toFixed(1)} ${log.baseTimeUnit || 'units'}.<br>`;
