@@ -32,9 +32,11 @@ export const appState = {
   autoTerrainChangeOnElevation: CONST.AUTO_TERRAIN_CHANGE_ENABLED_DEFAULT, // New state for toggle
 
   paintMode: CONST.PaintMode.ELEVATION,
+  featureBrushAction: CONST.FeatureBrushAction.ADD,
   brushSize: CONST.DEFAULT_BRUSH_SIZE,
   selectedTerrainType: CONST.DEFAULT_TERRAIN_TYPE,
   selectedFeatureType: CONST.TerrainFeature.NONE,
+  brushPreviewHexIds: new Set(),
 
   editorLosSourceHexId: null,
   editorVisibleHexIds: new Set(),
