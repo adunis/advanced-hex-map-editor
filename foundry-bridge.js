@@ -272,21 +272,23 @@ class HexMapApplication extends Application {
             if (!direction.includes('exploring')) {
                 chatMessageContent += `Distance: ${log.distanceValue} ${log.distanceUnit || 'units'}. `;
             }
-            chatMessageContent += `Base time: ${log.baseTimeValue.toFixed(1)} ${log.baseTimeUnit || 'units'}.<br>`;
+            chatMessageContent += `Base time: ${(typeof log.baseTimeValue === 'number' ? log.baseTimeValue : 0).toFixed(1)} ${log.baseTimeUnit || 'units'}.<br>`;
             let adjustmentsDetail = "";
-            const terrainTimeEffect = (log.terrainModifiedTime || log.baseTimeValue) - log.baseTimeValue;
+            const baseTimeForEffect = typeof log.baseTimeValue === 'number' ? log.baseTimeValue : 0;
+            const terrainModifiedTimeForEffect = typeof log.terrainModifiedTime === 'number' ? log.terrainModifiedTime : baseTimeForEffect;
+            const terrainTimeEffect = terrainModifiedTimeForEffect - baseTimeForEffect;
             if (Math.abs(terrainTimeEffect) > 0.01) {
                 if (terrainTimeEffect < 0) { adjustmentsDetail += `Terrain bonus (${log.targetTerrain || 'terrain'}): <span style="color: green;">-${Math.abs(terrainTimeEffect).toFixed(1)} ${log.baseTimeUnit || 'units'}</span>. `; }
                 else { adjustmentsDetail += `Terrain penalty (${log.targetTerrain || 'terrain'}): <span style="color: red;">+${terrainTimeEffect.toFixed(1)} ${log.baseTimeUnit || 'units'}</span>. `; }
             }
             if (log.elevationPenalty > 0.01) {
                 const elevChangeFormatted = `${log.elevationChange > 0 ? '+' : ''}${log.elevationChange}m`;
-                adjustmentsDetail += `Elevation penalty (${elevChangeFormatted}): <span style="color: red;">+${log.elevationPenalty.toFixed(1)} ${log.baseTimeUnit || 'units'}</span>. `;
+                adjustmentsDetail += `Elevation penalty (${elevChangeFormatted}): <span style="color: red;">+${(typeof log.elevationPenalty === 'number' ? log.elevationPenalty : 0).toFixed(1)} ${log.baseTimeUnit || 'units'}</span>. `;
             }
             if (adjustmentsDetail) { chatMessageContent += `Adjustments: ${adjustmentsDetail.trim()}<br>`; }
-            chatMessageContent += `Total time for this leg: <b>${log.totalTimeValue.toFixed(1)} ${log.totalTimeUnit || 'units'}</b>.<br>`;
+            chatMessageContent += `Total time for this leg: <b>${(typeof log.totalTimeValue === 'number' ? log.totalTimeValue : 0).toFixed(1)} ${log.totalTimeUnit || 'units'}</b>.<br>`;
             // Use the new accumulated values for the chat log
-            chatMessageContent += `<i>Day totals: ${newTimeElapsedToday.toFixed(1)}h, ${newKmTraveledToday.toFixed(1)}km.</i>`;
+            chatMessageContent += `<i>Day totals: ${(typeof newTimeElapsedToday === 'number' ? newTimeElapsedToday : 0).toFixed(1)}h, ${(typeof newKmTraveledToday === 'number' ? newKmTraveledToday : 0).toFixed(1)}km.</i>`;
             if(log.encounterStatus && log.encounterStatus !== "No significant event on entering hex." && log.encounterStatus !== "No significant event while exploring current hex.") {
                chatMessageContent += `<br><i>${log.encounterStatus}</i>`;
             }
