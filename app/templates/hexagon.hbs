@@ -73,6 +73,19 @@
     </text>
   {{/if}}
 {{/if}}
+
+  {{! Weather Icon --}}
+  {{#if this.weatherIconToRender}}
+    <text x="{{this.cx}}" y="{{sub this.cy (mul ../CONST.HEX_SIZE 0.1)}}"
+          text-anchor="middle"
+          dominant-baseline="central"
+          filter="url(#hexBorderEffect)"
+          class="text-2xl pointer-events-none select-none {{this.weatherIconClass}}"
+          role="img"
+          aria-label="Weather: {{this.weatherName}}">
+      {{{this.weatherIconToRender}}}
+    </text>
+  {{/if}}
   {{/unless}}
 
   {{! 3D Side Faces }}
