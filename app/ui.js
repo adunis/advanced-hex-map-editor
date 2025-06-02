@@ -307,16 +307,34 @@ export function renderApp(options = {}) {
 
         let weatherIconToRender = null;
         let weatherName = null;
-        let weatherIconClass = "weather-icon-default"; // Default class
+        let weatherIconClass = "weather-icon-default";
 
-        if (appState.isWeatherEnabled && appState.weatherGrid && appState.weatherGrid[curHex.id]) {
-            const weatherId = appState.weatherGrid[curHex.id];
-            const weatherCondition = appState.weatherConditions.find(wc => wc.id === weatherId);
+        const gridForCurrentHexDisplay = appState.displayingForecastWeatherGrid ? appState.displayingForecastWeatherGrid : appState.weatherGrid;
+        const weatherIdOnHex = gridForCurrentHexDisplay ? gridForCurrentHexDisplay[curHex.id] : null;
+        
+        let showWeatherForThisHex = false;
+        if (appState.isWeatherEnabled && weatherIdOnHex) {
+            if (appState.isGM) {
+                showWeatherForThisHex = true; // GM sees current or forecast weather if active
+            } else { // Player view
+                // Player sees current weather if toggle is on, AND it's not a forecast view (players don't see forecast grids)
+                if (appState.playerCanSeeCurrentWeather && !appState.displayingForecastWeatherGrid) {
+                    showWeatherForThisHex = true;
+                }
+            }
+        }
+
+        if (showWeatherForThisHex) {
+            const weatherCondition = appState.weatherConditions.find(wc => wc.id === weatherIdOnHex);
             if (weatherCondition) {
                 weatherIconToRender = weatherCondition.icon;
                 weatherName = weatherCondition.name;
                 weatherIconClass = `weather-icon-${weatherCondition.id}`;
             }
+        } else { // Ensure they are null/empty if not shown
+            weatherIconToRender = null;
+            weatherName = null;
+            weatherIconClass = "";
         }
 
         return {
@@ -684,11 +702,56 @@ export function attachEventListeners() {
     };
   });
 
-  const playerCanSeeForecastToggle = el("playerCanSeeForecastToggle");
-  if (playerCanSeeForecastToggle) {
-    playerCanSeeForecastToggle.onchange = (e) => {
-      appState.playerCanSeeForecast = e.target.checked;
-      appState.isCurrentMapDirty = true;
+  // Removed playerCanSeeForecastToggle listener (it was for a GM control that's now removed)
+
+  const playerSeeCurrentWeatherToggle = el("playerSeeCurrentWeatherToggle");
+  if (playerSeeCurrentWeatherToggle) {
+    playerSeeCurrentWeatherToggle.onchange = (e) => {
+      appState.playerCanSeeCurrentWeather = e.target.checked;
+      renderApp({ preserveScroll: true });
+    };
+  }
+
+  const forecastHoursInput = el("forecastHoursInput");
+  if (forecastHoursInput) {
+    forecastHoursInput.oninput = (event) => {
+      const hours = parseInt(event.target.value, 10);
+      appState.forecastHoursAhead = (!isNaN(hours) && hours > 0) ? hours : null;
+    };
+  }
+
+  const viewForecastButton = el("viewForecastButton");
+  if (viewForecastButton) {
+    viewForecastButton.onclick = () => {
+      if (appState.forecastHoursAhead !== null && appState.forecastHoursAhead > 0) {
+        const hours = appState.forecastHoursAhead;
+        const futureGrid = MapLogic.getForecastedWeatherGrid(hours);
+
+        if (futureGrid) {
+            appState.displayingForecastWeatherGrid = futureGrid;
+            console.log(`Displaying forecast for ${hours} hours ahead.`);
+        } else {
+            appState.displayingForecastWeatherGrid = null; // Clear if forecast fails
+            alert("Could not generate weather forecast. Weather might be disabled or no systems active.");
+            console.warn("Forecast generation failed or returned null for", hours, "hours ahead.");
+        }
+        
+        appState.isCurrentMapDirty = false; // Viewing forecast doesn't dirty the map
+        renderApp({ preserveScroll: true });
+      } else {
+        alert("Please enter a valid number of hours for the forecast.");
+        console.error("Invalid forecast hours input:", appState.forecastHoursAhead);
+      }
+    };
+  }
+
+  const clearForecastViewButton = el("clearForecastViewButton");
+  if (clearForecastViewButton) {
+    clearForecastViewButton.onclick = () => {
+      appState.displayingForecastWeatherGrid = null;
+      appState.forecastHoursAhead = null;
+      const hoursInput = el("forecastHoursInput");
+      if (hoursInput) hoursInput.value = "";
       renderApp({ preserveScroll: true });
     };
   }

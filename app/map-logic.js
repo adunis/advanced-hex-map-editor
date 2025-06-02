@@ -772,113 +772,489 @@ export function handleMouseLeaveFromGrid() {
 export function generateWeatherGrid() {
     if (!appState.isWeatherEnabled) {
         appState.weatherGrid = {};
-        // No immediate re-render needed if weather is simply disabled,
-        // the existing weather visuals (if any) will be removed on next natural render.
-        // However, if direct visual feedback of removal is desired:
-        // renderApp({ preserveScroll: true });
+        appState.activeWeatherSystems = [];
+        renderApp({ preserveScroll: true }); // Render to clear visuals
         return;
     }
 
-    if (!appState.mapInitialized || appState.hexDataMap.size === 0) {
-        appState.weatherGrid = {}; // Ensure it's clear if map not ready
+    appState.activeWeatherSystems = []; // Clear previous systems
+    appState.weatherGrid = {};         // Clear previous grid
+
+    if (!appState.mapInitialized || !appState.hexDataMap || appState.hexDataMap.size === 0) {
+        renderApp({ preserveScroll: true }); // Render to show empty grid state
         return;
     }
 
-    const { weatherSettings, weatherConditions } = appState;
-    const weightedWeatherArray = [];
+    const defaultWeatherId = 'sunny'; // Assuming 'sunny' is a valid weatherCondition id
 
-    weatherConditions.forEach(condition => {
-        const weight = weatherSettings[condition.id] || 0;
-        for (let i = 0; i < weight; i++) {
-            weightedWeatherArray.push(condition.id);
-        }
+    // 1. Fill the entire weatherGrid with the default weather
+    appState.hexDataMap.forEach(hex => {
+        appState.weatherGrid[hex.id] = defaultWeatherId;
     });
 
-    // If weightedWeatherArray is empty (e.g., all percentages are 0),
-    // fall back to a default or clear weather.
-    if (weightedWeatherArray.length === 0) {
-        // Fallback: make all sunny, or could pick first condition, or clear.
-        const defaultCondition = weatherConditions.length > 0 ? weatherConditions[0].id : null;
-        if (defaultCondition) {
-            appState.hexDataMap.forEach(hex => {
-                appState.weatherGrid[hex.id] = defaultCondition;
-            });
-        } else {
-            appState.weatherGrid = {}; // Clear if no conditions defined
-        }
-    } else {
-        appState.hexDataMap.forEach(hex => {
-            const randomIndex = Math.floor(Math.random() * weightedWeatherArray.length);
-            appState.weatherGrid[hex.id] = weightedWeatherArray[randomIndex];
-        });
+    // 2. Determine the number of weather systems
+    const numSystems = Math.floor(Math.random() * 3) + 1; // 1-3 systems
+
+    const { weatherSettings, weatherConditions } = appState;
+    const availableSystemTypes = weatherConditions.filter(wc => wc.id !== defaultWeatherId); // Optionally exclude default type
+
+    if (availableSystemTypes.length === 0 && weatherConditions.find(wc => wc.id === defaultWeatherId) === undefined) {
+        console.warn("No weather types available for systems, and default sunny is missing. Weather grid will be empty or only default.");
+        // If defaultWeatherId is also not in weatherConditions, the grid might be problematic.
+        // For now, we assume 'sunny' exists or this state is handled.
+    }
+    
+    const hexArray = Array.from(appState.hexDataMap.values());
+    if (hexArray.length === 0) {
+        renderApp({ preserveScroll: true });
+        return; // No hexes to place systems on
     }
 
+    for (let i = 0; i < numSystems; i++) {
+        // Select Weather Type for System (weighted random)
+        const weightedWeatherArray = [];
+        // Use all conditions for systems, or availableSystemTypes if you want to exclude default
+        const conditionsForSystemSelection = weatherConditions; // Or availableSystemTypes
+        
+        conditionsForSystemSelection.forEach(condition => {
+            const weight = weatherSettings[condition.id] || 0;
+            // Ensure even 0% chance conditions could be chosen if it's the only one, or handle minimum weight
+            for (let j = 0; j < weight; j++) {
+                weightedWeatherArray.push(condition.id);
+            }
+        });
+        
+        let chosenWeatherId = defaultWeatherId; // Fallback
+        if (weightedWeatherArray.length > 0) {
+            const randomIndex = Math.floor(Math.random() * weightedWeatherArray.length);
+            chosenWeatherId = weightedWeatherArray[randomIndex];
+        } else if (conditionsForSystemSelection.length > 0) {
+            // If weights are all zero, pick a random one from available system types
+            chosenWeatherId = conditionsForSystemSelection[Math.floor(Math.random() * conditionsForSystemSelection.length)].id;
+        }
+
+
+        // Select Origin Hex
+        const originHex = hexArray[Math.floor(Math.random() * hexArray.length)];
+
+        // Determine Radius
+        const radius = Math.floor(Math.random() * 3) + 2; // 2-4 hex radius
+
+        const directionKeys = Object.keys(CONST.WEATHER_MOVEMENT_DIRECTIONS);
+        const randomDirectionKey = directionKeys[Math.floor(Math.random() * directionKeys.length)];
+        const randomMovementDirection = CONST.WEATHER_MOVEMENT_DIRECTIONS[randomDirectionKey];
+        const randomSpeed = Math.random() < 0.3 ? 0 : (Math.floor(Math.random() * 2) + 1); // 30% chance stationary, else 1-2
+
+        const newSystem = {
+            id: 'system_' + Date.now() + '_' + i + Math.random().toString(36).substr(2, 5),
+            weatherType: chosenWeatherId,
+            hexesOccupied: new Set(),
+            originHex: { col: originHex.col, row: originHex.row, id: originHex.id },
+            radius: radius,
+            intensity: 1.0, // Default intensity
+            movementDirection: randomMovementDirection,
+            speed: randomSpeed
+        };
+
+        // Populate hexesOccupied
+        const occupiedCoords = HEX_UTILS.getHexesInRadius(originHex, newSystem.radius, appState.hexDataMap, appState.currentGridWidth, appState.currentGridHeight);
+        occupiedCoords.forEach(coord => newSystem.hexesOccupied.add(coord.id));
+        
+        appState.activeWeatherSystems.push(newSystem);
+    }
+
+    // 3. Update weatherGrid from activeWeatherSystems
+    // This ensures later systems can override earlier ones in overlapping areas
+    appState.activeWeatherSystems.forEach(system => {
+        system.hexesOccupied.forEach(hexId => {
+            if (appState.weatherGrid.hasOwnProperty(hexId)) { // Ensure hex exists in grid
+                 appState.weatherGrid[hexId] = system.weatherType;
+            }
+        });
+    });
+
     appState.isCurrentMapDirty = true;
-    // As per instruction, call renderApp. Consider if this is always needed
-    // or if the calling context in ui.js handles rendering.
     renderApp({ preserveScroll: true });
 
-    if (appState.isWeatherEnabled) { // Generate forecast after current weather is set
-        generateWeatherForecast();
+    // Spawn new systems periodically
+    if (appState.isWeatherEnabled && appState.mapInitialized) {
+        appState.timeSinceLastNewWeatherSystemSpawn += 1; // Assumes updateWeatherOverTime is called hourly
+        if (appState.timeSinceLastNewWeatherSystemSpawn >= CONST.NEW_WEATHER_SYSTEM_SPAWN_INTERVAL_HOURS) {
+            spawnNewWeatherSystem(); // This function will call renderApp again if a system is spawned
+            appState.timeSinceLastNewWeatherSystemSpawn = 0;
+        }
     }
 }
 
-export function generateWeatherForecast() {
-    if (!appState.isWeatherEnabled) {
-        appState.weatherForecast = [];
+export function spawnNewWeatherSystem() {
+    if (!appState.isWeatherEnabled || 
+        !appState.mapInitialized || 
+        !appState.hexDataMap || 
+        appState.hexDataMap.size === 0 ||
+        appState.activeWeatherSystems.length >= CONST.MAX_ACTIVE_WEATHER_SYSTEMS) {
         return;
     }
 
-    const numForecastPeriods = 3;
-    const forecastPeriodDurationHours = 6; // Each period is 6 hours
-    appState.weatherForecast = [];
+    const { weatherSettings, weatherConditions, currentGridWidth, currentGridHeight } = appState;
 
-    const { weatherSettings, weatherConditions } = appState;
+    // 1. Select Weather Type for System (weighted random)
     const weightedWeatherArray = [];
+    // Optionally filter out 'sunny' or other baseline weather for spawning systems
+    const spawnableConditions = weatherConditions.filter(wc => wc.id !== 'sunny'); 
+    const conditionsToUse = spawnableConditions.length > 0 ? spawnableConditions : weatherConditions; // Fallback to all if filter is too restrictive
 
-    weatherConditions.forEach(condition => {
+    conditionsToUse.forEach(condition => {
         const weight = weatherSettings[condition.id] || 0;
         for (let i = 0; i < weight; i++) {
             weightedWeatherArray.push(condition.id);
         }
     });
 
-    // If weightedWeatherArray is empty, use a default (e.g., first available or 'sunny')
-    const defaultConditionId = weatherConditions.length > 0 ? weatherConditions[0].id : 'sunny'; // Fallback to 'sunny'
-    const defaultCondition = weatherConditions.find(wc => wc.id === defaultConditionId) || { icon: '☀️' }; // Further fallback for icon
-
-    for (let i = 0; i < numForecastPeriods; i++) {
-        const startTime = i * forecastPeriodDurationHours;
-        const endTime = (i + 1) * forecastPeriodDurationHours;
-        const timeBlockLabel = `Next ${startTime}-${endTime}h`;
-        
-        let predictedWeatherId = defaultConditionId;
-        let predictedWeatherIcon = defaultCondition.icon;
-
-        if (weightedWeatherArray.length > 0) {
-            const randomIndex = Math.floor(Math.random() * weightedWeatherArray.length);
-            predictedWeatherId = weightedWeatherArray[randomIndex];
-            const foundCondition = weatherConditions.find(wc => wc.id === predictedWeatherId);
-            if (foundCondition) {
-                predictedWeatherIcon = foundCondition.icon;
-            } else { // Should not happen if settings and conditions are synced
-                predictedWeatherIcon = defaultCondition.icon; 
-            }
-        }
-        
-        appState.weatherForecast.push({
-            timeBlockLabel,
-            predictedWeatherId,
-            predictedWeatherIcon
-        });
+    let chosenWeatherId = 'cloudy'; // Default spawn type if weighted random fails
+    if (weightedWeatherArray.length > 0) {
+        chosenWeatherId = weightedWeatherArray[Math.floor(Math.random() * weightedWeatherArray.length)];
+    } else if (conditionsToUse.length > 0) {
+        chosenWeatherId = conditionsToUse[Math.floor(Math.random() * conditionsToUse.length)].id;
+    } else {
+        console.warn("No suitable weather types available for spawning a new system.");
+        return; // Cannot spawn if no types available
     }
-    // No separate renderApp call here, assuming it's called by the initiator (generateWeatherGrid/updateWeatherOverTime)
+
+    // 2. Select Origin Hex (Edge Spawning)
+    let originCol, originRow;
+    const edge = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
+
+    if (edge === 0) { // Top edge
+        originRow = 0;
+        originCol = Math.floor(Math.random() * currentGridWidth);
+    } else if (edge === 1) { // Right edge
+        originCol = currentGridWidth - 1;
+        originRow = Math.floor(Math.random() * currentGridHeight);
+    } else if (edge === 2) { // Bottom edge
+        originRow = currentGridHeight - 1;
+        originCol = Math.floor(Math.random() * currentGridWidth);
+    } else { // Left edge (edge === 3)
+        originCol = 0;
+        originRow = Math.floor(Math.random() * currentGridHeight);
+    }
+    
+    const originHexId = `${originCol}-${originRow}`;
+    const originHexData = appState.hexDataMap.get(originHexId);
+
+    if (!originHexData) {
+        console.error(`Failed to find origin hex ${originHexId} for new weather system.`);
+        return;
+    }
+
+    // 3. Determine Radius
+    const radius = Math.floor(Math.random() * 2) + 2; // 2-3 radius
+
+    // 4. Movement Direction
+    const directionKeys = Object.keys(CONST.WEATHER_MOVEMENT_DIRECTIONS).filter(k => k !== 'STATIONARY'); // Exclude stationary
+    const randomDirectionKey = directionKeys[Math.floor(Math.random() * directionKeys.length)];
+    const movementDirection = CONST.WEATHER_MOVEMENT_DIRECTIONS[randomDirectionKey];
+    
+    // 5. Speed
+    const speed = Math.floor(Math.random() * 2) + 1; // 1-2 speed
+
+    const newSystem = {
+        id: 'system_spawned_' + Date.now() + Math.random().toString(36).substr(2, 5),
+        weatherType: chosenWeatherId,
+        hexesOccupied: new Set(),
+        originHex: { col: originCol, row: originRow, id: originHexId },
+        radius: radius,
+        intensity: 1.0,
+        movementDirection: movementDirection,
+        speed: speed
+    };
+
+    const occupiedCoords = HEX_UTILS.getHexesInRadius(originHexData, newSystem.radius, appState.hexDataMap, currentGridWidth, currentGridHeight);
+    occupiedCoords.forEach(coord => newSystem.hexesOccupied.add(coord.id));
+
+    appState.activeWeatherSystems.push(newSystem);
+
+    // Update weatherGrid for the new system
+    newSystem.hexesOccupied.forEach(hexId => {
+        if (appState.weatherGrid.hasOwnProperty(hexId)) {
+            appState.weatherGrid[hexId] = newSystem.weatherType;
+        }
+    });
+
+    appState.isCurrentMapDirty = true;
+    console.log("Spawned new weather system:", newSystem.id, "Type:", newSystem.weatherType, "at", originHexId);
+    
+    // renderApp({ preserveScroll: true }); // The calling function updateWeatherOverTime will render.
 }
 
 export function updateWeatherOverTime() {
-    if (appState.isWeatherEnabled) {
-        console.log("Weather update triggered due to time progression."); // Optional debug log
-        generateWeatherGrid(); // This will also call generateWeatherForecast
-        // Future: Implement more complex weather changes here instead of full regen.
+    if (!appState.isWeatherEnabled || !appState.activeWeatherSystems || appState.activeWeatherSystems.length === 0) {
+        if (appState.isWeatherEnabled && (!appState.activeWeatherSystems || appState.activeWeatherSystems.length === 0)) {
+            // If weather is on but systems just dissipated, ensure grid reflects this (likely becomes all 'sunny')
+            // This might be redundant if generateWeatherGrid was the last thing called,
+            // but good for safety if updateWeatherOverTime could be called independently after systems are gone.
+            const defaultWeatherId = 'sunny';
+            let gridChangedByDissipation = false;
+            appState.hexDataMap.forEach(hex => {
+                if (appState.weatherGrid[hex.id] !== defaultWeatherId) {
+                    appState.weatherGrid[hex.id] = defaultWeatherId;
+                    gridChangedByDissipation = true;
+                }
+            });
+            if (gridChangedByDissipation) {
+                appState.isCurrentMapDirty = true; // The weather on hexes changed
+                renderApp({ preserveScroll: true });
+            }
+        }
+        return;
     }
+
+    const updatedWeatherSystems = [];
+    let weatherActuallyChanged = false;
+    const initialSystemCount = appState.activeWeatherSystems.length;
+
+    for (const system of appState.activeWeatherSystems) {
+        let currentSystem = { ...system, hexesOccupied: new Set(system.hexesOccupied) }; // Deep enough copy for modification
+
+        if (currentSystem.speed > 0 && currentSystem.movementDirection && (currentSystem.movementDirection.dCol !== 0 || currentSystem.movementDirection.dRow !== 0)) {
+            weatherActuallyChanged = true;
+            let newOriginCol = currentSystem.originHex.col;
+            let newOriginRow = currentSystem.originHex.row;
+
+            for (let step = 0; step < currentSystem.speed; step++) {
+                const tempCol = newOriginCol + currentSystem.movementDirection.dCol;
+                const tempRow = newOriginRow + currentSystem.movementDirection.dRow;
+
+                if (tempCol < 0 || tempCol >= appState.currentGridWidth || tempRow < 0 || tempRow >= appState.currentGridHeight) {
+                    currentSystem = null; // System moves off map and dissipates
+                    break; 
+                }
+                newOriginCol = tempCol;
+                newOriginRow = tempRow;
+            }
+
+            if (currentSystem) {
+                currentSystem.originHex = { col: newOriginCol, row: newOriginRow, id: `${newOriginCol}-${newOriginRow}` }; // Update ID too
+                
+                const newOccupiedHexes = new Set();
+                // Ensure originHex for getHexesInRadius is a valid hex object from hexDataMap if possible, or has col/row
+                const centerHexDataForRadius = appState.hexDataMap.get(currentSystem.originHex.id) || currentSystem.originHex;
+
+                const hexesInNewRadius = HEX_UTILS.getHexesInRadius(centerHexDataForRadius, currentSystem.radius, appState.hexDataMap, appState.currentGridWidth, appState.currentGridHeight);
+                hexesInNewRadius.forEach(h => newOccupiedHexes.add(h.id));
+                currentSystem.hexesOccupied = newOccupiedHexes;
+                updatedWeatherSystems.push(currentSystem);
+            }
+        } else {
+            // System is stationary or has no movement data, keep it as is
+            updatedWeatherSystems.push(currentSystem);
+        }
+    }
+
+    appState.activeWeatherSystems = updatedWeatherSystems;
+
+    // Storm Formation Logic (after movement, before grid rebuild & spawning)
+    let systemsToRemoveAfterMerge = new Set();
+    let systemsToAddAfterMerge = [];
+    const currentSystemsForMerging = [...appState.activeWeatherSystems]; // Use the already updated list
+
+    for (let i = 0; i < currentSystemsForMerging.length; i++) {
+        for (let j = i + 1; j < currentSystemsForMerging.length; j++) {
+            const system1 = currentSystemsForMerging[i];
+            const system2 = currentSystemsForMerging[j];
+
+            if (systemsToRemoveAfterMerge.has(system1.id) || systemsToRemoveAfterMerge.has(system2.id)) {
+                continue;
+            }
+
+            if (system1.weatherType === 'rainy' && system2.weatherType === 'rainy') {
+                const intersection = new Set([...system1.hexesOccupied].filter(hexId => system2.hexesOccupied.has(hexId)));
+                const overlapThreshold = Math.min(system1.hexesOccupied.size, system2.hexesOccupied.size) * 0.3;
+                
+                if (intersection.size > overlapThreshold && intersection.size > 2) {
+                    console.log("Rain systems merging into storm:", system1.id, system2.id);
+                    weatherActuallyChanged = true; // A merge is a significant change
+                    systemsToRemoveAfterMerge.add(system1.id);
+                    systemsToRemoveAfterMerge.add(system2.id);
+
+                    const stormOriginHex = system1.hexesOccupied.size >= system2.hexesOccupied.size ? system1.originHex : system2.originHex;
+                    const stormRadius = Math.max(system1.radius, system2.radius) + 1;
+                    const stormMovementDirection = system1.speed >= system2.speed ? system1.movementDirection : system2.movementDirection;
+                    const stormSpeed = Math.max(1, Math.floor((system1.speed + system2.speed) / 2));
+                    const stormHexes = new Set([...system1.hexesOccupied, ...system2.hexesOccupied]);
+
+                    const newStormSystem = {
+                        id: 'storm_' + Date.now() + Math.random().toString(36).substr(2, 9),
+                        weatherType: 'stormy',
+                        hexesOccupied: stormHexes,
+                        originHex: stormOriginHex,
+                        radius: stormRadius,
+                        intensity: 1.2,
+                        movementDirection: stormMovementDirection,
+                        speed: stormSpeed
+                    };
+                    systemsToAddAfterMerge.push(newStormSystem);
+                }
+            }
+        }
+    }
+
+    if (systemsToRemoveAfterMerge.size > 0 || systemsToAddAfterMerge.length > 0) {
+        appState.activeWeatherSystems = appState.activeWeatherSystems.filter(sys => !systemsToRemoveAfterMerge.has(sys.id));
+        appState.activeWeatherSystems.push(...systemsToAddAfterMerge);
+        weatherActuallyChanged = true; // Merging or adding storms means weather changed
+    }
+
+    // Re-populate weatherGrid based on new system positions (and potential new storms)
+    const defaultWeatherId = 'sunny'; // Or from a constant
+    appState.hexDataMap.forEach(hex => {
+        // Initialize or reset to default. Important if systems moved away or merged.
+        appState.weatherGrid[hex.id] = defaultWeatherId;
+    });
+
+    appState.activeWeatherSystems.forEach(system => {
+        system.hexesOccupied.forEach(hexId => {
+            // Check if hexId is valid/exists in hexDataMap, though getHexesInRadius should ensure this.
+            if (appState.hexDataMap.has(hexId)) {
+                 appState.weatherGrid[hexId] = system.weatherType;
+            }
+        });
+    });
+    
+    // If systems moved, or if any system dissipated (count changed)
+    if (weatherActuallyChanged || appState.activeWeatherSystems.length !== initialSystemCount) {
+        appState.isCurrentMapDirty = true;
+    }
+
+    renderApp({ preserveScroll: true });
+}
+
+export function getForecastedWeatherGrid(hoursAhead) {
+    if (typeof hoursAhead !== 'number' || hoursAhead <= 0) {
+        console.error("getForecastedWeatherGrid: hoursAhead must be a positive number.", hoursAhead);
+        return null;
+    }
+
+    const defaultWeatherId = 'sunny';
+    const baseGrid = {};
+    appState.hexDataMap.forEach(hex => {
+        baseGrid[hex.id] = defaultWeatherId;
+    });
+
+    if (!appState.isWeatherEnabled || !appState.activeWeatherSystems || appState.activeWeatherSystems.length === 0) {
+        // If weather is off or no systems, forecast is just all default weather
+        return baseGrid; 
+    }
+
+    // Deep copy systems for simulation
+    let simulatedSystems = JSON.parse(JSON.stringify(appState.activeWeatherSystems));
+    simulatedSystems.forEach(system => {
+        system.hexesOccupied = new Set(system.hexesOccupied); // Convert array back to Set
+    });
+
+    for (let h = 1; h <= hoursAhead; h++) {
+        let systemsAtThisHour = [];
+        let weatherActuallyChangedThisHour = false; // To track if any system moved or merged in this specific hour
+
+        // --- Movement Logic ---
+        for (const system of simulatedSystems) {
+            let currentSystem = { ...system, hexesOccupied: new Set(system.hexesOccupied) }; 
+
+            if (currentSystem.speed > 0 && currentSystem.movementDirection && (currentSystem.movementDirection.dCol !== 0 || currentSystem.movementDirection.dRow !== 0)) {
+                weatherActuallyChangedThisHour = true;
+                let newOriginCol = currentSystem.originHex.col;
+                let newOriginRow = currentSystem.originHex.row;
+
+                for (let step = 0; step < currentSystem.speed; step++) {
+                    const tempCol = newOriginCol + currentSystem.movementDirection.dCol;
+                    const tempRow = newOriginRow + currentSystem.movementDirection.dRow;
+
+                    if (tempCol < 0 || tempCol >= appState.currentGridWidth || tempRow < 0 || tempRow >= appState.currentGridHeight) {
+                        currentSystem = null; 
+                        break;
+                    }
+                    newOriginCol = tempCol;
+                    newOriginRow = tempRow;
+                }
+
+                if (currentSystem) {
+                    currentSystem.originHex = { col: newOriginCol, row: newOriginRow, id: `${newOriginCol}-${newOriginRow}` };
+                    const newOccupiedHexes = new Set();
+                    const centerHexDataForRadius = appState.hexDataMap.get(currentSystem.originHex.id) || currentSystem.originHex;
+                    const hexesInNewRadius = HEX_UTILS.getHexesInRadius(centerHexDataForRadius, currentSystem.radius, appState.hexDataMap, appState.currentGridWidth, appState.currentGridHeight);
+                    hexesInNewRadius.forEach(h_item => newOccupiedHexes.add(h_item.id)); // Renamed h to h_item
+                    currentSystem.hexesOccupied = newOccupiedHexes;
+                    systemsAtThisHour.push(currentSystem);
+                }
+            } else {
+                systemsAtThisHour.push(currentSystem);
+            }
+        }
+        simulatedSystems = systemsAtThisHour;
+
+        // --- Storm Formation Logic ---
+        let systemsToRemoveAfterMerge = new Set();
+        let systemsToAddAfterMerge = [];
+        
+        for (let i = 0; i < simulatedSystems.length; i++) {
+            for (let j = i + 1; j < simulatedSystems.length; j++) {
+                const system1 = simulatedSystems[i];
+                const system2 = simulatedSystems[j];
+
+                if (systemsToRemoveAfterMerge.has(system1.id) || systemsToRemoveAfterMerge.has(system2.id)) {
+                    continue;
+                }
+
+                if (system1.weatherType === 'rainy' && system2.weatherType === 'rainy') {
+                    const intersection = new Set([...system1.hexesOccupied].filter(hexId => system2.hexesOccupied.has(hexId)));
+                    const overlapThreshold = Math.min(system1.hexesOccupied.size, system2.hexesOccupied.size) * 0.3;
+                    
+                    if (intersection.size > overlapThreshold && intersection.size > 2) {
+                        weatherActuallyChangedThisHour = true;
+                        systemsToRemoveAfterMerge.add(system1.id);
+                        systemsToRemoveAfterMerge.add(system2.id);
+
+                        const stormOriginHex = system1.hexesOccupied.size >= system2.hexesOccupied.size ? system1.originHex : system2.originHex;
+                        const stormRadius = Math.max(system1.radius, system2.radius) + 1;
+                        const stormMovementDirection = system1.speed >= system2.speed ? system1.movementDirection : system2.movementDirection;
+                        const stormSpeed = Math.max(1, Math.floor((system1.speed + system2.speed) / 2));
+                        const stormHexes = new Set([...system1.hexesOccupied, ...system2.hexesOccupied]);
+
+                        const newStormSystem = {
+                            id: 'storm_sim_' + Date.now() + '_' + h + '_' + i + '_' + j, // Ensure unique ID for simulation
+                            weatherType: 'stormy',
+                            hexesOccupied: stormHexes,
+                            originHex: stormOriginHex,
+                            radius: stormRadius,
+                            intensity: 1.2,
+                            movementDirection: stormMovementDirection,
+                            speed: stormSpeed
+                        };
+                        systemsToAddAfterMerge.push(newStormSystem);
+                    }
+                }
+            }
+        }
+
+        if (systemsToRemoveAfterMerge.size > 0 || systemsToAddAfterMerge.length > 0) {
+            simulatedSystems = simulatedSystems.filter(sys => !systemsToRemoveAfterMerge.has(sys.id));
+            simulatedSystems.push(...systemsToAddAfterMerge);
+        }
+        // Note: Spawning of entirely new systems is NOT part of this forecast simulation for simplicity.
+        // If it were, it would happen here, for hour 'h'.
+    }
+
+    // Generate Final Forecast Grid from the state of simulatedSystems after all hours
+    const forecastGrid = {};
+    appState.hexDataMap.forEach(hex => {
+        forecastGrid[hex.id] = defaultWeatherId;
+    });
+    simulatedSystems.forEach(system => {
+        system.hexesOccupied.forEach(hexId => {
+            if (forecastGrid.hasOwnProperty(hexId)) {
+                 forecastGrid[hexId] = system.weatherType;
+            }
+        });
+    });
+
+    return forecastGrid;
 }
