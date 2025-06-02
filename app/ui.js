@@ -71,7 +71,17 @@ export async function compileTemplates() {
         filterNoneFeature: (e) => (e || []).filter((i) => i !== CONST.TerrainFeature.NONE),
         toFixed: (n, d) => n != null ? parseFloat(n).toFixed(d) : (0).toFixed(d),
         mul: (a, b) => (a != null && b != null ? a * b : 0),
-        add: (a, b) => (a != null && b != null ? a + b : 0),
+        add: (a, b, precision = 2) => {
+            const n1 = parseFloat(a);
+            const n2 = parseFloat(b);
+            if (isNaN(n1) || isNaN(n2)) {
+                // Try to return something sensible if one is not a number, e.g. if one is 0
+                if (!isNaN(n1) && n2 == null) return n1.toFixed(precision);
+                if (!isNaN(n2) && n1 == null) return n2.toFixed(precision);
+                return (a || b || 0); // Fallback
+            }
+            return (n1 + n2).toFixed(precision);
+        },
         sub: (a, b) => (a != null && b != null ? a - b : 0),
         abs: (a) => (a != null ? Math.abs(a) : 0),
         subtract: (a, b) => (a != null && b != null ? (Number(a) - Number(b)) : 0),
@@ -320,6 +330,7 @@ export function renderApp(options = {}) {
             playerMarkerColor: CONST.PLAYER_MARKER_COLOR,
             appMode: appState.appMode, isGM: appState.isGM, CONST: CONST,
             isTextHiddenForPlayer: appState.appMode === CONST.AppMode.PLAYER && !appState.isGM && !appState.playerDiscoveredHexIds.has(curHex.id),
+            isBrushPreview: appState.brushPreviewHexIds.has(curHex.id) && appState.appMode === CONST.AppMode.HEX_EDITOR && appState.paintMode && appState.paintMode !== CONST.PaintMode.NONE,
         };
     }) : [];
 
@@ -579,7 +590,26 @@ export function attachEventListeners() {
     };
   };
 
-  qsa('[data-action="change-paint-mode"]').forEach((b) => (b.onclick = createRenderAppWithScrollPreservation(() => { appState.paintMode = b.dataset.mode; })));
+  qsa('[data-action="change-paint-mode"]').forEach((b) => (b.onclick = createRenderAppWithScrollPreservation(() => {
+    appState.paintMode = b.dataset.mode;
+    if (appState.paintMode === CONST.PaintMode.FEATURE) {
+      appState.featureBrushAction = CONST.FeatureBrushAction.ADD; // Default to ADD when switching to FEATURE mode
+    }
+  })));
+
+  qsa('[data-action="set-feature-brush-action"]').forEach(button => {
+      button.onclick = () => {
+          const newAction = button.dataset.featureAction;
+          if (appState.featureBrushAction !== newAction) {
+              appState.featureBrushAction = newAction;
+              // Ensure paint mode is 'FEATURE' if user clicks these buttons
+              if (appState.paintMode !== CONST.PaintMode.FEATURE) {
+                appState.paintMode = CONST.PaintMode.FEATURE;
+              }
+              renderApp({ preserveScroll: true });
+          }
+      };
+  });
 
   const bsIn = el("brushSize");
   if (bsIn) bsIn.oninput = createRenderAppWithScrollPreservation((e) => {
@@ -640,17 +670,22 @@ export function attachEventListeners() {
   }
 
   const hgSvg = el("hexGridSvg");
-  if (hgSvg) hgSvg.onclick = (evt) => {
-      const g = evt.target.closest("g[data-hex-id]");
-      if (g && g.dataset.hexId) {
-        const [colStr, rowStr] = g.dataset.hexId.split("-");
-        const c = parseInt(colStr, 10);
-        const r = parseInt(rowStr, 10);
-        if (!isNaN(c) && !isNaN(r)) {
-            MapLogic.handleHexClick(r, c);
-        }
-      }
-    };
+    if (hgSvg) {
+        hgSvg.onclick = (evt) => {
+            const g = evt.target.closest("g[data-hex-id]");
+            if (g && g.dataset.hexId) {
+                const [colStr, rowStr] = g.dataset.hexId.split("-");
+                const c = parseInt(colStr, 10);
+                const r = parseInt(rowStr, 10);
+                if (!isNaN(c) && !isNaN(r)) {
+                    MapLogic.handleHexClick(r, c);
+                }
+            }
+        };
+        // Add mousemove and mouseleave listeners for brush preview
+        hgSvg.addEventListener('mousemove', MapLogic.handleMouseMoveOnGrid);
+        hgSvg.addEventListener('mouseleave', MapLogic.handleMouseLeaveFromGrid);
+    }
 
   const rightPanel = el("right-panel");
   if (rightPanel) {

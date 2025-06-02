@@ -4,10 +4,11 @@
 
   <polygon
     points="{{this.points}}"
-    class="{{#if this.isTailwindFill}}{{this.currentFillColor}}{{/if}} {{this.finalStrokeColor}} group-hover:stroke-white transition-all duration-150"
-    style="{{#unless this.isTailwindFill}}fill: {{this.currentFillColor}};{{/unless}}"
-    stroke-width="{{this.finalStrokeWidth}}"
-  />
+    class="{{this.hexOpacityClass}} {{#if this.isBrushPreview}}stroke-blue-400{{else}}{{this.finalStrokeColor}}{{/if}} {{#if this.isBrushPreview}}opacity-100 stroke-[{{add @root.CONST.HEX_PREVIEW_STROKE_WIDTH_ADDITION this.finalStrokeWidth "1"}}]{{else}}stroke-[{{this.finalStrokeWidth}}]{{/if}} group-hover:stroke-white transition-all duration-150"
+    fill="{{#unless this.isTailwindFill}}{{this.currentFillColor}}{{/unless}}"
+    style="{{#if this.isTailwindFill}}fill:currentColor; color:{{this.currentFillColor}};{{/if}}"
+    />
+    {{!-- stroke-width attribute removed as it's handled by Tailwind stroke-[value] now --}}
 
   {{#unless this.isTextHiddenForPlayer}}
     {{#if this.elevationText}}
