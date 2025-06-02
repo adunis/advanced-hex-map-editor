@@ -104,38 +104,96 @@
       </div>
 
       {{!-- Scrolling Event Log part --}}
-      <div class="flex-grow overflow-y-auto bg-gray-800 p-1.5 rounded border border-gray-600 text-xs">
+{{!-- Presuming this is inside your right-panel or a similar container --}}
+<div class="p-2 bg-gray-700 rounded-md shadow-lg flex flex-col" style="max-height: 300px; /* Or your desired height */">
+    <h4 class="text-sky-300 font-semibold mb-2 text-sm">Event Log (Last {{currentMapEventLog.length}} entries)</h4>
+    <div class="overflow-y-auto flex-grow text-xs pr-1 space-y-2">
         {{#if currentMapEventLog.length}}
-          <ul class="space-y-2">
             {{#each currentMapEventLog}}
-              <li class="p-1.5 rounded {{#if (eq type 'travel')}}bg-gray-700{{else if (eq type 'explore_in_place')}}bg-blue-900 bg-opacity-50{{else if (eq type 'encounter')}}bg-red-800 bg-opacity-40{{else}}bg-gray-650{{/if}}">
-                <div class="flex justify-between items-center mb-0.5">
-                  <strong class="text-sky-400 text-xs">{{typeCapitalized this}}</strong>
-                  <span class="text-gray-500 text-xxs">{{this.timestamp}}</span>
+                <div class="p-1.5 rounded bg-gray-800 shadow">
+                    <div class="flex justify-between items-center mb-0.5">
+                        <strong class="text-sky-400">{{typeCapitalized this}}</strong>
+                        <span class="text-gray-400 text-xxs">{{formatTimestamp this.timestamp}}</span>
+                    </div>
+
+                    {{#if (eq this.type "movement")}}
+                        <p class="text-gray-200">
+                            Moved {{this.directionText}} from <strong>{{this.fromHexId}}</strong> to <strong>{{this.toHexId}}</strong> ({{getTerrainName this.terrainAtDestination}}).
+                        </p>
+                        {{#if (isNonZero this.distanceValue)}}
+                            <p class="text-gray-300 pl-2 text-xxs">Distance: {{toFixed this.distanceValue 1}} {{getUnitLabelByKey this.distanceUnit 'distance'}}.</p>
+                        {{/if}}
+                    {{else if (eq this.type "exploration_current")}}
+                         <p class="text-gray-200">Explored current hex <strong>{{this.toHexId}}</strong> ({{getTerrainName this.terrainAtDestination}}).</p>
+                    {{/if}}
+                    
+                    <p class="text-gray-300 pl-2 text-xxs">
+                        Time Taken: <strong class="text-amber-300">{{toFixed this.totalTimeValue 1}} {{getUnitLabelByKey this.timeUnit 'time'}}</strong>
+                        (Base: {{toFixed this.timeBreakdown.base 1}}
+                        {{#if (isNonZero this.timeBreakdown.terrainModifier)}}
+                            ; Terrain: <span class="{{#if (isPositive this.timeBreakdown.terrainModifier)}}text-red-400{{else}}text-green-400{{/if}}">
+                                {{#if (isPositive this.timeBreakdown.terrainModifier)}}+{{/if}}{{toFixed this.timeBreakdown.terrainModifier 1}}
+                            </span>
+                        {{/if}}
+                        {{#if (isNonZero this.timeBreakdown.activityModifier)}}
+                            ; Activity: <span class="{{#if (isPositive this.timeBreakdown.activityModifier)}}text-red-400{{else}}text-green-400{{/if}}">
+                                {{#if (isPositive this.timeBreakdown.activityModifier)}}+{{/if}}{{toFixed this.timeBreakdown.activityModifier 1}}
+                            </span>
+                        {{/if}}
+                        {{#if this.timeBreakdown.weatherModifier}}
+                             {{#if (isNonZero this.timeBreakdown.weatherModifier)}}
+                                ; Weather {{this.weatherOnHex.icon}}: <span class="{{#if (isPositive this.timeBreakdown.weatherModifier)}}text-red-400{{else}}text-green-400{{/if}}">
+                                    {{#if (isPositive this.timeBreakdown.weatherModifier)}}+{{/if}}{{toFixed this.timeBreakdown.weatherModifier 1}}
+                                </span>
+                             {{/if}}
+                        {{/if}}
+                        {{#if (isNonZero this.timeBreakdown.elevationPenalty)}}
+                            ; Elevation ({{#if (isPositive this.elevationChange)}}+{{/if}}{{this.elevationChange}}m): <span class="text-red-400">
+                                +{{toFixed this.timeBreakdown.elevationPenalty 1}}
+                            </span>
+                        {{/if}}
+                        )
+                    </p>
+
+                    {{#if this.activitiesActive.length}}
+                        <p class="text-gray-400 pl-3 text-xxs italic">Active: {{#each this.activitiesActive}}{{@key}}{{#unless @last}}, {{/unless}}{{/each}}</p>
+                    {{/if}}
+
+                    {{#if this.encounterOnEnter.triggered}}
+                        <p class="text-yellow-400 pl-2 text-xxs">
+                            Encounter entering {{this.toHexId}}: 
+                            {{#if this.encounterOnEnter.markedByGM}}
+                                Marked as '{{this.encounterOnEnter.featureName}}' {{this.encounterOnEnter.featureIcon}}.
+                            {{else}}
+                                Skipped by GM ({{this.encounterOnEnter.reasonSkipped}}).
+                            {{/if}}
+                        </p>
+                    {{/if}}
+
+                    {{#if this.encountersOnDiscover.length}}
+                        {{#each this.encountersOnDiscover}}
+                            <p class="text-yellow-400 pl-2 text-xxs">
+                                Discovery at {{this.hexId}}:
+                                {{#if this.markedByGM}}
+                                    Marked as '{{this.featureName}}' {{this.featureIcon}}.
+                                {{else}}
+                                    Skipped by GM ({{this.reasonSkipped}}).
+                                {{/if}}
+                            </p>
+                        {{/each}}
+                    {{/if}}
+                    
+                    {{#if this.newlyDiscoveredHexIds.length}}
+                         <p class="text-gray-400 pl-3 text-xxs italic">New Hexes Discovered: {{this.newlyDiscoveredHexIds}}</p>
+                    {{/if}}
+
                 </div>
-                <p class="text-gray-300 leading-tight text-xxs sm:text-xs">
-                  {{#if (eq type "travel")}}
-                    Moved {{this.direction}} from {{this.from}} to <strong>{{this.to}}</strong> ({{this.targetTerrain}}).
-                    Dist: {{this.distanceValue}} {{getUnitLabelByKey this.distanceUnit "distance"}}.
-                    Time: {{toPrecise this.totalTimeValue 1}} {{getUnitLabelByKey this.totalTimeUnit "time"}}.
-                    {{#if this.encounterStatus}}<span class="block mt-0.5 text-yellow-400">{{this.encounterStatus}}</span>{{/if}}
-                  {{else if (eq type "explore_in_place")}}
-                    Explored hex <strong>{{this.to}}</strong> ({{this.targetTerrain}}).
-                    Time: {{toPrecise this.totalTimeValue 1}} {{getUnitLabelByKey this.totalTimeUnit "time"}}.
-                     {{#if this.encounterStatus}}<span class="block mt-0.5 text-yellow-400">{{this.encounterStatus}}</span>{{/if}}
-                  {{else if (eq type "encounter")}}
-                    {{this.description}} at {{this.hexId}} ({{this.terrain}}).
-                  {{else}}
-                    {{this.message}}
-                  {{/if}}
-                </p>
-              </li>
             {{/each}}
-          </ul>
         {{else}}
-          <p class="text-gray-500 italic text-center py-4">No events logged for this map yet.</p>
+            <p class="text-gray-400 text-center">No events logged for this map yet.</p>
         {{/if}}
-      </div>
+    </div>
+</div>
 
       {{!-- Weather Forecast Section (Removed) --}}
     </aside>

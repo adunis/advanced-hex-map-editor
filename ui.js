@@ -56,29 +56,39 @@ export async function compileTemplates() {
     Handlebars.registerPartial("hexagon", texts[3]);
     Handlebars.registerHelper({
         eq: (a, b) => a === b,
-        or: (a, b) => a || b, // Added OR helper
+        or: (a, b) => a || b,
         capitalize: (s) => s ? s.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()) : "",
         capitalizeFirst: function (string) { if (!string || typeof string !== "string") return ""; return string.charAt(0).toUpperCase() + string.slice(1); },
-        typeCapitalized: function(logEntry) { if (logEntry && logEntry.type) { return logEntry.type.charAt(0).toUpperCase() + logEntry.type.slice(1); } return "Event"; },
+        typeCapitalized: function(logEntry) { 
+            if (logEntry && logEntry.type) {
+                const typeStr = String(logEntry.type);
+                if (typeStr === "exploration_current") return "Explored Current Hex";
+                return typeStr.charAt(0).toUpperCase() + typeStr.slice(1);
+            } 
+            return "Event"; 
+        },
         toPrecise: function (value, precision = 1) {
-            if (typeof value === "number") return value.toFixed(precision);
             const num = parseFloat(value);
-            if (!isNaN(num)) return num.toFixed(precision);
-            return typeof value === "string" ? value : (0).toFixed(precision);
+            if (Number.isFinite(num)) {
+                return num.toFixed(precision);
+            }
+            if (typeof value === 'string') {
+                return value;
+            }
+            return (0).toFixed(precision);
         },
         objValues: (o) => Object.values(o || {}),
         objEntries: (o) => Object.entries(o || {}).map(([k, v]) => ({ key: k, value: v })),
         filterNoneFeature: (e) => (e || []).filter((i) => i !== CONST.TerrainFeature.NONE),
-        toFixed: (n, d) => n != null ? parseFloat(n).toFixed(d) : (0).toFixed(d),
+        toFixed: (n, d = 1) => n != null && Number.isFinite(parseFloat(n)) ? parseFloat(n).toFixed(d) : (0).toFixed(d),
         mul: (a, b) => (a != null && b != null ? a * b : 0),
         add: (a, b, precision = 2) => {
             const n1 = parseFloat(a);
             const n2 = parseFloat(b);
             if (isNaN(n1) || isNaN(n2)) {
-                // Try to return something sensible if one is not a number, e.g. if one is 0
                 if (!isNaN(n1) && n2 == null) return n1.toFixed(precision);
                 if (!isNaN(n2) && n1 == null) return n2.toFixed(precision);
-                return (a || b || 0); // Fallback
+                return (a || b || 0);
             }
             return (n1 + n2).toFixed(precision);
         },
@@ -89,8 +99,8 @@ export async function compileTemplates() {
         replace: (s, f, r) => (s ? s.replace(new RegExp(f, "g"), r) : ""),
         and: (a, b) => a && b,
         assign: function(varName, varValue, options) { if(options && options.data && options.data.root) { options.data.root[varName] = varValue;} },
-        gt: (a, b) => a > b,
-        lt: (a, b) => a < b,
+        gt: (a, b) => Number(a) > Number(b),
+        lt: (a, b) => Number(a) < Number(b),
         getUnitLabelByKey: function(key, unitType) {
             let unitsArray;
             if (unitType === 'distance') { unitsArray = CONST.DISTANCE_UNITS; }
@@ -99,16 +109,32 @@ export async function compileTemplates() {
             const unit = unitsArray.find(u => u.key === key);
             return unit ? (unit.label.toLowerCase() === key.toLowerCase() || unit.label.length <= 3 ? unit.label : unit.label.toLowerCase()) : key;
         },
+        getTerrainName: (terrainKey) => CONST.TERRAIN_TYPES_CONFIG[terrainKey]?.name || terrainKey,
+        getWeatherName: (weatherId) => appState.weatherConditions.find(wc => wc.id === weatherId)?.name || weatherId,
+        getActivityName: (activityId) => CONST.PARTY_ACTIVITIES[activityId]?.name || activityId,
+        formatTimestamp: (isoString) => {
+            if (!isoString) return "";
+            try {
+                return new Date(isoString).toLocaleString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            } catch (e) { return "Invalid Date"; }
+        },
+        isPositive: (val) => parseFloat(val) > 0.01,
+        isNegative: (val) => parseFloat(val) < -0.01,
+        isNonZero: (val) => Math.abs(parseFloat(val)) > 0.01,
         compare: function (v1, operator, v2) {
+            const n1 = parseFloat(v1);
+            const n2 = parseFloat(v2);
+            const isNumericComparison = !isNaN(n1) && !isNaN(n2);
+
             switch (operator) {
                 case "==":  return v1 == v2;
                 case "===": return v1 === v2;
                 case "!=":  return v1 != v2;
                 case "!==": return v1 !== v2;
-                case "<":   return Number(v1) < Number(v2);
-                case "<=":  return Number(v1) <= Number(v2);
-                case ">":   return Number(v1) > Number(v2);
-                case ">=":  return Number(v1) >= Number(v2);
+                case "<":   return isNumericComparison ? n1 < n2 : String(v1) < String(v2);
+                case "<=":  return isNumericComparison ? n1 <= n2 : String(v1) <= String(v2);
+                case ">":   return isNumericComparison ? n1 > n2 : String(v1) > String(v2);
+                case ">=":  return isNumericComparison ? n1 >= n2 : String(v1) >= String(v2);
                 case "&&":  return v1 && v2;
                 case "||":  return v1 || v2;
                 default:    return false;
@@ -297,7 +323,7 @@ export function renderApp(options = {}) {
         const effInherent = (tc.baseInherentVisibilityBonus || 0) + Math.floor(Math.max(0, curHex.elevation) / CONST.ELEVATION_VISIBILITY_STEP_BONUS);
         const title = `Hex: ${curHex.id}\n` +
             (appState.appMode === CONST.AppMode.PLAYER && !appState.playerDiscoveredHexIds.has(curHex.id) && !appState.isGM ? "Undiscovered" :
-            `Terrain: ${tc.name} (${tc.symbol || ""})\nElevation: ${elevTxt}\nSpeed: x${tc.speedMultiplier}, VisMod: x${tc.visibilityFactor}\nBase Inh.Vis: ${tc.baseInherentVisibilityBonus || 0}, Elev Bonus: ${Math.floor(Math.max(0, curHex.elevation) / CONST.ELEVATION_VISIBILITY_STEP_BONUS)}\nTotal Inh.Bonus: ${effInherent}\nBase Sight: ${curHex.baseVisibility || 0}\nFeature: ${currentFeatureLower !== CONST.TerrainFeature.NONE.toLowerCase() ? capitalizeFirstLetter(currentFeatureLower) : "None"}${featureTooltipNameString}`);
+            `Terrain: ${tc.name} (${tc.symbol || ""})\nElevation: ${elevTxt}\nSpeed: x${tc.speedMultiplier}, VisMod: x${tc.visibilityFactor}\nBase Inh.Vis: ${tc.baseInherentVisibilityBonus || 0}, Elev Bonus: ${Math.floor(Math.max(0, curHex.elevation) / CONST.ELEVATION_VISIBILITY_STEP_BONUS)}\nTotal Inh.Bonus: ${effInherent}\nBase Sight: ${curHex.baseVisibility || 0}\nFeature: ${currentFeatureLower !== CONST.TerrainFeature.NONE.toLowerCase() ? capitalizeFirstLetterLocal(currentFeatureLower) : "None"}${featureTooltipNameString}`);
 
         const textYOffset1 = cy_top_proj - CONST.HEX_SIZE * 0.35 * currentYSquashFactor;
         const textYOffset2 = cy_top_proj + CONST.HEX_SIZE * 0.05 * currentYSquashFactor;
@@ -315,9 +341,8 @@ export function renderApp(options = {}) {
         let showWeatherForThisHex = false;
         if (appState.isWeatherEnabled && weatherIdOnHex) {
             if (appState.isGM) {
-                showWeatherForThisHex = true; // GM sees current or forecast weather if active
-            } else { // Player view
-                // Player sees current weather if toggle is on, AND it's not a forecast view (players don't see forecast grids)
+                showWeatherForThisHex = true;
+            } else {
                 if (appState.playerCanSeeCurrentWeather && !appState.displayingForecastWeatherGrid) {
                     showWeatherForThisHex = true;
                 }
@@ -331,7 +356,7 @@ export function renderApp(options = {}) {
                 weatherName = weatherCondition.name;
                 weatherIconClass = `weather-icon-${weatherCondition.id}`;
             }
-        } else { // Ensure they are null/empty if not shown
+        } else {
             weatherIconToRender = null;
             weatherName = null;
             weatherIconClass = "";
@@ -397,7 +422,7 @@ export function renderApp(options = {}) {
                                        appState.currentGridHeight > 0;
 
     const renderContext = {
-        ...appState, // Includes new elevation state variables
+        ...appState,
         CONST,
         hexGridRenderData,
         svgViewBoxWidth,
@@ -426,12 +451,10 @@ export function renderApp(options = {}) {
 
                 const currentUnscaledSvgWidth = parseFloat(svgElement.style.width) || svgViewBoxWidth;
                 const currentUnscaledSvgHeight = parseFloat(svgElement.style.height) || svgViewBoxHeight;
-                let scrollAppliedBy = "none";
                 let finalScrollLeft = 0;
                 let finalScrollTop = 0;
 
                 if (appState.centerViewOnHexAfterRender) {
-                    scrollAppliedBy = `centerOnHex: ${appState.centerViewOnHexAfterRender}`;
                     const scrollPos = MapLogic.getCalculatedScrollForHex(
                         appState.centerViewOnHexAfterRender,
                         newSvgScrollContainer.id,
@@ -443,7 +466,6 @@ export function renderApp(options = {}) {
                         finalScrollTop = scrollPos.scrollTop;
                     }
                 } else if (appState.targetScrollLeft !== null && appState.targetScrollTop !== null) {
-                    scrollAppliedBy = `targetScroll: L=${appState.targetScrollLeft.toFixed(0)}, T=${appState.targetScrollTop.toFixed(0)}`;
                     const containerWidth = newSvgScrollContainer.clientWidth;
                     const containerHeight = newSvgScrollContainer.clientHeight;
                     const maxScrollLeft = Math.max(0, (currentUnscaledSvgWidth * appState.zoomLevel) - containerWidth);
@@ -456,11 +478,9 @@ export function renderApp(options = {}) {
                     const maxScrollLeft = Math.max(0, (currentUnscaledSvgWidth * appState.zoomLevel) - containerWidth);
                     const maxScrollTop = Math.max(0, (currentUnscaledSvgHeight * appState.zoomLevel) - containerHeight);
                     if (oldScrollLeft >= 0 && oldScrollLeft <= maxScrollLeft && oldScrollTop >= 0 && oldScrollTop <= maxScrollTop) {
-                        scrollAppliedBy = `preserveScroll: L=${oldScrollLeft}, T=${oldScrollTop}`;
                         finalScrollLeft = oldScrollLeft;
                         finalScrollTop = oldScrollTop;
                     } else {
-                        scrollAppliedBy = "preserveScrollFallbackToDefault";
                         const defaultPos = getDefaultCenteringScroll(newSvgScrollContainer, currentUnscaledSvgWidth, currentUnscaledSvgHeight);
                         if (defaultPos) {
                             finalScrollLeft = defaultPos.scrollLeft;
@@ -468,7 +488,6 @@ export function renderApp(options = {}) {
                         }
                     }
                 } else if (appState.mapInitialized) {
-                    scrollAppliedBy = "defaultCentering";
                     const defaultPos = getDefaultCenteringScroll(newSvgScrollContainer, currentUnscaledSvgWidth, currentUnscaledSvgHeight);
                         if (defaultPos) {
                         finalScrollLeft = defaultPos.scrollLeft;
@@ -477,15 +496,8 @@ export function renderApp(options = {}) {
                 }
                 newSvgScrollContainer.scrollLeft = finalScrollLeft;
                 newSvgScrollContainer.scrollTop = finalScrollTop;
-
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const _unused = newSvgScrollContainer.offsetHeight;
-
-                setTimeout(() => {
-                    if (document.body.contains(newSvgScrollContainer)) {
-                        // console.log(`%cAHME_UI_SCROLL (rAF End - Delayed Log): Scroll Applied By: ${scrollAppliedBy}, Final Scroll: L=${newSvgScrollContainer.scrollLeft}, T=${newSvgScrollContainer.scrollTop}`, "color: lightcoral; font-weight: bold;");
-                    }
-                }, 0);
 
                 appState.centerViewOnHexAfterRender = null;
                 appState.targetScrollLeft = null;
@@ -513,7 +525,7 @@ function getDefaultCenteringScroll(scrollContainer, unscaledWidth, unscaledHeigh
 }
 
 
-function capitalizeFirstLetter(string) {
+function capitalizeFirstLetterLocal(string) {
   if (!string || typeof string !== "string") return "";
   const lower = string.toLowerCase();
   return lower.charAt(0).toUpperCase() + lower.slice(1);
@@ -628,7 +640,7 @@ export function attachEventListeners() {
   qsa('[data-action="change-paint-mode"]').forEach((b) => (b.onclick = createRenderAppWithScrollPreservation(() => {
     appState.paintMode = b.dataset.mode;
     if (appState.paintMode === CONST.PaintMode.FEATURE) {
-      appState.featureBrushAction = CONST.FeatureBrushAction.ADD; // Default to ADD when switching to FEATURE mode
+      appState.featureBrushAction = CONST.FeatureBrushAction.ADD;
     }
   })));
 
@@ -637,7 +649,6 @@ export function attachEventListeners() {
           const newAction = button.dataset.featureAction;
           if (appState.featureBrushAction !== newAction) {
               appState.featureBrushAction = newAction;
-              // Ensure paint mode is 'FEATURE' if user clicks these buttons
               if (appState.paintMode !== CONST.PaintMode.FEATURE) {
                 appState.paintMode = CONST.PaintMode.FEATURE;
               }
@@ -653,13 +664,11 @@ export function attachEventListeners() {
       if (brushSizeValueDisplay) brushSizeValueDisplay.textContent = appState.brushSize;
   });
 
-  // New Elevation Brush Controls
   qsa('[data-action="change-elevation-mode"]').forEach((b) => (b.onclick = createRenderAppWithScrollPreservation(() => { appState.elevationBrushMode = b.dataset.mode; })));
 
   const elevStepInput = el("elevationStepInput");
   if (elevStepInput) elevStepInput.onchange = (e) => {
       appState.elevationBrushCustomStep = parseInt(e.target.value, 10) || CONST.DEFAULT_CUSTOM_ELEVATION_STEP;
-      // No re-render needed just for changing the step value, only when used.
   };
 
   const elevSetValueInput = el("elevationSetValueInput");
@@ -670,17 +679,14 @@ export function attachEventListeners() {
   const autoTerrainToggle = el("autoTerrainChangeToggle");
   if (autoTerrainToggle) autoTerrainToggle.onchange = (e) => {
       appState.autoTerrainChangeOnElevation = e.target.checked;
-      // This might warrant a re-render if visual cues depend on it, but usually not.
   };
 
-  // Weather System Controls
   const enableWeatherToggle = el("enableWeatherToggle");
   if (enableWeatherToggle) {
     enableWeatherToggle.onchange = (e) => {
       appState.isWeatherEnabled = e.target.checked;
       appState.isCurrentMapDirty = true;
-      // renderApp({ preserveScroll: true }); // generateWeatherGrid will call renderApp
-      MapLogic.generateWeatherGrid(); // This will also call renderApp
+      MapLogic.generateWeatherGrid();
     };
   }
 
@@ -692,17 +698,15 @@ export function attachEventListeners() {
         if (appState.weatherSettings.hasOwnProperty(weatherId)) {
           appState.weatherSettings[weatherId] = newValue;
           appState.isCurrentMapDirty = true;
-          if (appState.isWeatherEnabled) { // Only regenerate if weather is active
-            MapLogic.generateWeatherGrid(); // This will also call renderApp
+          if (appState.isWeatherEnabled) {
+            MapLogic.generateWeatherGrid();
           } else {
-            renderApp({ preserveScroll: true }); // Percentages changed but weather not on, just update controls
+            renderApp({ preserveScroll: true });
           }
         }
       }
     };
   });
-
-  // Removed playerCanSeeForecastToggle listener (it was for a GM control that's now removed)
 
   const playerSeeCurrentWeatherToggle = el("playerSeeCurrentWeatherToggle");
   if (playerSeeCurrentWeatherToggle) {
@@ -729,18 +733,15 @@ export function attachEventListeners() {
 
         if (futureGrid) {
             appState.displayingForecastWeatherGrid = futureGrid;
-            console.log(`Displaying forecast for ${hours} hours ahead.`);
         } else {
-            appState.displayingForecastWeatherGrid = null; // Clear if forecast fails
+            appState.displayingForecastWeatherGrid = null;
             alert("Could not generate weather forecast. Weather might be disabled or no systems active.");
-            console.warn("Forecast generation failed or returned null for", hours, "hours ahead.");
         }
         
-        appState.isCurrentMapDirty = false; // Viewing forecast doesn't dirty the map
+        appState.isCurrentMapDirty = false;
         renderApp({ preserveScroll: true });
       } else {
         alert("Please enter a valid number of hours for the forecast.");
-        console.error("Invalid forecast hours input:", appState.forecastHoursAhead);
       }
     };
   }
@@ -760,7 +761,7 @@ export function attachEventListeners() {
 
   const saveBtn = el("saveCurrentMapButton");
   if (saveBtn) saveBtn.onclick = (event) => MapManagement.handleSaveCurrentMap(event);
-  const saveStandaloneBtn = el("saveStandaloneMapButton"); // For standalone
+  const saveStandaloneBtn = el("saveStandaloneMapButton");
   if (saveStandaloneBtn) saveStandaloneBtn.onclick = (event) => MapManagement.handleSaveCurrentMap(event);
 
 
@@ -799,7 +800,6 @@ export function attachEventListeners() {
                 }
             }
         };
-        // Add mousemove and mouseleave listeners for brush preview
         hgSvg.addEventListener('mousemove', MapLogic.handleMouseMoveOnGrid);
         hgSvg.addEventListener('mouseleave', MapLogic.handleMouseLeaveFromGrid);
     }

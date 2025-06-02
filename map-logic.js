@@ -1,7 +1,7 @@
 // File: app/map-logic.js
 import { appState } from './state.js';
 import * as CONST from './constants.js';
-import { WEATHER_UPDATE_INTERVAL_HOURS } from './constants.js'; // Added import
+import { WEATHER_UPDATE_INTERVAL_HOURS } from './constants.js';
 import * as HEX_UTILS from './hex-utils.js';
 import { renderApp } from './ui.js';
 import { handleSaveCurrentMap } from './map-management.js';
@@ -67,7 +67,7 @@ export function calculateLineOfSight(sourceHexId, currentHexDataMap) {
                                (sourceTerrainConfig.baseInherentVisibilityBonus || 0);
     
     baseObserverRangeHexes *= weatherVisibilityMultiplier;
-    baseObserverRangeHexes = Math.max(weatherVisibilityMultiplier === 0 ? 0 : 1, baseObserverRangeHexes); // Allow 0 vis if multiplier is 0
+    baseObserverRangeHexes = Math.max(weatherVisibilityMultiplier === 0 ? 0 : 1, baseObserverRangeHexes);
 
     currentHexDataMap.forEach(targetHex => {
         if (targetHex.id === sourceHex.id) return;
@@ -186,10 +186,11 @@ export function updatePartyMarkerBasedLoS() {
         appState.playerCurrentVisibleHexIds = new Set(); return;
     }
 
+    let newlyDiscoveredHexesThisStep = new Set();
     if (appState.partyMarkerPosition && appState.hexDataMap.has(appState.partyMarkerPosition.id)) {
         appState.partyMarkerPosition = appState.hexDataMap.get(appState.partyMarkerPosition.id);
         const visibleFromMarker = calculateLineOfSight(appState.partyMarkerPosition.id, appState.hexDataMap);
-        const newlyDiscoveredHexesThisStep = new Set();
+        
         visibleFromMarker.forEach(id => {
             if (!appState.playerDiscoveredHexIds.has(id)) newlyDiscoveredHexesThisStep.add(id);
         });
@@ -198,13 +199,12 @@ export function updatePartyMarkerBasedLoS() {
         if (newlyDiscoveredHexesThisStep.size > 0) {
             appState.playerDiscoveredHexIds = new Set([...appState.playerDiscoveredHexIds, ...newlyDiscoveredHexesThisStep]);
             appState.isCurrentMapDirty = true;
-            if (appState.isGM && appState.appMode === CONST.AppMode.PLAYER) {
-                checkRandomEncountersOnDiscover(newlyDiscoveredHexesThisStep);
-            }
+            // Encounter check for these new discoveries will happen in handleHexClick *after* movement is logged
         }
     } else {
         appState.playerCurrentVisibleHexIds = new Set();
     }
+    return newlyDiscoveredHexesThisStep; // Return for immediate use in handleHexClick
 }
 
 
@@ -264,7 +264,7 @@ async function handleEncounterFeatureCreation(hexForEncounter, encounterTypeDesc
                         appState.hexGridData[updatedHexObject.row][updatedHexObject.col] = updatedHexObject;
                     }
                     appState.isCurrentMapDirty = true;
-                    featureOutcome = { hexId: originalHexId, name: newFeatureName, added: true, icon: newFeatureIcon, color: newFeatureIconColor };
+                    featureOutcome = { hexId: originalHexId, name: newFeatureName, icon: newFeatureIcon, color: newFeatureIconColor, added: true };
                     renderApp({ specificallyUpdatedHex: updatedHexObject });
                 } else {
                     featureOutcome.error = "Hex not found for update post-dialog.";
@@ -306,22 +306,29 @@ async function handleEncounterFeatureCreation(hexForEncounter, encounterTypeDesc
 }
 
 async function checkRandomEncountersOnEnter(targetHex) {
-    if (!appState.isGM) return null;
+    if (!appState.isGM) return { triggered: false, markedByGM: false };
     const terrainConfig = CONST.TERRAIN_TYPES_CONFIG[targetHex.terrain] || CONST.TERRAIN_TYPES_CONFIG[CONST.DEFAULT_TERRAIN_TYPE];
     const chance = terrainConfig.encounterChanceOnEnter || 0;
 
     if (rollPercent(chance)) {
         HexplorationLogic.postHexplorationChatMessage(`System: Potential encounter upon entering hex ${targetHex.id} (${targetHex.terrain}). GM has been prompted.`, true);
-        return await handleEncounterFeatureCreation(targetHex, `Entered ${targetHex.terrain}`);
+        const details = await handleEncounterFeatureCreation(targetHex, `Entered ${targetHex.terrain}`);
+        return { 
+            triggered: true, 
+            markedByGM: details.added, 
+            featureName: details.name, 
+            featureIcon: details.icon,
+            reasonSkipped: !details.added ? details.reason : null
+        };
     }
-    return null;
+    return { triggered: false, markedByGM: false };
 }
 
 async function checkRandomEncountersOnDiscover(discoveredHexIdsSet) {
     if (!appState.isGM || !discoveredHexIdsSet || discoveredHexIdsSet.size === 0) return [];
     if (appState.appMode !== CONST.AppMode.PLAYER) return [];
 
-    const createdFeatures = [];
+    const createdFeaturesForLog = [];
     for (const hexId of discoveredHexIdsSet) {
         const hex = appState.hexDataMap.get(hexId);
         if (!hex) continue;
@@ -331,10 +338,19 @@ async function checkRandomEncountersOnDiscover(discoveredHexIdsSet) {
         if (rollPercent(chance)) {
             HexplorationLogic.postHexplorationChatMessage(`System: Potential encounter noticed upon discovering hex ${hex.id} (${hex.terrain}). GM has been prompted.`, true);
             const details = await handleEncounterFeatureCreation(hex, `Discovered ${hex.terrain}`);
-            if (details && details.added) createdFeatures.push(details);
+            if (details && details.hexId) { // Log attempt regardless of marking
+                createdFeaturesForLog.push({
+                    hexId: details.hexId,
+                    triggered: true,
+                    markedByGM: details.added,
+                    featureName: details.name,
+                    featureIcon: details.icon,
+                    reasonSkipped: !details.added ? details.reason : null
+                });
+            }
         }
     }
-    return createdFeatures;
+    return createdFeaturesForLog;
 }
 
 
@@ -343,16 +359,19 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
     const clickedHexId = `${col}-${row}`;
     const targetHex = appState.hexDataMap.get(clickedHexId);
     if (!targetHex) { return; }
-    if (!appState.isGM) return; // Only GMs (or standalone user acting as GM) can interact
+    if (!appState.isGM) return;
 
     if (appState.appMode === CONST.AppMode.PLAYER) {
         if (!isExploringCurrentHex && targetHex.id === appState.partyMarkerPosition?.id) return;
         const previousHex = appState.partyMarkerPosition;
+        const oldPlayerDiscoveredHexIds = new Set(appState.playerDiscoveredHexIds);
 
-        let baseTimeValue = appState.currentMapHexTraversalTimeValue;
+
+        let baseTimeForHex = appState.currentMapHexTraversalTimeValue;
         const targetTerrainConfig = CONST.TERRAIN_TYPES_CONFIG[targetHex.terrain] || CONST.TERRAIN_TYPES_CONFIG[CONST.DEFAULT_TERRAIN_TYPE];
 
-        let overallActivityPenaltyFactor = 1.0;
+        let terrainTimeMultiplier = targetTerrainConfig.speedMultiplier;
+        let activityTimeMultiplier = 1.0;
         if (appState.activePartyActivities.size > 0) {
             let maxPenalty = 1.0;
             appState.activePartyActivities.forEach(activityId => {
@@ -361,68 +380,113 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
                     maxPenalty = activityConf.movementPenaltyFactor;
                 }
             });
-            overallActivityPenaltyFactor = maxPenalty;
+            activityTimeMultiplier = maxPenalty;
         }
-
-        let weatherTravelSpeedMultiplier = 1.0;
+        
+        let weatherTimeMultiplier = 1.0;
+        let weatherOnHexDetails = null;
         if (appState.isWeatherEnabled && appState.weatherGrid && appState.weatherGrid[targetHex.id]) {
             const weatherId = appState.weatherGrid[targetHex.id];
             const weatherCondition = appState.weatherConditions.find(wc => wc.id === weatherId);
-            if (weatherCondition && weatherCondition.effects && typeof weatherCondition.effects.travelSpeed === 'number') {
-                weatherTravelSpeedMultiplier = weatherCondition.effects.travelSpeed;
+            if (weatherCondition) {
+                weatherOnHexDetails = { id: weatherCondition.id, name: weatherCondition.name, icon: weatherCondition.icon };
+                if (weatherCondition.effects && typeof weatherCondition.effects.travelSpeed === 'number') {
+                    weatherTimeMultiplier = weatherCondition.effects.travelSpeed;
+                }
             }
         }
 
-        let terrainModifiedTime = baseTimeValue * targetTerrainConfig.speedMultiplier * overallActivityPenaltyFactor * weatherTravelSpeedMultiplier;
+        const timeAfterTerrain = baseTimeForHex * terrainTimeMultiplier;
+        const terrainModifierEffect = timeAfterTerrain - baseTimeForHex;
 
-        let elevationTimePenalty = 0;
+        const timeAfterActivities = timeAfterTerrain * activityTimeMultiplier;
+        const activityModifierEffect = timeAfterActivities - timeAfterTerrain;
+        
+        const timeAfterWeather = timeAfterActivities * weatherTimeMultiplier;
+        const weatherModifierEffect = timeAfterWeather - timeAfterActivities;
+
+        let elevationChange = 0;
+        let elevationPenalty = 0;
         if (previousHex && !isExploringCurrentHex) {
-            const elevationDiff = targetHex.elevation - previousHex.elevation;
-            elevationTimePenalty = (Math.abs(elevationDiff) / 100) * CONST.ELEVATION_TIME_PENALTY_FACTOR_PER_100M;
+            elevationChange = targetHex.elevation - previousHex.elevation;
+            elevationPenalty = (Math.abs(elevationChange) / 100) * CONST.ELEVATION_TIME_PENALTY_FACTOR_PER_100M * baseTimeForHex; // Penalty based on base time
         }
-        let totalTimeValue = terrainModifiedTime + elevationTimePenalty;
-        totalTimeValue = Math.max(0.1, totalTimeValue);
+        
+        const totalCalculatedTime = timeAfterWeather + elevationPenalty;
+        const finalTimeValue = Math.max(0.1, totalCalculatedTime);
 
         if (appState.isWeatherEnabled) {
-            appState.timeSinceLastWeatherChange += totalTimeValue;
+            appState.timeSinceLastWeatherChange += finalTimeValue;
             if (appState.timeSinceLastWeatherChange >= WEATHER_UPDATE_INTERVAL_HOURS) {
                 updateWeatherOverTime();
-                appState.timeSinceLastWeatherChange %= WEATHER_UPDATE_INTERVAL_HOURS; // Carry over excess
+                appState.timeSinceLastWeatherChange %= WEATHER_UPDATE_INTERVAL_HOURS;
             }
         }
 
         if (!isExploringCurrentHex) {
             appState.partyMarkerPosition = targetHex;
         }
-        const direction = getTravelDirection(previousHex, targetHex, isExploringCurrentHex);
-        updatePartyMarkerBasedLoS();
+        
+        const newlyDiscoveredHexesFromThisMove = updatePartyMarkerBasedLoS(); // This updates LOS and playerDiscoveredHexIds
         appState.isCurrentMapDirty = true;
         requestCenteringOnHex(targetHex.id);
-
+        
         const encounterOnEnterDetails = await checkRandomEncountersOnEnter(targetHex);
+        const encounterOnDiscoverDetails = await checkRandomEncountersOnDiscover(newlyDiscoveredHexesFromThisMove);
 
-        let encounterStatusMessage = "No significant event on entering hex.";
-        if (isExploringCurrentHex) encounterStatusMessage = "No significant event while exploring current hex.";
-        if (encounterOnEnterDetails && encounterOnEnterDetails.added) { encounterStatusMessage = `Encounter '${encounterOnEnterDetails.name}' marked with icon '${encounterOnEnterDetails.icon || '?'}' at ${targetHex.id}.`;}
-        else if (encounterOnEnterDetails && !encounterOnEnterDetails.added && encounterOnEnterDetails.reason) { encounterStatusMessage = `Encounter event at ${targetHex.id} occurred (GM skipped marking).`;}
+        const direction = getTravelDirection(previousHex, targetHex, isExploringCurrentHex);
+        const travelLogEntry = {
+            type: isExploringCurrentHex ? "exploration_current" : "movement",
+            timestamp: new Date().toISOString(),
+            fromHexId: isExploringCurrentHex ? targetHex.id : (previousHex ? previousHex.id : "N/A"),
+            toHexId: targetHex.id,
+            directionText: direction,
+            distanceValue: isExploringCurrentHex ? 0 : appState.currentMapHexSizeValue,
+            distanceUnit: appState.currentMapHexSizeUnit,
+            timeBreakdown: {
+                base: baseTimeForHex,
+                terrainModifier: terrainModifierEffect,
+                activityModifier: activityModifierEffect,
+                weatherModifier: weatherModifierEffect,
+                elevationPenalty: elevationPenalty,
+                totalCalculated: totalCalculatedTime
+            },
+            totalTimeValue: finalTimeValue,
+            timeUnit: appState.currentMapHexTraversalTimeUnit,
+            terrainAtDestination: targetHex.terrain,
+            elevationChange: elevationChange,
+            weatherOnHex: weatherOnHexDetails,
+            activitiesActive: Array.from(appState.activePartyActivities),
+            encounterOnEnter: encounterOnEnterDetails,
+            encountersOnDiscover: encounterOnDiscoverDetails, // Array of {hexId, triggered, markedByGM, ...}
+            newlyDiscoveredHexIds: Array.from(newlyDiscoveredHexesFromThisMove)
+        };
 
-        const travelLogEntry = { /* ... (same as before) ... */ };
         if (!appState.currentMapEventLog) appState.currentMapEventLog = [];
         appState.currentMapEventLog.unshift(travelLogEntry);
-        if (appState.currentMapEventLog.length > 50) appState.currentMapEventLog.pop();
+        if (appState.currentMapEventLog.length > 100) appState.currentMapEventLog.pop(); // Increased log size
 
-        let hoursCost = totalTimeValue; /* ... (same conversion) ... */
-        let kmCost = isExploringCurrentHex ? 0 : appState.currentMapHexSizeValue; /* ... (same conversion) ... */
-        const hexplorationActionType = isExploringCurrentHex ? `explore hex ${targetHex.id}` : `moveParty ${direction} to ${targetHex.id}`;
+        let hoursCost = 0;
+        if (appState.currentMapHexTraversalTimeUnit === 'hour') hoursCost = finalTimeValue;
+        else if (appState.currentMapHexTraversalTimeUnit === 'minute') hoursCost = finalTimeValue / 60;
+        else if (appState.currentMapHexTraversalTimeUnit === 'day') hoursCost = finalTimeValue * 24;
+        
+        let kmCost = 0;
+        if (!isExploringCurrentHex) {
+             if (appState.currentMapHexSizeUnit === 'km') kmCost = appState.currentMapHexSizeValue;
+             else if (appState.currentMapHexSizeUnit === 'mi') kmCost = appState.currentMapHexSizeValue * 1.60934;
+             else if (appState.currentMapHexSizeUnit === 'm') kmCost = appState.currentMapHexSizeValue / 1000;
+        }
+        const hexplorationActionType = isExploringCurrentHex ? `explore hex ${targetHex.id}` : `moveParty to ${targetHex.id}`;
 
         if (!appState.isStandaloneMode && window.parent && APP_MODULE_ID) {
              window.parent.postMessage({ type: 'gmPerformedHexplorationAction', payload: { action: hexplorationActionType, kmCost: kmCost, hoursCost: hoursCost, logEntry: travelLogEntry }, moduleId: APP_MODULE_ID }, '*');
         }
-        if (appState.currentMapId && (!appState.isStandaloneMode || appState.isGM)) { // GM can auto-save in standalone
+        if (appState.currentMapId && (!appState.isStandaloneMode || appState.isGM)) {
             handleSaveCurrentMap(true);
         }
 
-        if (!(encounterOnEnterDetails && encounterOnEnterDetails.added)) {
+        if (!(encounterOnEnterDetails.markedByGM || encounterOnDiscoverDetails.some(d => d.markedByGM))) {
             renderApp();
         }
         return;
@@ -458,7 +522,7 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
                     if (appState.autoTerrainChangeOnElevation && !CONST.AUTO_TERRAIN_IGNORE_TYPES.includes(newHexData.terrain)) {
                         if (newHexData.elevation >= CONST.MOUNTAIN_THRESHOLD) newHexData.terrain = CONST.TerrainType.MOUNTAIN;
                         else if (newHexData.elevation >= CONST.HILLS_THRESHOLD) newHexData.terrain = CONST.TerrainType.HILLS;
-                        else newHexData.terrain = CONST.TerrainType.PLAINS; // Default for lower elevations
+                        else newHexData.terrain = CONST.TerrainType.PLAINS;
                     }
                     hexSpecificChange = true; 
                     break;
@@ -477,17 +541,13 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
                             newHexData.featureIconColor = null;
                             hexSpecificChange = true;
                         }
-                    } else { // This is ADD mode
+                    } else {
                         const selectedFeatureTypeConst = appState.selectedFeatureType;
                         const featureTypeToApplyLower = selectedFeatureTypeConst.toLowerCase();
 
-                        // Specific handling for LANDMARK or SECRET (requires dialog) only on the primary clicked hex
                         if (targetHexCoords.id === clickedHexId &&
                             (selectedFeatureTypeConst === CONST.TerrainFeature.LANDMARK || selectedFeatureTypeConst === CONST.TerrainFeature.SECRET)) {
 
-                            // Only trigger dialog if we are actually changing to this feature or if it's currently NONE
-                            // This prevents re-triggering dialog if clicking on an already existing landmark of the same type to "change" it.
-                            // If changing from a different landmark/secret, it should still trigger.
                             if (newHexData.feature !== featureTypeToApplyLower || featureTypeToApplyLower === CONST.TerrainFeature.NONE.toLowerCase()) {
                                 appState.pendingFeaturePlacement = {
                                     hexId: clickedHexId,
@@ -498,10 +558,8 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
                                     isEncounterContext: false
                                 };
                                 requiresFeatureDetailsDialog = true;
-                                // No hexSpecificChange = true here; it's handled by the dialog callback
                             }
                         } else if (selectedFeatureTypeConst === CONST.TerrainFeature.NONE) {
-                            // If "None" is selected, remove any existing feature
                             if (newHexData.feature !== CONST.TerrainFeature.NONE.toLowerCase()) {
                                 newHexData.feature = CONST.TerrainFeature.NONE.toLowerCase();
                                 newHexData.featureName = "";
@@ -510,17 +568,14 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
                                 hexSpecificChange = true;
                             }
                         } else if (selectedFeatureTypeConst !== CONST.TerrainFeature.LANDMARK && selectedFeatureTypeConst !== CONST.TerrainFeature.SECRET) {
-                            // For simple, non-dialog features (if any were to exist)
                             if (newHexData.feature !== featureTypeToApplyLower) {
                                 newHexData.feature = featureTypeToApplyLower;
-                                newHexData.featureName = ""; // Clear name/icon for non-landmark/secret types
+                                newHexData.featureName = "";
                                 newHexData.featureIcon = null;
                                 newHexData.featureIconColor = null;
                                 hexSpecificChange = true;
                             }
                         }
-                        // Note: Clicking on an existing feature of the same type (non-dialog) does nothing here, which is fine.
-                        // Clicking on an existing feature with a *different* simple type selected will change it.
                     }
                     break;
             }
@@ -529,19 +584,18 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
 
         if (requiresFeatureDetailsDialog) {
             appState.isWaitingForFeatureDetails = true;
-            // The actual callback that processes the details after they are received (either from bridge or standalone prompts)
             appState.featureDetailsCallback = (details) => {
                 appState.isWaitingForFeatureDetails = false;
-                const pendingInfo = appState.pendingFeaturePlacement; // Capture before clearing
+                const pendingInfo = appState.pendingFeaturePlacement;
                 appState.pendingFeaturePlacement = null;
-                appState.featureDetailsCallback = null; // Clear callback
+                appState.featureDetailsCallback = null;
 
                 if (details && !details.cancelled && pendingInfo && details.hexId === pendingInfo.hexId) {
                     const hexToUpdate = appState.hexDataMap.get(details.hexId);
                     if (hexToUpdate) {
                         const updatedHex = {
                             ...hexToUpdate,
-                            feature: pendingInfo.featureType, // Use featureType from pendingInfo
+                            feature: pendingInfo.featureType,
                             featureName: details.featureName,
                             featureIcon: details.featureIcon,
                             featureIconColor: details.featureIconColor,
@@ -557,11 +611,9 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
                         updatePartyMarkerBasedLoS();
                         renderApp({ preserveScroll: true, specificallyUpdatedHex: updatedHex });
                     } else {
-                        console.error("Hex to update not found after feature details input:", details.hexId);
                         renderApp({ preserveScroll: true });
                     }
                 } else {
-                    // Cancelled or invalid details
                     renderApp({ preserveScroll: true });
                 }
             };
@@ -578,7 +630,6 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
             if (!appState.isStandaloneMode) {
                  window.parent.postMessage({ type: 'requestFeatureDetailsInput', payload: messagePayloadToBridge, moduleId: APP_MODULE_ID }, '*');
             } else {
-                // Standalone mode: use prompts
                 const featureName = prompt("Enter Landmark Name:", messagePayloadToBridge.currentName || "");
                 if (featureName === null) {
                     appState.featureDetailsCallback({ ...messagePayloadToBridge, cancelled: true });
@@ -706,7 +757,7 @@ export function setTargetScrollForHexBasedOnCurrentCenter(oldZoom, newZoom) {
 }
 
 export function handleMouseMoveOnGrid(event) {
-    if (!appState.mapInitialized || appState.appMode !== CONST.AppMode.HEX_EDITOR || !appState.paintMode || appState.paintMode === CONST.PaintMode.NONE) { // Added check for PaintMode.NONE
+    if (!appState.mapInitialized || appState.appMode !== CONST.AppMode.HEX_EDITOR || !appState.paintMode || appState.paintMode === CONST.PaintMode.NONE) {
         if (appState.brushPreviewHexIds.size > 0) {
             appState.brushPreviewHexIds.clear();
             renderApp({ preserveScroll: true });
@@ -731,7 +782,6 @@ export function handleMouseMoveOnGrid(event) {
         );
         const newPreviewIds = new Set(affectedHexes.map(h => h.id));
 
-        // Check if the set of previewed hex IDs has actually changed
         let changed = newPreviewIds.size !== appState.brushPreviewHexIds.size;
         if (!changed) {
             for (const id of newPreviewIds) {
@@ -740,7 +790,7 @@ export function handleMouseMoveOnGrid(event) {
                     break;
                 }
             }
-            if (!changed) { // If still not changed, check the reverse (old ones not in new)
+            if (!changed) {
                  for (const id of appState.brushPreviewHexIds) {
                     if (!newPreviewIds.has(id)) {
                         changed = true;
@@ -754,7 +804,7 @@ export function handleMouseMoveOnGrid(event) {
             appState.brushPreviewHexIds = newPreviewIds;
             renderApp({ preserveScroll: true });
         }
-    } else { // Not hovering a specific hex, clear preview
+    } else {
         if (appState.brushPreviewHexIds.size > 0) {
             appState.brushPreviewHexIds.clear();
             renderApp({ preserveScroll: true });
@@ -773,77 +823,65 @@ export function generateWeatherGrid() {
     if (!appState.isWeatherEnabled) {
         appState.weatherGrid = {};
         appState.activeWeatherSystems = [];
-        renderApp({ preserveScroll: true }); // Render to clear visuals
+        renderApp({ preserveScroll: true });
         return;
     }
 
-    appState.activeWeatherSystems = []; // Clear previous systems
-    appState.weatherGrid = {};         // Clear previous grid
+    appState.activeWeatherSystems = [];
+    appState.weatherGrid = {};
 
     if (!appState.mapInitialized || !appState.hexDataMap || appState.hexDataMap.size === 0) {
-        renderApp({ preserveScroll: true }); // Render to show empty grid state
+        renderApp({ preserveScroll: true });
         return;
     }
 
-    const defaultWeatherId = 'sunny'; // Assuming 'sunny' is a valid weatherCondition id
+    const defaultWeatherId = 'sunny';
 
-    // 1. Fill the entire weatherGrid with the default weather
     appState.hexDataMap.forEach(hex => {
         appState.weatherGrid[hex.id] = defaultWeatherId;
     });
 
-    // 2. Determine the number of weather systems
-    const numSystems = Math.floor(Math.random() * 3) + 1; // 1-3 systems
+    const numSystems = Math.floor(Math.random() * 3) + 1;
 
     const { weatherSettings, weatherConditions } = appState;
-    const availableSystemTypes = weatherConditions.filter(wc => wc.id !== defaultWeatherId); // Optionally exclude default type
+    const availableSystemTypes = weatherConditions.filter(wc => wc.id !== defaultWeatherId);
 
     if (availableSystemTypes.length === 0 && weatherConditions.find(wc => wc.id === defaultWeatherId) === undefined) {
-        console.warn("No weather types available for systems, and default sunny is missing. Weather grid will be empty or only default.");
-        // If defaultWeatherId is also not in weatherConditions, the grid might be problematic.
-        // For now, we assume 'sunny' exists or this state is handled.
     }
     
     const hexArray = Array.from(appState.hexDataMap.values());
     if (hexArray.length === 0) {
         renderApp({ preserveScroll: true });
-        return; // No hexes to place systems on
+        return;
     }
 
     for (let i = 0; i < numSystems; i++) {
-        // Select Weather Type for System (weighted random)
         const weightedWeatherArray = [];
-        // Use all conditions for systems, or availableSystemTypes if you want to exclude default
-        const conditionsForSystemSelection = weatherConditions; // Or availableSystemTypes
+        const conditionsForSystemSelection = weatherConditions;
         
         conditionsForSystemSelection.forEach(condition => {
             const weight = weatherSettings[condition.id] || 0;
-            // Ensure even 0% chance conditions could be chosen if it's the only one, or handle minimum weight
             for (let j = 0; j < weight; j++) {
                 weightedWeatherArray.push(condition.id);
             }
         });
         
-        let chosenWeatherId = defaultWeatherId; // Fallback
+        let chosenWeatherId = defaultWeatherId;
         if (weightedWeatherArray.length > 0) {
             const randomIndex = Math.floor(Math.random() * weightedWeatherArray.length);
             chosenWeatherId = weightedWeatherArray[randomIndex];
         } else if (conditionsForSystemSelection.length > 0) {
-            // If weights are all zero, pick a random one from available system types
             chosenWeatherId = conditionsForSystemSelection[Math.floor(Math.random() * conditionsForSystemSelection.length)].id;
         }
 
 
-        // Select Origin Hex
         const originHex = hexArray[Math.floor(Math.random() * hexArray.length)];
-
-        // Determine Radius
-        const radius = Math.floor(Math.random() * 3) + 2; // 2-4 hex radius
+        const radius = Math.floor(Math.random() * 3) + 2;
 
         const directionKeys = Object.keys(CONST.WEATHER_MOVEMENT_DIRECTIONS);
         const randomDirectionKey = directionKeys[Math.floor(Math.random() * directionKeys.length)];
         const randomMovementDirection = CONST.WEATHER_MOVEMENT_DIRECTIONS[randomDirectionKey];
-        const randomSpeed = Math.random() < 0.3 ? 0 : (Math.floor(Math.random() * 2) + 1); // 30% chance stationary, else 1-2
+        const randomSpeed = Math.random() < 0.3 ? 0 : (Math.floor(Math.random() * 2) + 1);
 
         const newSystem = {
             id: 'system_' + Date.now() + '_' + i + Math.random().toString(36).substr(2, 5),
@@ -851,23 +889,20 @@ export function generateWeatherGrid() {
             hexesOccupied: new Set(),
             originHex: { col: originHex.col, row: originHex.row, id: originHex.id },
             radius: radius,
-            intensity: 1.0, // Default intensity
+            intensity: 1.0,
             movementDirection: randomMovementDirection,
             speed: randomSpeed
         };
 
-        // Populate hexesOccupied
         const occupiedCoords = HEX_UTILS.getHexesInRadius(originHex, newSystem.radius, appState.hexDataMap, appState.currentGridWidth, appState.currentGridHeight);
         occupiedCoords.forEach(coord => newSystem.hexesOccupied.add(coord.id));
         
         appState.activeWeatherSystems.push(newSystem);
     }
 
-    // 3. Update weatherGrid from activeWeatherSystems
-    // This ensures later systems can override earlier ones in overlapping areas
     appState.activeWeatherSystems.forEach(system => {
         system.hexesOccupied.forEach(hexId => {
-            if (appState.weatherGrid.hasOwnProperty(hexId)) { // Ensure hex exists in grid
+            if (appState.weatherGrid.hasOwnProperty(hexId)) {
                  appState.weatherGrid[hexId] = system.weatherType;
             }
         });
@@ -876,11 +911,10 @@ export function generateWeatherGrid() {
     appState.isCurrentMapDirty = true;
     renderApp({ preserveScroll: true });
 
-    // Spawn new systems periodically
     if (appState.isWeatherEnabled && appState.mapInitialized) {
-        appState.timeSinceLastNewWeatherSystemSpawn += 1; // Assumes updateWeatherOverTime is called hourly
+        appState.timeSinceLastNewWeatherSystemSpawn += 1;
         if (appState.timeSinceLastNewWeatherSystemSpawn >= CONST.NEW_WEATHER_SYSTEM_SPAWN_INTERVAL_HOURS) {
-            spawnNewWeatherSystem(); // This function will call renderApp again if a system is spawned
+            spawnNewWeatherSystem();
             appState.timeSinceLastNewWeatherSystemSpawn = 0;
         }
     }
@@ -897,11 +931,9 @@ export function spawnNewWeatherSystem() {
 
     const { weatherSettings, weatherConditions, currentGridWidth, currentGridHeight } = appState;
 
-    // 1. Select Weather Type for System (weighted random)
     const weightedWeatherArray = [];
-    // Optionally filter out 'sunny' or other baseline weather for spawning systems
     const spawnableConditions = weatherConditions.filter(wc => wc.id !== 'sunny'); 
-    const conditionsToUse = spawnableConditions.length > 0 ? spawnableConditions : weatherConditions; // Fallback to all if filter is too restrictive
+    const conditionsToUse = spawnableConditions.length > 0 ? spawnableConditions : weatherConditions;
 
     conditionsToUse.forEach(condition => {
         const weight = weatherSettings[condition.id] || 0;
@@ -910,30 +942,28 @@ export function spawnNewWeatherSystem() {
         }
     });
 
-    let chosenWeatherId = 'cloudy'; // Default spawn type if weighted random fails
+    let chosenWeatherId = 'cloudy';
     if (weightedWeatherArray.length > 0) {
         chosenWeatherId = weightedWeatherArray[Math.floor(Math.random() * weightedWeatherArray.length)];
     } else if (conditionsToUse.length > 0) {
         chosenWeatherId = conditionsToUse[Math.floor(Math.random() * conditionsToUse.length)].id;
     } else {
-        console.warn("No suitable weather types available for spawning a new system.");
-        return; // Cannot spawn if no types available
+        return;
     }
 
-    // 2. Select Origin Hex (Edge Spawning)
     let originCol, originRow;
-    const edge = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
+    const edge = Math.floor(Math.random() * 4);
 
-    if (edge === 0) { // Top edge
+    if (edge === 0) {
         originRow = 0;
         originCol = Math.floor(Math.random() * currentGridWidth);
-    } else if (edge === 1) { // Right edge
+    } else if (edge === 1) {
         originCol = currentGridWidth - 1;
         originRow = Math.floor(Math.random() * currentGridHeight);
-    } else if (edge === 2) { // Bottom edge
+    } else if (edge === 2) {
         originRow = currentGridHeight - 1;
         originCol = Math.floor(Math.random() * currentGridWidth);
-    } else { // Left edge (edge === 3)
+    } else {
         originCol = 0;
         originRow = Math.floor(Math.random() * currentGridHeight);
     }
@@ -942,20 +972,14 @@ export function spawnNewWeatherSystem() {
     const originHexData = appState.hexDataMap.get(originHexId);
 
     if (!originHexData) {
-        console.error(`Failed to find origin hex ${originHexId} for new weather system.`);
         return;
     }
 
-    // 3. Determine Radius
-    const radius = Math.floor(Math.random() * 2) + 2; // 2-3 radius
-
-    // 4. Movement Direction
-    const directionKeys = Object.keys(CONST.WEATHER_MOVEMENT_DIRECTIONS).filter(k => k !== 'STATIONARY'); // Exclude stationary
+    const radius = Math.floor(Math.random() * 2) + 2;
+    const directionKeys = Object.keys(CONST.WEATHER_MOVEMENT_DIRECTIONS).filter(k => k !== 'STATIONARY');
     const randomDirectionKey = directionKeys[Math.floor(Math.random() * directionKeys.length)];
     const movementDirection = CONST.WEATHER_MOVEMENT_DIRECTIONS[randomDirectionKey];
-    
-    // 5. Speed
-    const speed = Math.floor(Math.random() * 2) + 1; // 1-2 speed
+    const speed = Math.floor(Math.random() * 2) + 1;
 
     const newSystem = {
         id: 'system_spawned_' + Date.now() + Math.random().toString(36).substr(2, 5),
@@ -973,7 +997,6 @@ export function spawnNewWeatherSystem() {
 
     appState.activeWeatherSystems.push(newSystem);
 
-    // Update weatherGrid for the new system
     newSystem.hexesOccupied.forEach(hexId => {
         if (appState.weatherGrid.hasOwnProperty(hexId)) {
             appState.weatherGrid[hexId] = newSystem.weatherType;
@@ -981,17 +1004,11 @@ export function spawnNewWeatherSystem() {
     });
 
     appState.isCurrentMapDirty = true;
-    console.log("Spawned new weather system:", newSystem.id, "Type:", newSystem.weatherType, "at", originHexId);
-    
-    // renderApp({ preserveScroll: true }); // The calling function updateWeatherOverTime will render.
 }
 
 export function updateWeatherOverTime() {
     if (!appState.isWeatherEnabled || !appState.activeWeatherSystems || appState.activeWeatherSystems.length === 0) {
         if (appState.isWeatherEnabled && (!appState.activeWeatherSystems || appState.activeWeatherSystems.length === 0)) {
-            // If weather is on but systems just dissipated, ensure grid reflects this (likely becomes all 'sunny')
-            // This might be redundant if generateWeatherGrid was the last thing called,
-            // but good for safety if updateWeatherOverTime could be called independently after systems are gone.
             const defaultWeatherId = 'sunny';
             let gridChangedByDissipation = false;
             appState.hexDataMap.forEach(hex => {
@@ -1001,7 +1018,7 @@ export function updateWeatherOverTime() {
                 }
             });
             if (gridChangedByDissipation) {
-                appState.isCurrentMapDirty = true; // The weather on hexes changed
+                appState.isCurrentMapDirty = true;
                 renderApp({ preserveScroll: true });
             }
         }
@@ -1013,7 +1030,7 @@ export function updateWeatherOverTime() {
     const initialSystemCount = appState.activeWeatherSystems.length;
 
     for (const system of appState.activeWeatherSystems) {
-        let currentSystem = { ...system, hexesOccupied: new Set(system.hexesOccupied) }; // Deep enough copy for modification
+        let currentSystem = { ...system, hexesOccupied: new Set(system.hexesOccupied) };
 
         if (currentSystem.speed > 0 && currentSystem.movementDirection && (currentSystem.movementDirection.dCol !== 0 || currentSystem.movementDirection.dRow !== 0)) {
             weatherActuallyChanged = true;
@@ -1025,7 +1042,7 @@ export function updateWeatherOverTime() {
                 const tempRow = newOriginRow + currentSystem.movementDirection.dRow;
 
                 if (tempCol < 0 || tempCol >= appState.currentGridWidth || tempRow < 0 || tempRow >= appState.currentGridHeight) {
-                    currentSystem = null; // System moves off map and dissipates
+                    currentSystem = null;
                     break; 
                 }
                 newOriginCol = tempCol;
@@ -1033,10 +1050,9 @@ export function updateWeatherOverTime() {
             }
 
             if (currentSystem) {
-                currentSystem.originHex = { col: newOriginCol, row: newOriginRow, id: `${newOriginCol}-${newOriginRow}` }; // Update ID too
+                currentSystem.originHex = { col: newOriginCol, row: newOriginRow, id: `${newOriginCol}-${newOriginRow}` };
                 
                 const newOccupiedHexes = new Set();
-                // Ensure originHex for getHexesInRadius is a valid hex object from hexDataMap if possible, or has col/row
                 const centerHexDataForRadius = appState.hexDataMap.get(currentSystem.originHex.id) || currentSystem.originHex;
 
                 const hexesInNewRadius = HEX_UTILS.getHexesInRadius(centerHexDataForRadius, currentSystem.radius, appState.hexDataMap, appState.currentGridWidth, appState.currentGridHeight);
@@ -1045,17 +1061,15 @@ export function updateWeatherOverTime() {
                 updatedWeatherSystems.push(currentSystem);
             }
         } else {
-            // System is stationary or has no movement data, keep it as is
             updatedWeatherSystems.push(currentSystem);
         }
     }
 
     appState.activeWeatherSystems = updatedWeatherSystems;
 
-    // Storm Formation Logic (after movement, before grid rebuild & spawning)
     let systemsToRemoveAfterMerge = new Set();
     let systemsToAddAfterMerge = [];
-    const currentSystemsForMerging = [...appState.activeWeatherSystems]; // Use the already updated list
+    const currentSystemsForMerging = [...appState.activeWeatherSystems];
 
     for (let i = 0; i < currentSystemsForMerging.length; i++) {
         for (let j = i + 1; j < currentSystemsForMerging.length; j++) {
@@ -1071,8 +1085,7 @@ export function updateWeatherOverTime() {
                 const overlapThreshold = Math.min(system1.hexesOccupied.size, system2.hexesOccupied.size) * 0.3;
                 
                 if (intersection.size > overlapThreshold && intersection.size > 2) {
-                    console.log("Rain systems merging into storm:", system1.id, system2.id);
-                    weatherActuallyChanged = true; // A merge is a significant change
+                    weatherActuallyChanged = true;
                     systemsToRemoveAfterMerge.add(system1.id);
                     systemsToRemoveAfterMerge.add(system2.id);
 
@@ -1101,26 +1114,22 @@ export function updateWeatherOverTime() {
     if (systemsToRemoveAfterMerge.size > 0 || systemsToAddAfterMerge.length > 0) {
         appState.activeWeatherSystems = appState.activeWeatherSystems.filter(sys => !systemsToRemoveAfterMerge.has(sys.id));
         appState.activeWeatherSystems.push(...systemsToAddAfterMerge);
-        weatherActuallyChanged = true; // Merging or adding storms means weather changed
+        weatherActuallyChanged = true;
     }
 
-    // Re-populate weatherGrid based on new system positions (and potential new storms)
-    const defaultWeatherId = 'sunny'; // Or from a constant
+    const defaultWeatherId = 'sunny';
     appState.hexDataMap.forEach(hex => {
-        // Initialize or reset to default. Important if systems moved away or merged.
         appState.weatherGrid[hex.id] = defaultWeatherId;
     });
 
     appState.activeWeatherSystems.forEach(system => {
         system.hexesOccupied.forEach(hexId => {
-            // Check if hexId is valid/exists in hexDataMap, though getHexesInRadius should ensure this.
             if (appState.hexDataMap.has(hexId)) {
                  appState.weatherGrid[hexId] = system.weatherType;
             }
         });
     });
     
-    // If systems moved, or if any system dissipated (count changed)
     if (weatherActuallyChanged || appState.activeWeatherSystems.length !== initialSystemCount) {
         appState.isCurrentMapDirty = true;
     }
@@ -1130,7 +1139,6 @@ export function updateWeatherOverTime() {
 
 export function getForecastedWeatherGrid(hoursAhead) {
     if (typeof hoursAhead !== 'number' || hoursAhead <= 0) {
-        console.error("getForecastedWeatherGrid: hoursAhead must be a positive number.", hoursAhead);
         return null;
     }
 
@@ -1141,26 +1149,21 @@ export function getForecastedWeatherGrid(hoursAhead) {
     });
 
     if (!appState.isWeatherEnabled || !appState.activeWeatherSystems || appState.activeWeatherSystems.length === 0) {
-        // If weather is off or no systems, forecast is just all default weather
         return baseGrid; 
     }
 
-    // Deep copy systems for simulation
     let simulatedSystems = JSON.parse(JSON.stringify(appState.activeWeatherSystems));
     simulatedSystems.forEach(system => {
-        system.hexesOccupied = new Set(system.hexesOccupied); // Convert array back to Set
+        system.hexesOccupied = new Set(system.hexesOccupied);
     });
 
     for (let h = 1; h <= hoursAhead; h++) {
         let systemsAtThisHour = [];
-        let weatherActuallyChangedThisHour = false; // To track if any system moved or merged in this specific hour
 
-        // --- Movement Logic ---
         for (const system of simulatedSystems) {
             let currentSystem = { ...system, hexesOccupied: new Set(system.hexesOccupied) }; 
 
             if (currentSystem.speed > 0 && currentSystem.movementDirection && (currentSystem.movementDirection.dCol !== 0 || currentSystem.movementDirection.dRow !== 0)) {
-                weatherActuallyChangedThisHour = true;
                 let newOriginCol = currentSystem.originHex.col;
                 let newOriginRow = currentSystem.originHex.row;
 
@@ -1181,7 +1184,7 @@ export function getForecastedWeatherGrid(hoursAhead) {
                     const newOccupiedHexes = new Set();
                     const centerHexDataForRadius = appState.hexDataMap.get(currentSystem.originHex.id) || currentSystem.originHex;
                     const hexesInNewRadius = HEX_UTILS.getHexesInRadius(centerHexDataForRadius, currentSystem.radius, appState.hexDataMap, appState.currentGridWidth, appState.currentGridHeight);
-                    hexesInNewRadius.forEach(h_item => newOccupiedHexes.add(h_item.id)); // Renamed h to h_item
+                    hexesInNewRadius.forEach(h_item => newOccupiedHexes.add(h_item.id));
                     currentSystem.hexesOccupied = newOccupiedHexes;
                     systemsAtThisHour.push(currentSystem);
                 }
@@ -1191,7 +1194,6 @@ export function getForecastedWeatherGrid(hoursAhead) {
         }
         simulatedSystems = systemsAtThisHour;
 
-        // --- Storm Formation Logic ---
         let systemsToRemoveAfterMerge = new Set();
         let systemsToAddAfterMerge = [];
         
@@ -1209,7 +1211,6 @@ export function getForecastedWeatherGrid(hoursAhead) {
                     const overlapThreshold = Math.min(system1.hexesOccupied.size, system2.hexesOccupied.size) * 0.3;
                     
                     if (intersection.size > overlapThreshold && intersection.size > 2) {
-                        weatherActuallyChangedThisHour = true;
                         systemsToRemoveAfterMerge.add(system1.id);
                         systemsToRemoveAfterMerge.add(system2.id);
 
@@ -1220,7 +1221,7 @@ export function getForecastedWeatherGrid(hoursAhead) {
                         const stormHexes = new Set([...system1.hexesOccupied, ...system2.hexesOccupied]);
 
                         const newStormSystem = {
-                            id: 'storm_sim_' + Date.now() + '_' + h + '_' + i + '_' + j, // Ensure unique ID for simulation
+                            id: 'storm_sim_' + Date.now() + '_' + h + '_' + i + '_' + j,
                             weatherType: 'stormy',
                             hexesOccupied: stormHexes,
                             originHex: stormOriginHex,
@@ -1239,11 +1240,8 @@ export function getForecastedWeatherGrid(hoursAhead) {
             simulatedSystems = simulatedSystems.filter(sys => !systemsToRemoveAfterMerge.has(sys.id));
             simulatedSystems.push(...systemsToAddAfterMerge);
         }
-        // Note: Spawning of entirely new systems is NOT part of this forecast simulation for simplicity.
-        // If it were, it would happen here, for hour 'h'.
     }
 
-    // Generate Final Forecast Grid from the state of simulatedSystems after all hours
     const forecastGrid = {};
     appState.hexDataMap.forEach(hex => {
         forecastGrid[hex.id] = defaultWeatherId;
