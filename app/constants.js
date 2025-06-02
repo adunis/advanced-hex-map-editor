@@ -261,6 +261,8 @@ export const HEX_PREVIEW_STROKE_WIDTH_ADDITION = 1.5;
 export const AUTO_TERRAIN_CHANGE_ENABLED_DEFAULT = true; // New constant
 export const AUTO_TERRAIN_IGNORE_TYPES = [ // Types not to change automatically
     TerrainType.ROAD, TerrainType.SETTLEMENT, TerrainType.WATER,
+// Weather System Constants
+export const WEATHER_UPDATE_INTERVAL_HOURS = 12;
     TerrainType.SHALLOW_WATER, TerrainType.DEEP_OCEAN,
     TerrainType.CAVERN_FLOOR, TerrainType.TUNNEL, TerrainType.MUSHROOM_FOREST,
     TerrainType.CRYSTAL_CAVE, TerrainType.UNDERGROUND_RIVER, TerrainType.LAVA_TUBE,

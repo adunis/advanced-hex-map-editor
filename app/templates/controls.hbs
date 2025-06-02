@@ -199,6 +199,36 @@
         <button id="resetGridButton" class="w-full px-3 py-1.5 rounded-md bg-red-700 hover:bg-red-800 text-white shadow hover:shadow-md text-xs sm:text-sm mb-1.5">Reset Grid (Clear All Hexes)</button>
         <button id="resetExplorationButton" class="w-full px-3 py-1.5 rounded-md bg-yellow-600 hover:bg-yellow-700 text-gray-800 shadow hover:shadow-md text-xs sm:text-sm">Reset Exploration & Marker</button>
       </div>
+
+      {{!-- Weather System --}}
+      <div class="mt-3 pt-2 border-t border-gray-600">
+        <h3 class="text-md font-semibold text-sky-300 mb-1.5">Weather System</h3>
+        <div class="flex items-center mb-2">
+          <input type="checkbox" id="enableWeatherToggle" name="enableWeatherToggle" class="h-4 w-4 text-sky-600 border-gray-500 rounded bg-gray-700 focus:ring-sky-500" {{#if isWeatherEnabled}}checked{{/if}}>
+          <label for="enableWeatherToggle" class="ml-2 text-xs text-gray-300">Enable Weather System</label>
+        </div>
+
+        {{#if isWeatherEnabled}}
+        <div>
+          <h4 class="text-sm font-semibold text-sky-300 mt-2 mb-1">Weather Distribution</h4>
+          <div class="space-y-1 text-xs">
+            {{#each weatherConditions}}
+            <div class="flex items-center justify-between">
+              <label for="weatherPercent-{{this.id}}" class="text-gray-300 flex-grow">
+                <span class="inline-block w-4 mr-1">{{this.icon}}</span> {{this.name}}
+              </label>
+              <input type="number" id="weatherPercent-{{this.id}}" data-weather-id="{{this.id}}" value="{{lookup ../weatherSettings this.id}}" min="0" max="100" class="w-16 p-1 border border-gray-600 rounded-md bg-gray-800 text-gray-200 text-xs focus:ring-sky-500 focus:border-sky-500">
+              <span class="ml-1 text-gray-400">%</span>
+            </div>
+            {{/each}}
+          </div>
+        </div>
+        <div class="mt-2 flex items-center">
+          <input type="checkbox" id="playerCanSeeForecastToggle" name="playerCanSeeForecastToggle" {{#if playerCanSeeForecast}}checked{{/if}} class="h-4 w-4 text-sky-600 border-gray-500 rounded bg-gray-700 focus:ring-sky-500">
+          <label for="playerCanSeeForecastToggle" class="ml-2 block text-xs text-gray-300">Allow Players to See Forecast</label>
+        </div>
+        {{/if}}
+      </div>
     </div>
   </div>
   {{/if}}

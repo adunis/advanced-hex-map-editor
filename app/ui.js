@@ -305,6 +305,20 @@ export function renderApp(options = {}) {
         const terrainSymbolYOffset = (elevTxt && elevTxt.length > 0) ? textYOffset3 : textYOffset2;
         const terrainSymbolFontSize = (tc.symbol && tc.symbol.length > 1 && /\p{Emoji}/u.test(tc.symbol)) ? 'text-xs sm:text-sm' : 'text-sm sm:text-base';
 
+        let weatherIconToRender = null;
+        let weatherName = null;
+        let weatherIconClass = "weather-icon-default"; // Default class
+
+        if (appState.isWeatherEnabled && appState.weatherGrid && appState.weatherGrid[curHex.id]) {
+            const weatherId = appState.weatherGrid[curHex.id];
+            const weatherCondition = appState.weatherConditions.find(wc => wc.id === weatherId);
+            if (weatherCondition) {
+                weatherIconToRender = weatherCondition.icon;
+                weatherName = weatherCondition.name;
+                weatherIconClass = `weather-icon-${weatherCondition.id}`;
+            }
+        }
+
         return {
             ...curHex,
             cx: cx_top_proj, cy: cy_top_proj, points: topFacePoints,
@@ -331,6 +345,9 @@ export function renderApp(options = {}) {
             appMode: appState.appMode, isGM: appState.isGM, CONST: CONST,
             isTextHiddenForPlayer: appState.appMode === CONST.AppMode.PLAYER && !appState.isGM && !appState.playerDiscoveredHexIds.has(curHex.id),
             isBrushPreview: appState.brushPreviewHexIds.has(curHex.id) && appState.appMode === CONST.AppMode.HEX_EDITOR && appState.paintMode && appState.paintMode !== CONST.PaintMode.NONE,
+            weatherIconToRender,
+            weatherName,
+            weatherIconClass,
         };
     }) : [];
 
@@ -638,6 +655,43 @@ export function attachEventListeners() {
       // This might warrant a re-render if visual cues depend on it, but usually not.
   };
 
+  // Weather System Controls
+  const enableWeatherToggle = el("enableWeatherToggle");
+  if (enableWeatherToggle) {
+    enableWeatherToggle.onchange = (e) => {
+      appState.isWeatherEnabled = e.target.checked;
+      appState.isCurrentMapDirty = true;
+      // renderApp({ preserveScroll: true }); // generateWeatherGrid will call renderApp
+      MapLogic.generateWeatherGrid(); // This will also call renderApp
+    };
+  }
+
+  qsa('input[id^="weatherPercent-"]').forEach((input) => {
+    input.onchange = (e) => {
+      const weatherId = e.target.dataset.weatherId;
+      const newValue = parseInt(e.target.value, 10);
+      if (weatherId && !isNaN(newValue)) {
+        if (appState.weatherSettings.hasOwnProperty(weatherId)) {
+          appState.weatherSettings[weatherId] = newValue;
+          appState.isCurrentMapDirty = true;
+          if (appState.isWeatherEnabled) { // Only regenerate if weather is active
+            MapLogic.generateWeatherGrid(); // This will also call renderApp
+          } else {
+            renderApp({ preserveScroll: true }); // Percentages changed but weather not on, just update controls
+          }
+        }
+      }
+    };
+  });
+
+  const playerCanSeeForecastToggle = el("playerCanSeeForecastToggle");
+  if (playerCanSeeForecastToggle) {
+    playerCanSeeForecastToggle.onchange = (e) => {
+      appState.playerCanSeeForecast = e.target.checked;
+      appState.isCurrentMapDirty = true;
+      renderApp({ preserveScroll: true });
+    };
+  }
 
   const createBtn = el("createNewMapButton"); if (createBtn) createBtn.onclick = () => MapManagement.handleCreateNewMap(false);
 
