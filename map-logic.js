@@ -1,6 +1,7 @@
 // File: app/map-logic.js
 import { appState } from './state.js';
 import * as CONST from './constants.js';
+import { WEATHER_UPDATE_INTERVAL_HOURS } from './constants.js'; // Added import
 import * as HEX_UTILS from './hex-utils.js';
 import { renderApp } from './ui.js';
 import { handleSaveCurrentMap } from './map-management.js';
@@ -52,10 +53,21 @@ export function calculateLineOfSight(sourceHexId, currentHexDataMap) {
     const sourceTerrainConfig = CONST.TERRAIN_TYPES_CONFIG[sourceHex.terrain] || CONST.TERRAIN_TYPES_CONFIG[CONST.DEFAULT_TERRAIN_TYPE];
     const observerElevation = sourceHex.elevation + CONST.OBSERVER_EYE_HEIGHT_M;
 
+    let weatherVisibilityMultiplier = 1.0;
+    if (appState.isWeatherEnabled && appState.weatherGrid && appState.weatherGrid[sourceHex.id]) {
+        const weatherId = appState.weatherGrid[sourceHex.id];
+        const weatherCondition = appState.weatherConditions.find(wc => wc.id === weatherId);
+        if (weatherCondition && weatherCondition.effects && typeof weatherCondition.effects.visibility === 'number') {
+            weatherVisibilityMultiplier = weatherCondition.effects.visibility;
+        }
+    }
+
     let baseObserverRangeHexes = (sourceHex.baseVisibility || 0) +
                                Math.floor(Math.max(0, sourceHex.elevation) / CONST.ELEVATION_VISIBILITY_STEP_BONUS) +
                                (sourceTerrainConfig.baseInherentVisibilityBonus || 0);
-    baseObserverRangeHexes = Math.max(1, baseObserverRangeHexes);
+    
+    baseObserverRangeHexes *= weatherVisibilityMultiplier;
+    baseObserverRangeHexes = Math.max(weatherVisibilityMultiplier === 0 ? 0 : 1, baseObserverRangeHexes); // Allow 0 vis if multiplier is 0
 
     currentHexDataMap.forEach(targetHex => {
         if (targetHex.id === sourceHex.id) return;
@@ -352,7 +364,16 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
             overallActivityPenaltyFactor = maxPenalty;
         }
 
-        let terrainModifiedTime = baseTimeValue * targetTerrainConfig.speedMultiplier * overallActivityPenaltyFactor;
+        let weatherTravelSpeedMultiplier = 1.0;
+        if (appState.isWeatherEnabled && appState.weatherGrid && appState.weatherGrid[targetHex.id]) {
+            const weatherId = appState.weatherGrid[targetHex.id];
+            const weatherCondition = appState.weatherConditions.find(wc => wc.id === weatherId);
+            if (weatherCondition && weatherCondition.effects && typeof weatherCondition.effects.travelSpeed === 'number') {
+                weatherTravelSpeedMultiplier = weatherCondition.effects.travelSpeed;
+            }
+        }
+
+        let terrainModifiedTime = baseTimeValue * targetTerrainConfig.speedMultiplier * overallActivityPenaltyFactor * weatherTravelSpeedMultiplier;
 
         let elevationTimePenalty = 0;
         if (previousHex && !isExploringCurrentHex) {
@@ -361,6 +382,14 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
         }
         let totalTimeValue = terrainModifiedTime + elevationTimePenalty;
         totalTimeValue = Math.max(0.1, totalTimeValue);
+
+        if (appState.isWeatherEnabled) {
+            appState.timeSinceLastWeatherChange += totalTimeValue;
+            if (appState.timeSinceLastWeatherChange >= WEATHER_UPDATE_INTERVAL_HOURS) {
+                updateWeatherOverTime();
+                appState.timeSinceLastWeatherChange %= WEATHER_UPDATE_INTERVAL_HOURS; // Carry over excess
+            }
+        }
 
         if (!isExploringCurrentHex) {
             appState.partyMarkerPosition = targetHex;
@@ -737,5 +766,119 @@ export function handleMouseLeaveFromGrid() {
     if (appState.brushPreviewHexIds.size > 0) {
         appState.brushPreviewHexIds.clear();
         renderApp({ preserveScroll: true });
+    }
+}
+
+export function generateWeatherGrid() {
+    if (!appState.isWeatherEnabled) {
+        appState.weatherGrid = {};
+        // No immediate re-render needed if weather is simply disabled,
+        // the existing weather visuals (if any) will be removed on next natural render.
+        // However, if direct visual feedback of removal is desired:
+        // renderApp({ preserveScroll: true });
+        return;
+    }
+
+    if (!appState.mapInitialized || appState.hexDataMap.size === 0) {
+        appState.weatherGrid = {}; // Ensure it's clear if map not ready
+        return;
+    }
+
+    const { weatherSettings, weatherConditions } = appState;
+    const weightedWeatherArray = [];
+
+    weatherConditions.forEach(condition => {
+        const weight = weatherSettings[condition.id] || 0;
+        for (let i = 0; i < weight; i++) {
+            weightedWeatherArray.push(condition.id);
+        }
+    });
+
+    // If weightedWeatherArray is empty (e.g., all percentages are 0),
+    // fall back to a default or clear weather.
+    if (weightedWeatherArray.length === 0) {
+        // Fallback: make all sunny, or could pick first condition, or clear.
+        const defaultCondition = weatherConditions.length > 0 ? weatherConditions[0].id : null;
+        if (defaultCondition) {
+            appState.hexDataMap.forEach(hex => {
+                appState.weatherGrid[hex.id] = defaultCondition;
+            });
+        } else {
+            appState.weatherGrid = {}; // Clear if no conditions defined
+        }
+    } else {
+        appState.hexDataMap.forEach(hex => {
+            const randomIndex = Math.floor(Math.random() * weightedWeatherArray.length);
+            appState.weatherGrid[hex.id] = weightedWeatherArray[randomIndex];
+        });
+    }
+
+    appState.isCurrentMapDirty = true;
+    // As per instruction, call renderApp. Consider if this is always needed
+    // or if the calling context in ui.js handles rendering.
+    renderApp({ preserveScroll: true });
+
+    if (appState.isWeatherEnabled) { // Generate forecast after current weather is set
+        generateWeatherForecast();
+    }
+}
+
+export function generateWeatherForecast() {
+    if (!appState.isWeatherEnabled) {
+        appState.weatherForecast = [];
+        return;
+    }
+
+    const numForecastPeriods = 3;
+    const forecastPeriodDurationHours = 6; // Each period is 6 hours
+    appState.weatherForecast = [];
+
+    const { weatherSettings, weatherConditions } = appState;
+    const weightedWeatherArray = [];
+
+    weatherConditions.forEach(condition => {
+        const weight = weatherSettings[condition.id] || 0;
+        for (let i = 0; i < weight; i++) {
+            weightedWeatherArray.push(condition.id);
+        }
+    });
+
+    // If weightedWeatherArray is empty, use a default (e.g., first available or 'sunny')
+    const defaultConditionId = weatherConditions.length > 0 ? weatherConditions[0].id : 'sunny'; // Fallback to 'sunny'
+    const defaultCondition = weatherConditions.find(wc => wc.id === defaultConditionId) || { icon: '☀️' }; // Further fallback for icon
+
+    for (let i = 0; i < numForecastPeriods; i++) {
+        const startTime = i * forecastPeriodDurationHours;
+        const endTime = (i + 1) * forecastPeriodDurationHours;
+        const timeBlockLabel = `Next ${startTime}-${endTime}h`;
+        
+        let predictedWeatherId = defaultConditionId;
+        let predictedWeatherIcon = defaultCondition.icon;
+
+        if (weightedWeatherArray.length > 0) {
+            const randomIndex = Math.floor(Math.random() * weightedWeatherArray.length);
+            predictedWeatherId = weightedWeatherArray[randomIndex];
+            const foundCondition = weatherConditions.find(wc => wc.id === predictedWeatherId);
+            if (foundCondition) {
+                predictedWeatherIcon = foundCondition.icon;
+            } else { // Should not happen if settings and conditions are synced
+                predictedWeatherIcon = defaultCondition.icon; 
+            }
+        }
+        
+        appState.weatherForecast.push({
+            timeBlockLabel,
+            predictedWeatherId,
+            predictedWeatherIcon
+        });
+    }
+    // No separate renderApp call here, assuming it's called by the initiator (generateWeatherGrid/updateWeatherOverTime)
+}
+
+export function updateWeatherOverTime() {
+    if (appState.isWeatherEnabled) {
+        console.log("Weather update triggered due to time progression."); // Optional debug log
+        generateWeatherGrid(); // This will also call generateWeatherForecast
+        // Future: Implement more complex weather changes here instead of full regen.
     }
 }
