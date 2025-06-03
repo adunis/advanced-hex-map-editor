@@ -278,6 +278,21 @@ window.addEventListener('message', (event) => {
             }
             break;
 
+        case 'ahnInitialPartyActivities':
+          if (!appState.isStandaloneMode && payload) { // payload is the object from Foundry
+            // Clear existing activities first to ensure a clean load
+            appState.activePartyActivities.clear();
+            // Convert received object back to a Map
+            for (const [activityId, characterName] of Object.entries(payload)) {
+              if (CONST.PARTY_ACTIVITIES[activityId] && typeof characterName === 'string') { // Basic validation
+                appState.activePartyActivities.set(activityId, characterName);
+              }
+            }
+            // No need to call syncActivitiesToFoundry() here as this is an update FROM Foundry
+            renderApp({ preserveScroll: true }); // Or false if initial load should center
+          }
+          break;
+
         default:
             break;
     }
@@ -302,6 +317,12 @@ async function start() {
     } else if (window.parent && APP_MODULE_ID && typeof window.parent.postMessage === 'function') {
         try {
             window.parent.postMessage({ type: 'jsAppReady', moduleId: APP_MODULE_ID }, '*');
+            // === Add the new message dispatch here ===
+            window.parent.postMessage({
+                type: 'ahnGetPartyActivities', // As defined in plan step 1
+                moduleId: APP_MODULE_ID
+            }, '*');
+            // =======================================
         } catch (e) {
             alert("AHME: Critical error initializing communication with Foundry. The map editor may not function correctly. Check console (F12).");
             resetActiveMapState();
@@ -320,4 +341,23 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', start);
 } else {
     start();
+}
+
+export function syncActivitiesToFoundry() {
+  if (appState.isStandaloneMode || !window.parent || typeof window.parent.postMessage !== 'function') {
+    return; // Don't sync if in standalone or no parent to post to
+  }
+
+  // Convert Map to plain object for postMessage
+  const activitiesObject = Object.fromEntries(appState.activePartyActivities);
+
+  try {
+    window.parent.postMessage({
+      type: 'ahnUpdatePartyActivities', // As defined in plan step 1
+      payload: activitiesObject,
+      moduleId: APP_MODULE_ID // Standard practice from existing messages
+    }, '*');
+  } catch (e) {
+    console.error("AHME: Error syncing party activities to Foundry:", e);
+  }
 }

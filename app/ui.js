@@ -4,6 +4,7 @@ import * as CONST from "./constants.js";
 import * as MapLogic from "./map-logic.js";
 import * as MapManagement from "./map-management.js";
 import * as HexplorationLogic from "./hexploration-logic.js";
+import { syncActivitiesToFoundry } from './app.js'; // Assuming it will be exported from app.js
 
 let mainTemplateCompiled;
 const appContainer = document.getElementById("app-container");
@@ -575,6 +576,7 @@ export function attachEventListeners() {
       }
       appState.isCurrentMapDirty = true; // Mark map as dirty as party activities affect gameplay state potentially
       renderApp({ preserveScroll: true });
+      syncActivitiesToFoundry();
     };
   });
   // --- End of block ---
@@ -848,6 +850,7 @@ export function attachEventListeners() {
                   appState.activePartyActivities.delete(activityId);
                   appState.isCurrentMapDirty = true;
                   renderApp({ preserveScroll: true });
+                  syncActivitiesToFoundry();
               }
           }
 
