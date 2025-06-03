@@ -258,8 +258,20 @@ class HexMapApplication extends Application {
             }
 
             const log = payload.logEntry;
-            let chatMessageContent = `<b>Travel Log:</b> Party ${log.direction.includes('exploring') ? 'explored at' : 'moved ' + log.direction + ' to'} hex ${log.to} (<i>${log.targetTerrain || 'Unknown Terrain'}</i>).<br>`;
-            if (!log.direction.includes('exploring')) {
+            let directionIsExploring = false;
+            let directionString = "";
+
+            if (typeof log.direction === 'string') {
+                directionIsExploring = log.direction.includes('exploring');
+                directionString = log.direction;
+            } else {
+                directionString = (log.direction !== undefined && log.direction !== null) ? String(log.direction) : "moved";
+                console.warn(`AHME_BRIDGE: log.direction was not a string or was missing in gmPerformedHexplorationAction. Payload:`, payload);
+            }
+
+            let chatMessageContent = `<b>Travel Log:</b> Party ${directionIsExploring ? 'explored at' : directionString + ' to'} hex ${log.to} (<i>${log.targetTerrain || 'Unknown Terrain'}</i>).<br>`;
+
+            if (!directionIsExploring && typeof log.direction === 'string') {
                 chatMessageContent += `Distance: ${log.distanceValue} ${log.distanceUnit || 'units'}. `;
             }
             chatMessageContent += `Base time: ${parseFloat(log.baseTimeValue).toFixed(1)} ${log.baseTimeUnit || 'units'}.<br>`;
