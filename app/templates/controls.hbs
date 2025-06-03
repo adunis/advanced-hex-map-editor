@@ -99,7 +99,7 @@
   <hr class="my-2 sm:my-3 border-gray-600">
 
   {{!-- Party Activities --}}
-  {{#if (and isGM (eq appMode CONST.AppMode.PLAYER))}}
+  {{#if (eq appMode CONST.AppMode.PLAYER)}}
   <hr class="my-2 sm:my-3 border-gray-600">
   <div>
     <h3 class="text-lg font-semibold text-sky-300 mb-1.5 border-b border-gray-600 pb-1">Party Activities</h3>
@@ -107,7 +107,10 @@
       {{#each (objValues CONST.PARTY_ACTIVITIES)}}
       <div class="flex items-center">
         <input type="checkbox" id="activity-toggle-{{this.id}}" data-activity-id="{{this.id}}" class="h-4 w-4 text-sky-600 border-gray-500 rounded bg-gray-700 focus:ring-sky-500 focus:ring-offset-gray-800" {{#if (lookup @root.activePartyActivities this.id)}}checked{{/if}}>
-        <label for="activity-toggle-{{this.id}}" class="ml-2 text-gray-300 hover:text-sky-300 cursor-pointer" title="{{this.description}} (Source: {{this.source}})">{{this.name}}</label>
+        <label for="activity-toggle-{{this.id}}" class="ml-2 text-gray-300 hover:text-sky-300 cursor-pointer flex items-center" title="{{this.description}} (Source: {{this.source}})">
+          <span class="mr-2 w-5 text-center">{{this.icon}}</span>
+          <span>{{this.name}}</span>
+        </label>
       </div>
       {{/each}}
     </div>

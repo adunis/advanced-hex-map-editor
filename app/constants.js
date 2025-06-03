@@ -661,6 +661,7 @@ export const PARTY_ACTIVITIES = {
   avoid_notice: {
     id: 'avoid_notice',
     name: 'Avoid Notice',
+    icon: '🤫',
     description: 'Attempt Stealth (Perception DC) while traveling at half speed. On encounter start, use Stealth for initiative and detection.',
     movementPenaltyFactor: 2.0,
     traits: ['Exploration'],
@@ -669,6 +670,7 @@ export const PARTY_ACTIVITIES = {
   defend: {
     id: 'defend',
     name: 'Defend',
+    icon: '🛡️',
     description: 'Move at half speed with shield raised. Gain Raise a Shield benefits before first turn in combat.',
     movementPenaltyFactor: 2.0,
     traits: ['Exploration'],
@@ -677,6 +679,7 @@ export const PARTY_ACTIVITIES = {
   detect_magic: {
     id: 'detect_magic',
     name: 'Detect Magic',
+    icon: '✨',
     description: 'Cast detect magic at intervals. Half speed or slower. Specific speeds for thoroughness.',
     movementPenaltyFactor: 2.0,
     traits: ['Concentrate', 'Exploration'],
@@ -685,6 +688,7 @@ export const PARTY_ACTIVITIES = {
   follow_expert: {
     id: 'follow_expert',
     name: 'Follow the Expert',
+    icon: '👣',
     description: 'Match ally\'s skill check (e.g., Climb, Avoid Notice). Add level to skill, gain circumstance bonus from ally.',
     movementPenaltyFactor: 1.0,
     traits: ['Auditory', 'Concentrate', 'Exploration', 'Visual'],
@@ -693,6 +697,7 @@ export const PARTY_ACTIVITIES = {
   hustle: {
     id: 'hustle',
     name: 'Hustle',
+    icon: '💨',
     description: 'Move at double travel speed for Con mod × 10 minutes (min 10 min). Group uses lowest Con.',
     movementPenaltyFactor: 0.5,
     traits: ['Exploration', 'Move'],
@@ -701,6 +706,7 @@ export const PARTY_ACTIVITIES = {
   investigate: {
     id: 'investigate',
     name: 'Investigate',
+    icon: '🔍',
     description: 'Seek info with Recall Knowledge (secret) at half speed.',
     movementPenaltyFactor: 2.0,
     traits: ['Concentrate', 'Exploration'],
@@ -709,6 +715,7 @@ export const PARTY_ACTIVITIES = {
   repeat_spell: {
     id: 'repeat_spell',
     name: 'Repeat a Spell',
+    icon: '🔁',
     description: 'Repeatedly cast a 2-action or less spell (usually cantrip) at half speed.',
     movementPenaltyFactor: 2.0,
     traits: ['Concentrate', 'Exploration'],
@@ -717,6 +724,7 @@ export const PARTY_ACTIVITIES = {
   scout: {
     id: 'scout',
     name: 'Scout',
+    icon: '👁️‍🗨️',
     description: 'Scout ahead/behind at half speed. Party gains +1 initiative next encounter.',
     movementPenaltyFactor: 2.0,
     traits: ['Concentrate', 'Exploration'],
@@ -725,6 +733,7 @@ export const PARTY_ACTIVITIES = {
   search: {
     id: 'search',
     name: 'Search',
+    icon: '🧐',
     description: 'Meticulously Seek for hidden things. Half speed usually; slower for thoroughness. GM makes free secret Seek.',
     movementPenaltyFactor: 2.0,
     traits: ['Concentrate', 'Exploration'],
