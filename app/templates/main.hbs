@@ -87,9 +87,15 @@
                     {{#with this.details}} {{!-- Now 'this' refers to the activity object (this.details) --}}
                         <li class="p-1.5 bg-gray-700 rounded-md shadow-sm" title="Source: {{this.source}}">
                             <div class="flex justify-between items-center">
-                                <span class="flex items-center"> {{!-- For icon and text alignment --}}
-                                    <span class="mr-2 w-5 text-center">{{this.icon}}</span> {{!-- Display icon --}}
-                                    <span><strong class="text-sky-400">{{../this.value}}</strong> is {{this.name}}</span> {{!-- ../this.value is characterName from outer scope --}}
+                                <span class="flex items-center">
+                                    <span class="mr-2 w-5 text-center">{{this.icon}}</span>
+                                    <span>
+                                        {{#if (eq ../this.value "_GROUP_")}} {{!-- Check if characterName is "_GROUP_" --}}
+                                            <strong class="text-teal-400">Party is</strong> {{this.name}}
+                                        {{else}}
+                                            <strong class="text-sky-400">{{../this.value}}</strong> is {{this.name}}
+                                        {{/if}}
+                                    </span>
                                 </span>
                                 <button data-action="toggle-off-activity-display" data-activity-id="{{../this.key}}" class="ml-2 px-1.5 py-0.5 text-xs bg-red-600 hover:bg-red-700 text-white rounded-sm" aria-label="Toggle off {{this.name}}">&times;</button>
                             </div>
