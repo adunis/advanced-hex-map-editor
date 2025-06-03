@@ -69,7 +69,7 @@ export const appState = {
   targetScrollTop: null,
   centerViewOnHexAfterRender: null,
 
-  activePartyActivities: new Set(),
+  activePartyActivities: new Map(),
 
   // Weather system properties
   isWeatherEnabled: false,
@@ -117,7 +117,7 @@ export function resetActiveMapState() {
     appState.centerViewOnHexAfterRender = null;
 
     appState.zoomLevel = 1.0;
-    appState.activePartyActivities = new Set();
+    appState.activePartyActivities = new Map();
 
     // Reset weather system properties
     appState.isWeatherEnabled = false;
