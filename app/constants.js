@@ -767,5 +767,19 @@ export const PARTY_ACTIVITIES = {
     isGroupActivity: true,
     traits: ['Exploration', 'Secret'],
     source: 'Game Master Intuition'
+  },
+  wheeled_vehicle: {
+    id: 'wheeled_vehicle',
+    name: 'Wheeled Vehicle',
+    icon: '🛒',
+    description: 'Travel by wheeled vehicle (e.g., cart, wagon). Offers faster travel on roads but is hindered by rough terrain.',
+    movementPenaltyFactor: 1.2,
+    isGroupActivity: true,
+    terrainModifiers: [
+        { terrains: [TerrainType.ROAD], movementPenaltyFactor: 0.5 },
+        { terrains: [TerrainType.FOREST, TerrainType.JUNGLE, TerrainType.SWAMP, TerrainType.HILLS, TerrainType.MOUNTAIN, TerrainType.BADLANDS, TerrainType.THICK_FOREST, TerrainType.SKELETAL_FOREST, TerrainType.ASHEN_WASTELAND, TerrainType.BLOOD_MARSH, TerrainType.VOLCANIC_WASTELAND, TerrainType.QUICKSAND, TerrainType.ICE_PLAIN, TerrainType.OBSIDIAN_FIELD], movementPenaltyFactor: 2.5 }
+    ],
+    traits: ['Move'],
+    source: 'Custom Rule'
   }
 };

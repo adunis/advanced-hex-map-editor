@@ -42,7 +42,27 @@ window.addEventListener('message', (event) => {
         case 'mapDataLoaded':
             if (appState.isStandaloneMode) return; 
             if (payload && payload.mapId && Array.isArray(payload.hexes)) {
-                resetActiveMapState();
+                resetActiveMapState(); // This clears appState.activePartyActivities
+
+                // === BEGIN NEW/MODIFIED SECTION for Party Activities ===
+                if (payload.partyActivitiesData && typeof payload.partyActivitiesData === 'object') {
+                    // If Foundry sends partyActivitiesData with mapDataLoaded, use it.
+                    for (const [activityId, characterName] of Object.entries(payload.partyActivitiesData)) {
+                        if (CONST.PARTY_ACTIVITIES[activityId] && typeof characterName === 'string') {
+                            appState.activePartyActivities.set(activityId, characterName);
+                        }
+                    }
+                    console.log("AHME app: Repopulated party activities from mapDataLoaded.partyActivitiesData");
+                } else if (window.parent && APP_MODULE_ID && typeof window.parent.postMessage === 'function') {
+                    // Fallback: If not included in mapDataLoaded, re-request from Foundry.
+                    console.warn("AHME app: partyActivitiesData not found in mapDataLoaded. Re-requesting activities.");
+                    window.parent.postMessage({
+                        type: 'ahnGetPartyActivities',
+                        moduleId: APP_MODULE_ID
+                    }, '*');
+                    // The existing 'ahnInitialPartyActivities' handler will process the response.
+                }
+                // === END NEW/MODIFIED SECTION ===
 
                 appState.currentMapId = payload.mapId;
                 appState.currentMapName = payload.name || "Unnamed Map";
