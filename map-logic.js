@@ -373,14 +373,29 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
         let terrainTimeMultiplier = targetTerrainConfig.speedMultiplier;
         let activityTimeMultiplier = 1.0;
         if (appState.activePartyActivities.size > 0) {
-            let maxPenalty = 1.0;
-            appState.activePartyActivities.forEach(activityId => {
+            const currentTerrainType = targetHex.terrain; // Get the terrain type of the hex being entered
+
+            appState.activePartyActivities.forEach((characterName, activityId) => {
                 const activityConf = CONST.PARTY_ACTIVITIES[activityId];
-                if (activityConf && activityConf.movementPenaltyFactor > maxPenalty) {
-                    maxPenalty = activityConf.movementPenaltyFactor;
+                if (activityConf) {
+                    let factorToUse = activityConf.movementPenaltyFactor; // Default factor
+
+                    if (activityConf.terrainModifiers && Array.isArray(activityConf.terrainModifiers)) {
+                        for (const modifier of activityConf.terrainModifiers) {
+                            if (modifier.terrains && Array.isArray(modifier.terrains) && modifier.terrains.includes(currentTerrainType)) {
+                                if (typeof modifier.movementPenaltyFactor === 'number') {
+                                    factorToUse = modifier.movementPenaltyFactor; // Override with terrain-specific factor
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (typeof factorToUse === 'number') {
+                        activityTimeMultiplier *= factorToUse;
+                    }
                 }
             });
-            activityTimeMultiplier = maxPenalty;
         }
         
         let weatherTimeMultiplier = 1.0;
