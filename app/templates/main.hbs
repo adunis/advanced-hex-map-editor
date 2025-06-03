@@ -80,23 +80,28 @@
         <hr class="my-2 sm:my-3 border-gray-600">
         <h4 class="text-md font-semibold text-sky-300 mb-1">Active Party Activities:</h4>
         <div id="active-party-activities-display" class="text-xs space-y-0.5 text-gray-300 mb-2">
-            {{!-- MODIFIED HERE --}}
-            {{#if activePartyActivitiesCount}}
-                <ul class="list-disc list-inside pl-1">
-                    {{#each (objValues CONST.PARTY_ACTIVITIES)}}
-                        {{!-- AND HERE --}}
-                        {{#if (../isActivePartyActivity this.id)}}
-                            <li title="{{this.source}}">
-                                <strong class="text-sky-400">{{this.name}}</strong>: {{this.description}} 
-                                (Speed x{{div 1 this.movementPenaltyFactor}})
-                            </li>
-                        {{/if}}
-                    {{/each}}
-                </ul>
-            {{else}}
-                <p class="italic text-gray-400">None (Party moving at normal speed for terrain).</p>
-            {{/if}}
-        </div>
+        {{#if activePartyActivities.size}}
+            <ul class="list-none pl-0 space-y-1">
+                {{#each (objEntries activePartyActivities)}}
+                    {{#with (lookup @root.CONST.PARTY_ACTIVITIES this.key)}}
+                        <li class="p-1.5 bg-gray-700 rounded-md shadow-sm" title="Source: {{this.source}}">
+                            <div class="flex justify-between items-center">
+                                <span>
+                                    <strong class="text-sky-400">{{../this.value}}</strong> is {{this.name}}
+                                </span>
+                                <button data-action="toggle-off-activity-display" data-activity-id="{{this.id}}" class="ml-2 px-1.5 py-0.5 text-xs bg-red-600 hover:bg-red-700 text-white rounded-sm" aria-label="Toggle off {{this.name}}">&times;</button>
+                            </div>
+                            <p class="text-xxs text-gray-400 mt-0.5">
+                                {{this.description}} (Speed x{{toFixed (div 1 this.movementPenaltyFactor) 2}})
+                            </p>
+                        </li>
+                    {{/with}}
+                {{/each}}
+            </ul>
+        {{else}}
+            <p class="italic text-gray-400">None.</p>
+        {{/if}}
+    </div>
         {{/if}}
 
         <hr class="my-2 sm:my-3 border-gray-600">

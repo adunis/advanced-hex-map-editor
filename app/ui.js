@@ -421,15 +421,22 @@ export function renderApp(options = {}) {
                                        appState.currentGridWidth > 0 &&
                                        appState.currentGridHeight > 0;
 
+    const activePartyActivitiesDisplayArray = Array.from(appState.activePartyActivities, ([key, value]) => ({
+        key, // activityId
+        value, // characterName
+        details: CONST.PARTY_ACTIVITIES[key]
+    }));
+
     const renderContext = {
-        ...appState,
+        ...appState, // Spreads activePartyActivities Map itself, and its .size property
         CONST,
         hexGridRenderData,
         svgViewBoxWidth,
         svgViewBoxHeight,
         hasValidGridDataAndInitialized,
-        activePartyActivitiesCount: appState.activePartyActivities.size,
-        isActivePartyActivity: (id) => appState.activePartyActivities.has(id)
+        activePartyActivitiesDisplay: activePartyActivitiesDisplayArray, // Used by main.hbs for iterating display
+        // activePartyActivitiesCount is no longer explicitly needed here as main.hbs can use activePartyActivities.size (from ...appState)
+        // isActivePartyActivity is no longer explicitly needed here as controls.hbs uses lookup on the map for checkbox state (from ...appState)
     };
 
     appContainer.innerHTML = mainTemplateCompiled(renderContext);
@@ -548,6 +555,29 @@ export function attachEventListeners() {
       appState.selectedFeatureType = e.target.value;
     };
   }
+
+  // --- Add this block ---
+  qsa('input[type="checkbox"][data-activity-id]').forEach(checkbox => {
+    checkbox.onchange = (event) => {
+      const activityId = event.target.dataset.activityId;
+      if (!activityId) return;
+
+      if (event.target.checked) {
+        const characterName = prompt(`Who is the character performing the activity: "${CONST.PARTY_ACTIVITIES[activityId]?.name || activityId}"?`);
+        if (characterName && characterName.trim() !== "") {
+          appState.activePartyActivities.set(activityId, characterName.trim());
+        } else {
+          event.target.checked = false; // Revert checkbox if no name provided
+          // No need to explicitly delete, as it wouldn't have been added
+        }
+      } else {
+        appState.activePartyActivities.delete(activityId);
+      }
+      appState.isCurrentMapDirty = true; // Mark map as dirty as party activities affect gameplay state potentially
+      renderApp({ preserveScroll: true });
+    };
+  });
+  // --- End of block ---
 
   const savedMapSelect = el("savedMapSelect");
   if (savedMapSelect) {
@@ -806,23 +836,28 @@ export function attachEventListeners() {
 
   const rightPanel = el("right-panel");
   if (rightPanel) {
-      rightPanel.addEventListener('change', (event) => {
-          if (event.target.matches('input[type="checkbox"][data-activity-id]')) {
-              const activityId = event.target.dataset.activityId;
-              if (event.target.checked) {
-                  appState.activePartyActivities.add(activityId);
-              } else {
-                  appState.activePartyActivities.delete(activityId);
-              }
-              renderApp({ preserveScroll: true });
-          }
-      });
+      // The 'change' listener for activity checkboxes previously on the right panel is now removed,
+      // as those checkboxes are on the left panel and have their own dedicated listeners.
+
       rightPanel.addEventListener('click', (event) => {
+          // Handler for the "X" button on active activities in the right panel display
+          const toggleOffButton = event.target.closest('button[data-action="toggle-off-activity-display"]');
+          if (toggleOffButton) {
+              const activityId = toggleOffButton.dataset.activityId;
+              if (activityId && appState.activePartyActivities.has(activityId)) {
+                  appState.activePartyActivities.delete(activityId);
+                  appState.isCurrentMapDirty = true;
+                  renderApp({ preserveScroll: true });
+              }
+          }
+
+          // Preserve existing click handlers for other elements on the rightPanel
           if (event.target.id === 'exploreCurrentHexBtn' || event.target.closest('#exploreCurrentHexBtn')) {
               if (appState.partyMarkerPosition && appState.isGM && appState.appMode === CONST.AppMode.PLAYER) {
                   MapLogic.handleHexClick(appState.partyMarkerPosition.row, appState.partyMarkerPosition.col, true);
               }
           }
+          // Add other right-panel click handlers here if any in the future
       });
   }
 }
