@@ -563,20 +563,33 @@ export function attachEventListeners() {
       const activityId = event.target.dataset.activityId;
       if (!activityId) return;
 
+      const activity = CONST.PARTY_ACTIVITIES[activityId];
+
       if (event.target.checked) {
-        const characterName = prompt(`Who is the character performing the activity: "${CONST.PARTY_ACTIVITIES[activityId]?.name || activityId}"?`);
-        if (characterName && characterName.trim() !== "") {
-          appState.activePartyActivities.set(activityId, characterName.trim());
+        if (activity && activity.isGroupActivity) {
+          appState.activePartyActivities.set(activityId, "_GROUP_"); // Use placeholder for group activities
         } else {
-          event.target.checked = false; // Revert checkbox if no name provided
-          // No need to explicitly delete, as it wouldn't have been added
+          // Existing logic for individual activities (prompt for character name)
+          const characterName = prompt(`Who is the character performing the activity: "${activity?.name || activityId}"?`);
+          if (characterName && characterName.trim() !== "") {
+            appState.activePartyActivities.set(activityId, characterName.trim());
+          } else {
+            event.target.checked = false; // Revert checkbox if no name provided for individual activity
+          }
         }
-      } else {
-        appState.activePartyActivities.delete(activityId);
+      } else { // When unchecked
+        // const activityId = event.target.dataset.activityId; // activityId is already defined above
+        if (activityId) {
+            appState.activePartyActivities.delete(activityId);
+        }
       }
-      appState.isCurrentMapDirty = true; // Mark map as dirty as party activities affect gameplay state potentially
-      renderApp({ preserveScroll: true });
-      syncActivitiesToFoundry();
+
+      // Common logic for both checked and unchecked (after state is updated)
+      if (activityId) { // Ensure we only proceed if activityId was valid from the start
+          appState.isCurrentMapDirty = true;
+          renderApp({ preserveScroll: true });
+          syncActivitiesToFoundry();
+      }
     };
   });
   // --- End of block ---

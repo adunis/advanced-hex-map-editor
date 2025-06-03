@@ -664,6 +664,7 @@ export const PARTY_ACTIVITIES = {
     icon: '🤫',
     description: 'Attempt Stealth (Perception DC) while traveling at half speed. On encounter start, use Stealth for initiative and detection.',
     movementPenaltyFactor: 2.0,
+    isGroupActivity: false,
     traits: ['Exploration'],
     source: 'Player Core pg. 438'
   },
@@ -673,6 +674,7 @@ export const PARTY_ACTIVITIES = {
     icon: '🛡️',
     description: 'Move at half speed with shield raised. Gain Raise a Shield benefits before first turn in combat.',
     movementPenaltyFactor: 2.0,
+    isGroupActivity: false,
     traits: ['Exploration'],
     source: 'Player Core pg. 438'
   },
@@ -682,6 +684,7 @@ export const PARTY_ACTIVITIES = {
     icon: '✨',
     description: 'Cast detect magic at intervals. Half speed or slower. Specific speeds for thoroughness.',
     movementPenaltyFactor: 2.0,
+    isGroupActivity: false,
     traits: ['Concentrate', 'Exploration'],
     source: 'Player Core pg. 438'
   },
@@ -691,6 +694,7 @@ export const PARTY_ACTIVITIES = {
     icon: '👣',
     description: 'Match ally\'s skill check (e.g., Climb, Avoid Notice). Add level to skill, gain circumstance bonus from ally.',
     movementPenaltyFactor: 1.0,
+    isGroupActivity: false,
     traits: ['Auditory', 'Concentrate', 'Exploration', 'Visual'],
     source: 'Player Core pg. 438'
   },
@@ -700,6 +704,7 @@ export const PARTY_ACTIVITIES = {
     icon: '💨',
     description: 'Move at double travel speed for Con mod × 10 minutes (min 10 min). Group uses lowest Con.',
     movementPenaltyFactor: 0.5,
+    isGroupActivity: false,
     traits: ['Exploration', 'Move'],
     source: 'Player Core pg. 438'
   },
@@ -709,6 +714,7 @@ export const PARTY_ACTIVITIES = {
     icon: '🔍',
     description: 'Seek info with Recall Knowledge (secret) at half speed.',
     movementPenaltyFactor: 2.0,
+    isGroupActivity: false,
     traits: ['Concentrate', 'Exploration'],
     source: 'Player Core pg. 439'
   },
@@ -718,6 +724,7 @@ export const PARTY_ACTIVITIES = {
     icon: '🔁',
     description: 'Repeatedly cast a 2-action or less spell (usually cantrip) at half speed.',
     movementPenaltyFactor: 2.0,
+    isGroupActivity: false,
     traits: ['Concentrate', 'Exploration'],
     source: 'Player Core pg. 439'
   },
@@ -727,6 +734,7 @@ export const PARTY_ACTIVITIES = {
     icon: '👁️‍🗨️',
     description: 'Scout ahead/behind at half speed. Party gains +1 initiative next encounter.',
     movementPenaltyFactor: 2.0,
+    isGroupActivity: false,
     traits: ['Concentrate', 'Exploration'],
     source: 'Player Core pg. 439'
   },
@@ -736,7 +744,28 @@ export const PARTY_ACTIVITIES = {
     icon: '🧐',
     description: 'Meticulously Seek for hidden things. Half speed usually; slower for thoroughness. GM makes free secret Seek.',
     movementPenaltyFactor: 2.0,
+    isGroupActivity: false,
     traits: ['Concentrate', 'Exploration'],
     source: 'Player Core pg. 439'
+  },
+  mounted_travel: {
+    id: 'mounted_travel',
+    name: 'Mounted Travel',
+    icon: '🐎',
+    description: 'The entire party travels on horseback or similar mounts, increasing base travel speed.',
+    movementPenaltyFactor: 0.75,
+    isGroupActivity: true,
+    traits: ['Move'],
+    source: 'Game Master Intuition'
+  },
+  stealthy_group_approach: {
+    id: 'stealthy_group_approach',
+    name: 'Group Stealth',
+    icon: '🤫👥',
+    description: 'The entire party attempts to move stealthily together, typically at a reduced speed.',
+    movementPenaltyFactor: 2.0,
+    isGroupActivity: true,
+    traits: ['Exploration', 'Secret'],
+    source: 'Game Master Intuition'
   }
 };
