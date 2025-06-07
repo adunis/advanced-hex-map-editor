@@ -848,11 +848,6 @@ export const FOG_OF_WAR_COLOR = 'rgb(20, 20, 20)';
 export const DISCOVERED_DIM_OPACITY = 0.6;
 export const DEFAULT_APP_MODE = AppMode.HEX_EDITOR;
 export const DEFAULT_VIEW_MODE = ViewMode.TWOD;
-
-CONST.INITIAL_GRID_WIDTH is undefined
-
-
-
 export const HEX_3D_PROJECTED_Y_SHIFT_PER_ELEVATION_UNIT = 0.05;
 export const HEX_3D_PROJECTED_DEPTH_PER_ELEVATION_UNIT = 0.05;
 export const HEX_3D_Y_SQUASH_FACTOR = 1.0;
