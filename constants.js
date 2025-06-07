@@ -770,6 +770,77 @@ export const DEFAULT_TERRAIN_TYPE = TerrainType.ROLLING_PLAINS;
 export const MOUNTAIN_THRESHOLD = 600;
 export const HILLS_THRESHOLD = 300;
 
+export const HEX_SIZE = 30;
+export const INITIAL_GRID_WIDTH = 12;
+export const INITIAL_GRID_HEIGHT = 8;
+export const MIN_GRID_DIMENSION = 1;
+export const MAX_GRID_DIMENSION = 50;
+
+export const MIN_ELEVATION = -16000; // Deepest ocean trench / underground abyss
+export const MAX_ELEVATION = 46000; // Highest mountain / lower stratosphere
+export const ELEVATION_STEP = 100; // Default step for increase/decrease
+export const DEFAULT_CUSTOM_ELEVATION_STEP = 100; // Default for the input field
+export const DEFAULT_SET_ELEVATION_VALUE = 0; // Default for "Set to..."
+export const INITIAL_ELEVATION = 0;
+export const INITIAL_BASE_VISIBILITY = 1;
+
+export const DEFAULT_HEX_SIZE_VALUE = 5;
+export const DEFAULT_HEX_SIZE_UNIT = 'km';
+export const DEFAULT_HEX_TRAVERSAL_TIME_VALUE = 1;
+export const DEFAULT_HEX_TRAVERSAL_TIME_UNIT = 'hour';
+
+export const DISTANCE_UNITS = [
+    { key: 'm', label: 'Meters' },
+    { key: 'km', label: 'Kilometers' },
+    { key: 'mi', label: 'Miles' },
+    { key: 'ft', label: 'Feet' },
+    { key: 'ly', label: 'Light Years' }
+];
+
+export const TIME_UNITS = [
+    { key: 'second', label: 'Seconds' },
+    { key: 'minute', label: 'Minutes' },
+    { key: 'hour', label: 'Hours' },
+    { key: 'day', label: 'Days' },
+    { key: 'week', label: 'Weeks' },
+    { key: 'month', label: 'Months' },
+    { key: 'year', label: 'Years' }
+];
+
+export const MIN_BRUSH_SIZE = 1;
+export const MAX_BRUSH_SIZE = 5;
+export const DEFAULT_BRUSH_SIZE = 1;
+
+export const ELEVATION_VISIBILITY_STEP_BONUS = 200;
+export const OBSERVER_EYE_HEIGHT_M = 5;
+export const TARGET_VISIBILITY_THRESHOLD_M = 1;
+export const PROFILE_LOS_BLOCKAGE_MARGIN = 1;
+export const ELEVATION_TIME_PENALTY_FACTOR_PER_100M = 0.15;
+export const FOREST_CANOPY_BLOCKAGE_ADDITION = 15;
+export const THICK_FOREST_CANOPY_BLOCKAGE_ADDITION = 20;
+export const YOUNG_FOREST_CANOPY_BLOCKAGE_ADDITION = 10;
+export const JUNGLE_CANOPY_BLOCKAGE_ADDITION = 25;
+export const HILLS_TERRAIN_BLOCKAGE_ADDITION = 5;
+export const ENCOUNTER_FEATURE_ICON = "⚠️";
+
+export const FEATURE_ICON_COLORS = [
+    { name: "Default Yellow", class: "fill-yellow-200" },
+    { name: "Bright Red", class: "fill-red-500" },
+    { name: "Sky Blue", class: "fill-sky-400" },
+    { name: "Lime Green", class: "fill-lime-500" },
+    { name: "Orange", class: "fill-orange-400" },
+    { name: "Purple", class: "fill-purple-400" },
+    { name: "Pink", class: "fill-pink-400" },
+    { name: "Teal", class: "fill-teal-400" },
+    { name: "White", class: "fill-white" },
+    { name: "Gray", class: "fill-gray-300" }
+];
+
+export const DEFAULT_LANDMARK_ICON_COLOR_CLASS = "fill-yellow-200";
+export const DEFAULT_ENCOUNTER_ICON_COLOR_CLASS = "fill-red-500";
+export const DEFAULT_SECRET_ICON_COLOR_CLASS = "fill-purple-400";
+
+
 export const INITIAL_PLAYER_COL = 0;
 export const INITIAL_PLAYER_ROW = 0;
 export const PLAYER_MARKER_COLOR = 'fill-red-500';
@@ -777,6 +848,10 @@ export const FOG_OF_WAR_COLOR = 'rgb(20, 20, 20)';
 export const DISCOVERED_DIM_OPACITY = 0.6;
 export const DEFAULT_APP_MODE = AppMode.HEX_EDITOR;
 export const DEFAULT_VIEW_MODE = ViewMode.TWOD;
+
+CONST.INITIAL_GRID_WIDTH is undefined
+
+
 
 export const HEX_3D_PROJECTED_Y_SHIFT_PER_ELEVATION_UNIT = 0.05;
 export const HEX_3D_PROJECTED_DEPTH_PER_ELEVATION_UNIT = 0.05;
