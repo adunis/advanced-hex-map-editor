@@ -68,6 +68,55 @@ export const TerrainType = {
   QUICKSAND: 'quicksand',
   ICE_PLAIN: 'ice_plain',
   OBSIDIAN_FIELD: 'obsidian_field',
+
+  // --- NEW TERRAIN TYPES (35 added for a total of 70) ---
+
+  // Ecosystems (General)
+  SAVANNA: 'savanna',
+  TUNDRA: 'tundra',
+  STEPPE: 'steppe',
+  ANCIENT_FOREST: 'ancient_forest',
+  PETRIFIED_FOREST: 'petrified_forest', 
+  BIOLUMINESCENT_GROVE: 'bioluminescent_grove',
+  MANGROVE_SWAMP: 'mangrove_swamp',
+  CLOUD_FOREST: 'cloud_forest',
+  GLACIER: 'glacier',
+  GEOTHERMAL_FIELD: 'geothermal_field',
+  SALT_FLATS: 'salt_flats',
+  DUNE_SEA: 'dune_sea',
+  SALT_DESERT: 'salt_desert',
+  RED_DESERT: 'red_desert',
+  ROCK_GARDEN: 'rock_garden',
+  BOG: 'bog',
+  FENS: 'fens',
+  MIRE: 'mire', // Impassable for ground movement
+  PEATLANDS: 'peatlands',
+  WHISPERING_WOODS: 'whispering_woods',
+  TAR_PITS: 'tar_pits', // Impassable for ground movement
+
+  // Rocky/Impassable/LOS-blocking
+  CANYON: 'canyon', // Rocky, impassable for ground, sight-blocking
+  CRYSTAL_SPIRES: 'crystal_spires', // Rocky, impassable for ground, sight-blocking
+  ANCIENT_RUINS: 'ancient_ruins', // Rocky, sight-blocking
+  METEORITE_CRATER: 'meteorite_crater', // Rocky, sight-blocking
+  BASALT_COLUMNS: 'basalt_columns', // Rocky, impassable for ground, sight-blocking
+  LUNAR_CRATER: 'lunar_crater', // Rocky, sight-blocking
+
+  // Underground Terrains (Extended)
+  GLOWWORM_CAVE: 'glowworm_cave',
+  SUBTERRANEAN_FOREST: 'subterranean_forest',
+  CHASM: 'chasm', // Impassable for ground, sight-blocking
+  MAGMA_CAVERN: 'magma_cavern', // Impassable, hazardous
+
+  // Underwater Terrains (Extended)
+  HYDROTHERMAL_VENTS: 'hydrothermal_vents', // Impassable, hazardous
+  SUBMARINE_CANYON: 'submarine_canyon', // Impassable for submersible, sight-blocking
+
+  // Sky Terrains
+  OPEN_SKY: 'open_sky', // Default sky environment
+  STRONG_WIND_CURRENTS: 'strong_wind_currents',
+  THUNDERHEAD_CLOUD: 'thunderhead_cloud', // Blocks LOS, difficult
+  CELESTIAL_ISLAND: 'celestial_island', // Floating landmass, blocks LOS
 };
 
 export const HEX_SIZE = 30;
@@ -76,8 +125,8 @@ export const INITIAL_GRID_HEIGHT = 8;
 export const MIN_GRID_DIMENSION = 1;
 export const MAX_GRID_DIMENSION = 50;
 
-export const MIN_ELEVATION = -200;
-export const MAX_ELEVATION = 6000;
+export const MIN_ELEVATION = -16000; // Deepest ocean trench / underground abyss
+export const MAX_ELEVATION = 46000; // Highest mountain / lower stratosphere
 export const ELEVATION_STEP = 100; // Default step for increase/decrease
 export const DEFAULT_CUSTOM_ELEVATION_STEP = 100; // Default for the input field
 export const DEFAULT_SET_ELEVATION_VALUE = 0; // Default for "Set to..."
@@ -238,6 +287,67 @@ export const OBSIDIAN_FIELD_LOW_COLOR = 'rgb(0,0,0)';
 export const OBSIDIAN_FIELD_MID_COLOR = 'rgb(17, 24, 39)';
 export const OBSIDIAN_FIELD_HIGH_COLOR = 'rgb(39, 39, 42)';
 
+
+// --- NEW COLOR CONSTANTS for added terrains ---
+export const SAVANNA_COLOR_LOW = 'rgb(180, 210, 80)';
+export const SAVANNA_COLOR_MID = 'rgb(140, 180, 60)';
+export const SAVANNA_COLOR_HIGH = 'rgb(100, 140, 40)';
+export const TUNDRA_COLOR_LOW = 'rgb(170, 180, 160)';
+export const TUNDRA_COLOR_MID = 'rgb(140, 150, 130)';
+export const TUNDRA_COLOR_HIGH = 'rgb(110, 120, 100)';
+export const STEPPE_COLOR_LOW = 'rgb(200, 200, 150)';
+export const STEPPE_COLOR_MID = 'rgb(180, 180, 120)';
+export const STEPPE_COLOR_HIGH = 'rgb(160, 160, 90)';
+export const ANCIENT_FOREST_COLOR_LOW = 'rgb(0, 50, 0)';
+export const ANCIENT_FOREST_COLOR_MID = 'rgb(0, 30, 0)';
+export const ANCIENT_FOREST_COLOR_HIGH = 'rgb(0, 10, 0)';
+export const PETRIFIED_FOREST_COLOR = 'rgb(100, 90, 80)';
+export const BIOLUMINESCENT_GROVE_COLOR_LOW = 'rgb(50, 0, 100)';
+export const BIOLUMINESCENT_GROVE_COLOR_MID = 'rgb(70, 20, 120)';
+export const BIOLUMINESCENT_GROVE_COLOR_HIGH = 'rgb(90, 40, 140)';
+export const MANGROVE_SWAMP_COLOR = 'rgb(40, 80, 70)';
+export const CLOUD_FOREST_COLOR = 'rgb(150, 190, 170)';
+export const GLACIER_COLOR = 'rgb(180, 230, 255)';
+export const GEOTHERMAL_COLOR_LOW = 'rgb(255, 160, 0)';
+export const GEOTHERMAL_COLOR_MID = 'rgb(255, 120, 0)';
+export const GEOTHERMAL_COLOR_HIGH = 'rgb(200, 60, 0)';
+export const SALT_FLATS_COLOR = 'rgb(240, 240, 230)';
+export const DUNE_SEA_COLOR = 'rgb(255, 230, 180)';
+export const SALT_DESERT_COLOR = 'rgb(250, 250, 240)';
+export const RED_DESERT_COLOR = 'rgb(180, 60, 40)';
+export const ROCK_GARDEN_COLOR = 'rgb(150, 140, 130)';
+export const BOG_COLOR = 'rgb(50, 60, 40)';
+export const FENS_COLOR = 'rgb(70, 80, 50)';
+export const MIRE_COLOR = 'rgb(30, 40, 20)';
+export const PEATLANDS_COLOR = 'rgb(60, 50, 40)';
+export const WHISPERING_WOODS_COLOR = 'rgb(80, 100, 80)';
+export const TAR_PITS_COLOR = 'rgb(20, 20, 20)';
+
+export const CANYON_COLOR_LOW = 'rgb(120, 70, 30)';
+export const CANYON_COLOR_MID = 'rgb(90, 50, 10)';
+export const CANYON_COLOR_HIGH = 'rgb(60, 30, 0)';
+export const CRYSTAL_SPIRES_COLOR_LOW = 'rgb(100, 200, 255)';
+export const CRYSTAL_SPIRES_COLOR_MID = 'rgb(150, 220, 255)';
+export const CRYSTAL_SPIRES_COLOR_HIGH = 'rgb(200, 240, 255)';
+export const ANCIENT_RUINS_COLOR = 'rgb(130, 120, 110)';
+export const METEORITE_CRATER_COLOR = 'rgb(70, 60, 50)';
+export const BASALT_COLUMNS_COLOR = 'rgb(60, 60, 70)';
+export const LUNAR_CRATER_COLOR = 'rgb(50, 50, 60)';
+
+export const GLOWWORM_CAVE_COLOR = 'rgb(80, 100, 120)';
+export const SUBTERRANEAN_FOREST_COLOR = 'rgb(30, 50, 30)';
+export const CHASM_COLOR = 'rgb(10, 10, 10)';
+export const MAGMA_CAVERN_COLOR = 'rgb(100, 20, 0)';
+
+export const HYDROTHERMAL_VENTS_COLOR = 'rgb(0, 0, 40)';
+export const SUBMARINE_CANYON_COLOR = 'rgb(0, 20, 40)';
+
+export const OPEN_SKY_COLOR = 'rgb(135, 206, 235)';
+export const STRONG_WIND_CURRENTS_COLOR = 'rgb(100, 180, 220)';
+export const THUNDERHEAD_CLOUD_COLOR = 'rgb(70, 80, 90)';
+export const CELESTIAL_ISLAND_COLOR = 'rgb(250, 250, 200)';
+
+
 export const DEFAULT_TERRAIN_TYPE = TerrainType.PLAINS;
 export const MOUNTAIN_THRESHOLD = 600;
 export const HILLS_THRESHOLD = 300;
@@ -277,7 +387,21 @@ export const AUTO_TERRAIN_IGNORE_TYPES = [ // Types not to change automatically
     TerrainType.SHALLOW_WATER, TerrainType.DEEP_OCEAN,
     TerrainType.CAVERN_FLOOR, TerrainType.TUNNEL, TerrainType.MUSHROOM_FOREST,
     TerrainType.CRYSTAL_CAVE, TerrainType.UNDERGROUND_RIVER, TerrainType.LAVA_TUBE,
-    TerrainType.MAGMA_LAKE, TerrainType.BLOOD_MARSH
+    TerrainType.MAGMA_LAKE, TerrainType.BLOOD_MARSH,
+    // New types to ignore for auto-conversion
+    TerrainType.SAVANNA, TerrainType.TUNDRA, TerrainType.STEPPE, TerrainType.ANCIENT_FOREST,
+    TerrainType.PETRIFIED_FOREST, TerrainType.BIOLUMINESCENT_GROVE, TerrainType.MANGROVE_SWAMP,
+    TerrainType.CLOUD_FOREST, TerrainType.GLACIER, TerrainType.GEOTHERMAL_FIELD,
+    TerrainType.SALT_FLATS, TerrainType.DUNE_SEA, TerrainType.SALT_DESERT,
+    TerrainType.RED_DESERT, TerrainType.ROCK_GARDEN, TerrainType.BOG,
+    TerrainType.FENS, TerrainType.MIRE, TerrainType.PEATLANDS,
+    TerrainType.WHISPERING_WOODS, TerrainType.TAR_PITS,
+    TerrainType.CANYON, TerrainType.CRYSTAL_SPIRES, TerrainType.ANCIENT_RUINS,
+    TerrainType.METEORITE_CRATER, TerrainType.BASALT_COLUMNS, TerrainType.LUNAR_CRATER,
+    TerrainType.GLOWWORM_CAVE, TerrainType.SUBTERRANEAN_FOREST, TerrainType.CHASM,
+    TerrainType.MAGMA_CAVERN, TerrainType.HYDROTHERMAL_VENTS, TerrainType.SUBMARINE_CANYON,
+    TerrainType.OPEN_SKY, TerrainType.STRONG_WIND_CURRENTS, TerrainType.THUNDERHEAD_CLOUD,
+    TerrainType.CELESTIAL_ISLAND,
 ];
 
 
@@ -287,6 +411,7 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 1, visibilityFactor: 1,
     baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
     encounterChanceOnEnter: 5, encounterChanceOnDiscover: 2,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => {
       if (elevation < 50) return PLAINS_LOW_ELEV_COLOR;
       if (elevation < 150) return PLAINS_MID_ELEV_COLOR;
@@ -299,6 +424,7 @@ export const TERRAIN_TYPES_CONFIG = {
     baseInherentVisibilityBonus: -1, prominence: 5,
     canopyBlockage: FOREST_CANOPY_BLOCKAGE_ADDITION,
     encounterChanceOnEnter: 15, encounterChanceOnDiscover: 5,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => {
       if (elevation < 100) return FOREST_LOW_ELEV_COLOR;
       if (elevation < 400) return FOREST_MID_ELEV_COLOR;
@@ -311,6 +437,7 @@ export const TERRAIN_TYPES_CONFIG = {
     baseInherentVisibilityBonus: -2, prominence: 8,
     canopyBlockage: THICK_FOREST_CANOPY_BLOCKAGE_ADDITION,
     encounterChanceOnEnter: 25, encounterChanceOnDiscover: 10,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => {
       if (elevation < 100) return THICK_FOREST_LOW_ELEV_COLOR;
       if (elevation < 400) return THICK_FOREST_MID_ELEV_COLOR;
@@ -323,6 +450,7 @@ export const TERRAIN_TYPES_CONFIG = {
     baseInherentVisibilityBonus: 0, prominence: 2,
     canopyBlockage: YOUNG_FOREST_CANOPY_BLOCKAGE_ADDITION,
     encounterChanceOnEnter: 10, encounterChanceOnDiscover: 3,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => {
       if (elevation < 80) return YOUNG_FOREST_LOW_ELEV_COLOR;
       if (elevation < 250) return YOUNG_FOREST_MID_ELEV_COLOR;
@@ -335,6 +463,7 @@ export const TERRAIN_TYPES_CONFIG = {
     baseInherentVisibilityBonus: 1, prominence: 20,
     canopyBlockage: HILLS_TERRAIN_BLOCKAGE_ADDITION,
     encounterChanceOnEnter: 10, encounterChanceOnDiscover: 7,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => {
       const typicalHillBase = 50;
       const hillRange = MOUNTAIN_THRESHOLD - typicalHillBase;
@@ -345,18 +474,21 @@ export const TERRAIN_TYPES_CONFIG = {
   },
   [TerrainType.MOUNTAIN]: {
     name: 'Mountain', symbol: '🏔️', color: 'fill-gray-500',
-    speedMultiplier: 4, visibilityFactor: 1,
+    speedMultiplier: 4, visibilityFactor: 1, 
     baseInherentVisibilityBonus: 2, prominence: 50,
     canopyBlockage: 0,
     encounterChanceOnEnter: 20, encounterChanceOnDiscover: 15,
+    isImpassable: false, blocksLineOfSight: true, // Mountains block LOS beyond them
     elevationColor: (elevation) => {
-      if (elevation < MOUNTAIN_THRESHOLD) return MOUNTAIN_COLOR_LOW_SLOPE; // Should ideally be a hill or plain color if below its own threshold
+      if (elevation < MOUNTAIN_THRESHOLD) return MOUNTAIN_COLOR_LOW_SLOPE; 
       const midSlopeStart = MOUNTAIN_THRESHOLD + (MOUNTAIN_ELEV_SNOW_LINE_START - MOUNTAIN_THRESHOLD) * 0.4;
       if (elevation < midSlopeStart) return MOUNTAIN_COLOR_LOW_SLOPE;
       if (elevation <= MOUNTAIN_ELEV_MID_SLOPE_END) return MOUNTAIN_COLOR_MID_SLOPE;
       if (elevation < MOUNTAIN_ELEV_ICE_TRANSITION_START) return MOUNTAIN_COLOR_SNOW_LINE;
       if (elevation <= MOUNTAIN_ELEV_ICE_PEAK_END) return MOUNTAIN_COLOR_ICE_PEAK;
-      return 'rgb(180, 200, 235)';
+      // Handle extended elevation range for mountains
+      if (elevation > MOUNTAIN_ELEV_ICE_PEAK_END && elevation < MAX_ELEVATION / 2) return 'rgb(180, 200, 235)'; // Higher snow/ice
+      return 'rgb(220, 230, 245)'; // Extreme peaks
     },
   },
   [TerrainType.SWAMP]: {
@@ -365,6 +497,7 @@ export const TERRAIN_TYPES_CONFIG = {
     baseInherentVisibilityBonus: -1, prominence: 1,
     canopyBlockage: 8,
     encounterChanceOnEnter: 30, encounterChanceOnDiscover: 5,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => {
       if (elevation < -10) return SWAMP_LOW_ELEV_COLOR;
       if (elevation < 20) return SWAMP_MID_ELEV_COLOR;
@@ -377,6 +510,7 @@ export const TERRAIN_TYPES_CONFIG = {
     baseInherentVisibilityBonus: 1, prominence: 0,
     canopyBlockage: 0,
     encounterChanceOnEnter: 8, encounterChanceOnDiscover: 3,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => {
       if (elevation < 100) return DESERT_LOW_ELEV_COLOR;
       if (elevation < 500) return DESERT_MID_ELEV_COLOR;
@@ -389,6 +523,7 @@ export const TERRAIN_TYPES_CONFIG = {
     baseInherentVisibilityBonus: -3, prominence: 10,
     canopyBlockage: JUNGLE_CANOPY_BLOCKAGE_ADDITION,
     encounterChanceOnEnter: 35, encounterChanceOnDiscover: 10,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => {
       if (elevation < 50) return JUNGLE_LOW_ELEV_COLOR;
       if (elevation < 300) return JUNGLE_MID_ELEV_COLOR;
@@ -401,6 +536,7 @@ export const TERRAIN_TYPES_CONFIG = {
     baseInherentVisibilityBonus: 0, prominence: 5,
     canopyBlockage: 2,
     encounterChanceOnEnter: 12, encounterChanceOnDiscover: 8,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => {
       if (elevation < 200) return BADLANDS_LOW_ELEV_COLOR;
       if (elevation < 700) return BADLANDS_MID_ELEV_COLOR;
@@ -413,6 +549,7 @@ export const TERRAIN_TYPES_CONFIG = {
     baseInherentVisibilityBonus: 0, prominence: 0,
     canopyBlockage: 0,
     encounterChanceOnEnter: 2, encounterChanceOnDiscover: 0,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => 'rgb(168, 162, 158)',
   },
   [TerrainType.SETTLEMENT]: {
@@ -421,6 +558,7 @@ export const TERRAIN_TYPES_CONFIG = {
     baseInherentVisibilityBonus: 1, prominence: 5,
     canopyBlockage: 5,
     encounterChanceOnEnter: 3, encounterChanceOnDiscover: 1,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => 'rgb(200, 150, 100)',
   },
   [TerrainType.WATER]: {
@@ -428,6 +566,7 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 3, visibilityFactor: 1,
     baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
     encounterChanceOnEnter: 10, encounterChanceOnDiscover: 5,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => {
       if (elevation <= -100) return WATER_DEEP_DEPTH_COLOR;
       if (elevation < -20) return WATER_MID_DEPTH_COLOR;
@@ -440,6 +579,7 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 1, visibilityFactor: 0.7,
     baseInherentVisibilityBonus: -2, prominence: 0, canopyBlockage: 0,
     encounterChanceOnEnter: 15, encounterChanceOnDiscover: 5,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => {
       if (elevation < -50) return CAVERN_DEEP_COLOR;
       if (elevation < 0) return CAVERN_MID_COLOR;
@@ -451,6 +591,7 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 1, visibilityFactor: 0.2,
     baseInherentVisibilityBonus: -4, prominence: 0, canopyBlockage: 0,
     encounterChanceOnEnter: 10, encounterChanceOnDiscover: 2,
+    isImpassable: false, blocksLineOfSight: true, // Tunnels are enclosed, block LOS
     elevationColor: (elevation) => TUNNEL_COLOR,
   },
   [TerrainType.MUSHROOM_FOREST]: {
@@ -458,6 +599,7 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 2, visibilityFactor: 0.3,
     baseInherentVisibilityBonus: -2, prominence: 3, canopyBlockage: 10,
     encounterChanceOnEnter: 20, encounterChanceOnDiscover: 10,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => {
       if (elevation < -30) return MUSHROOM_FOREST_DEEP_COLOR;
       if (elevation < 10) return MUSHROOM_FOREST_MID_COLOR;
@@ -469,6 +611,7 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 1.5, visibilityFactor: 0.9,
     baseInherentVisibilityBonus: -1, prominence: 2, canopyBlockage: 2,
     encounterChanceOnEnter: 10, encounterChanceOnDiscover: 15,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => {
       if (elevation < -40) return CRYSTAL_CAVE_DEEP_COLOR;
       if (elevation < 5) return CRYSTAL_CAVE_MID_COLOR;
@@ -480,6 +623,7 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 3, visibilityFactor: 0.4,
     baseInherentVisibilityBonus: -3, prominence: 0, canopyBlockage: 0,
     encounterChanceOnEnter: 18, encounterChanceOnDiscover: 6,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => {
       if (elevation <= -50) return UNDERGROUND_RIVER_VERY_DEEP_COLOR;
       if (elevation < -10) return UNDERGROUND_RIVER_DEEP_COLOR;
@@ -491,6 +635,7 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 1.2, visibilityFactor: 0.1,
     baseInherentVisibilityBonus: -5, prominence: 0, canopyBlockage: 0,
     encounterChanceOnEnter: 5, encounterChanceOnDiscover: 1,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => LAVA_TUBE_COLOR,
   },
   [TerrainType.SHALLOW_WATER]: {
@@ -498,6 +643,7 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 1.5, visibilityFactor: 0.8,
     baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
     encounterChanceOnEnter: 8, encounterChanceOnDiscover: 3,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => {
       if (elevation <= -30) return SHALLOW_WATER_DEEP_COLOR;
       if (elevation < -5) return SHALLOW_WATER_MID_DEPTH_COLOR;
@@ -509,6 +655,7 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 2, visibilityFactor: 0.3,
     baseInherentVisibilityBonus: -2, prominence: 0, canopyBlockage: 0,
     encounterChanceOnEnter: 20, encounterChanceOnDiscover: 7,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => {
       if (elevation <= -500) return DEEP_OCEAN_VERY_DEEP_COLOR;
       if (elevation < -100) return DEEP_OCEAN_MID_DEPTH_COLOR;
@@ -520,6 +667,7 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 1.8, visibilityFactor: 0.7,
     baseInherentVisibilityBonus: -1, prominence: 2, canopyBlockage: 5,
     encounterChanceOnEnter: 15, encounterChanceOnDiscover: 10,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => {
       if (elevation <= -20) return CORAL_REEF_DEEP_COLOR;
       if (elevation < -5) return CORAL_REEF_MID_COLOR;
@@ -531,6 +679,7 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 2.5, visibilityFactor: 0.4,
     baseInherentVisibilityBonus: -2, prominence: 3, canopyBlockage: 15,
     encounterChanceOnEnter: 18, encounterChanceOnDiscover: 8,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => {
       if (elevation <= -40) return KELP_FOREST_DEEP_COLOR;
       if (elevation < -10) return KELP_FOREST_MID_COLOR;
@@ -542,6 +691,7 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 3, visibilityFactor: 0.05,
     baseInherentVisibilityBonus: -5, prominence: 0, canopyBlockage: 0,
     encounterChanceOnEnter: 25, encounterChanceOnDiscover: 2,
+    isImpassable: false, blocksLineOfSight: false, 
     elevationColor: (elevation) => {
       if (elevation <= -2000) return TRENCH_DEEPEST_COLOR;
       if (elevation < -1000) return TRENCH_MID_COLOR;
@@ -553,6 +703,7 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 2.2, visibilityFactor: 0.6,
     baseInherentVisibilityBonus: -1, prominence: 4, canopyBlockage: 10,
     encounterChanceOnEnter: 22, encounterChanceOnDiscover: 9,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => {
       if (elevation < 0) return SKELETAL_FOREST_LOW_COLOR;
       if (elevation < 100) return SKELETAL_FOREST_MID_COLOR;
@@ -564,6 +715,7 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 1.3, visibilityFactor: 0.7,
     baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
     encounterChanceOnEnter: 12, encounterChanceOnDiscover: 4,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => {
       if (elevation < 50) return ASHEN_WASTELAND_LOW_COLOR;
       if (elevation < 200) return ASHEN_WASTELAND_MID_COLOR;
@@ -575,6 +727,7 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 2.8, visibilityFactor: 0.5,
     baseInherentVisibilityBonus: -1, prominence: 1, canopyBlockage: 6,
     encounterChanceOnEnter: 35, encounterChanceOnDiscover: 12,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => {
       if (elevation < -5) return BLOOD_MARSH_DEEP_COLOR;
       if (elevation < 10) return BLOOD_MARSH_MID_COLOR;
@@ -583,9 +736,10 @@ export const TERRAIN_TYPES_CONFIG = {
   },
   [TerrainType.MAGMA_LAKE]: {
     name: 'Magma Lake', symbol: '🔥', color: 'fill-orange-500',
-    speedMultiplier: 10, visibilityFactor: 0.8,
+    speedMultiplier: 999, visibilityFactor: 0.8, // Impassable for ground movement
     baseInherentVisibilityBonus: 1, prominence: 2, canopyBlockage: 0,
     encounterChanceOnEnter: 40, encounterChanceOnDiscover: 10,
+    isImpassable: true, blocksLineOfSight: false, 
     elevationColor: (elevation) => {
       if (elevation < -10) return MAGMA_LAKE_COOLER_COLOR;
       if (elevation < 10) return MAGMA_LAKE_MID_COLOR;
@@ -598,6 +752,7 @@ export const TERRAIN_TYPES_CONFIG = {
     baseInherentVisibilityBonus: 0, prominence: 10,
     canopyBlockage: 0,
     encounterChanceOnEnter: 18, encounterChanceOnDiscover: 8,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => {
       if (elevation < 300) return VOLCANIC_LOW_COLOR;
       if (elevation < 1000) return VOLCANIC_MID_COLOR;
@@ -609,6 +764,7 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 1.5, visibilityFactor: 1.5,
     baseInherentVisibilityBonus: 2, prominence: 30, canopyBlockage: 2,
     encounterChanceOnEnter: 10, encounterChanceOnDiscover: 15,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => {
       if (elevation < 100) return FLOATING_ISLAND_LOW_COLOR;
       if (elevation < 300) return FLOATING_ISLAND_MID_COLOR;
@@ -620,6 +776,7 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 1.2, visibilityFactor: 0.1,
     baseInherentVisibilityBonus: -4, prominence: 0, canopyBlockage: 0,
     encounterChanceOnEnter: 20, encounterChanceOnDiscover: 5,
+    isImpassable: false, blocksLineOfSight: false, 
     elevationColor: (elevation) => {
       if (elevation < 0) return ETHEREAL_MIST_DENSE_COLOR;
       if (elevation < 50) return ETHEREAL_MIST_MID_COLOR;
@@ -628,9 +785,10 @@ export const TERRAIN_TYPES_CONFIG = {
   },
   [TerrainType.QUICKSAND]: {
     name: 'Quicksand', symbol: '⏳', color: 'fill-yellow-700',
-    speedMultiplier: 4, visibilityFactor: 1,
+    speedMultiplier: 999, visibilityFactor: 1, // Impassable for ground movement
     baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
     encounterChanceOnEnter: 5, encounterChanceOnDiscover: 1,
+    isImpassable: true, blocksLineOfSight: false, 
     elevationColor: (elevation) => QUICKSAND_COLOR,
   },
   [TerrainType.ICE_PLAIN]: {
@@ -638,6 +796,7 @@ export const TERRAIN_TYPES_CONFIG = {
     speedMultiplier: 1.5, visibilityFactor: 1.2,
     baseInherentVisibilityBonus: 1, prominence: 0, canopyBlockage: 0,
     encounterChanceOnEnter: 10, encounterChanceOnDiscover: 4,
+    isImpassable: false, blocksLineOfSight: false,
     elevationColor: (elevation) => {
       if (elevation < 0) return ICE_PLAIN_LOW_COLOR;
       if (elevation < 50) return ICE_PLAIN_MID_COLOR;
@@ -646,14 +805,354 @@ export const TERRAIN_TYPES_CONFIG = {
   },
   [TerrainType.OBSIDIAN_FIELD]: {
     name: 'Obsidian Field', symbol: '🔮', color: 'fill-gray-900',
-    speedMultiplier: 2, visibilityFactor: 0.8,
-    baseInherentVisibilityBonus: 0, prominence: 1, canopyBlockage: 0,
+    speedMultiplier: 999, visibilityFactor: 0, // Impassable and blocks sight
+    baseInherentVisibilityBonus: -10, prominence: 100, canopyBlockage: 0,
     encounterChanceOnEnter: 15, encounterChanceOnDiscover: 6,
+    isImpassable: true, blocksLineOfSight: true,
     elevationColor: (elevation) => {
       if (elevation < 0) return OBSIDIAN_FIELD_LOW_COLOR;
       if (elevation < 50) return OBSIDIAN_FIELD_MID_COLOR;
       return OBSIDIAN_FIELD_HIGH_COLOR;
     },
+  },
+
+  // --- NEW TERRAIN CONFIGS ---
+
+  [TerrainType.SAVANNA]: {
+    name: 'Savanna', symbol: '🦁', color: 'fill-yellow-400',
+    speedMultiplier: 1.1, visibilityFactor: 1.1,
+    baseInherentVisibilityBonus: 0, prominence: 5, canopyBlockage: 5,
+    encounterChanceOnEnter: 10, encounterChanceOnDiscover: 4,
+    isImpassable: false, blocksLineOfSight: false,
+    elevationColor: (elevation) => {
+      if (elevation < 100) return SAVANNA_COLOR_LOW;
+      if (elevation < 300) return SAVANNA_COLOR_MID;
+      return SAVANNA_COLOR_HIGH;
+    },
+  },
+  [TerrainType.TUNDRA]: {
+    name: 'Tundra', symbol: '❄️', color: 'fill-gray-400',
+    speedMultiplier: 1.8, visibilityFactor: 1,
+    baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
+    encounterChanceOnEnter: 8, encounterChanceOnDiscover: 3,
+    isImpassable: false, blocksLineOfSight: false,
+    elevationColor: (elevation) => {
+      if (elevation < 0) return TUNDRA_COLOR_LOW;
+      if (elevation < 100) return TUNDRA_COLOR_MID;
+      return TUNDRA_COLOR_HIGH;
+    },
+  },
+  [TerrainType.STEPPE]: {
+    name: 'Steppe', symbol: '🐎', color: 'fill-lime-300',
+    speedMultiplier: 1, visibilityFactor: 1.1,
+    baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
+    encounterChanceOnEnter: 6, encounterChanceOnDiscover: 2,
+    isImpassable: false, blocksLineOfSight: false,
+    elevationColor: (elevation) => {
+      if (elevation < 50) return STEPPE_COLOR_LOW;
+      if (elevation < 150) return STEPPE_COLOR_MID;
+      return STEPPE_COLOR_HIGH;
+    },
+  },
+  [TerrainType.ANCIENT_FOREST]: {
+    name: 'Ancient Forest', symbol: '🌲', color: 'fill-green-950',
+    speedMultiplier: 4, visibilityFactor: 0.1,
+    baseInherentVisibilityBonus: -4, prominence: 15, canopyBlockage: 30,
+    encounterChanceOnEnter: 40, encounterChanceOnDiscover: 15,
+    isImpassable: false, blocksLineOfSight: true, // Extremely dense, ancient trees block LOS
+    elevationColor: (elevation) => {
+      if (elevation < 150) return ANCIENT_FOREST_COLOR_LOW;
+      if (elevation < 500) return ANCIENT_FOREST_COLOR_MID;
+      return ANCIENT_FOREST_COLOR_HIGH;
+    },
+  },
+  [TerrainType.PETRIFIED_FOREST]: {
+    name: 'Petrified Forest', symbol: '🗿', color: 'fill-stone-600',
+    speedMultiplier: 3.5, visibilityFactor: 0.5,
+    baseInherentVisibilityBonus: -2, prominence: 10, canopyBlockage: 5,
+    encounterChanceOnEnter: 20, encounterChanceOnDiscover: 10,
+    isImpassable: false, blocksLineOfSight: false,
+    elevationColor: (elevation) => PETRIFIED_FOREST_COLOR,
+  },
+  [TerrainType.BIOLUMINESCENT_GROVE]: {
+    name: 'Bioluminescent Grove', symbol: '✨', color: 'fill-purple-500',
+    speedMultiplier: 2.5, visibilityFactor: 0.4,
+    baseInherentVisibilityBonus: -3, prominence: 5, canopyBlockage: 12,
+    encounterChanceOnEnter: 25, encounterChanceOnDiscover: 20,
+    isImpassable: false, blocksLineOfSight: false,
+    elevationColor: (elevation) => {
+      if (elevation < -20) return BIOLUMINESCENT_GROVE_COLOR_LOW;
+      if (elevation < 30) return BIOLUMINESCENT_GROVE_COLOR_MID;
+      return BIOLUMINESCENT_GROVE_COLOR_HIGH;
+    },
+  },
+  [TerrainType.MANGROVE_SWAMP]: {
+    name: 'Mangrove Swamp', symbol: '🌿', color: 'fill-emerald-700',
+    speedMultiplier: 3.5, visibilityFactor: 0.3,
+    baseInherentVisibilityBonus: -2, prominence: 8, canopyBlockage: 18,
+    encounterChanceOnEnter: 30, encounterChanceOnDiscover: 8,
+    isImpassable: false, blocksLineOfSight: false,
+    elevationColor: (elevation) => MANGROVE_SWAMP_COLOR,
+  },
+  [TerrainType.CLOUD_FOREST]: {
+    name: 'Cloud Forest', symbol: '☁️', color: 'fill-gray-300',
+    speedMultiplier: 2.8, visibilityFactor: 0.2,
+    baseInherentVisibilityBonus: -3, prominence: 10, canopyBlockage: 15,
+    encounterChanceOnEnter: 20, encounterChanceOnDiscover: 12,
+    isImpassable: false, blocksLineOfSight: true, // Thick mist/clouds block LOS
+    elevationColor: (elevation) => CLOUD_FOREST_COLOR,
+  },
+  [TerrainType.GLACIER]: {
+    name: 'Glacier', symbol: '🧊', color: 'fill-blue-200',
+    speedMultiplier: 4, visibilityFactor: 1.1,
+    baseInherentVisibilityBonus: 1, prominence: 20, canopyBlockage: 0,
+    encounterChanceOnEnter: 15, encounterChanceOnDiscover: 8,
+    isImpassable: false, blocksLineOfSight: false,
+    elevationColor: (elevation) => GLACIER_COLOR,
+  },
+  [TerrainType.GEOTHERMAL_FIELD]: {
+    name: 'Geothermal Field', symbol: '♨️', color: 'fill-orange-600',
+    speedMultiplier: 3, visibilityFactor: 0.7,
+    baseInherentVisibilityBonus: -1, prominence: 5, canopyBlockage: 0,
+    encounterChanceOnEnter: 25, encounterChanceOnDiscover: 10,
+    isImpassable: false, blocksLineOfSight: false,
+    elevationColor: (elevation) => {
+      if (elevation < 0) return GEOTHERMAL_COLOR_LOW;
+      if (elevation < 100) return GEOTHERMAL_COLOR_MID;
+      return GEOTHERMAL_COLOR_HIGH;
+    },
+  },
+  [TerrainType.SALT_FLATS]: {
+    name: 'Salt Flats', symbol: '🧂', color: 'fill-stone-100',
+    speedMultiplier: 1.2, visibilityFactor: 1.3,
+    baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
+    encounterChanceOnEnter: 5, encounterChanceOnDiscover: 2,
+    isImpassable: false, blocksLineOfSight: false,
+    elevationColor: (elevation) => SALT_FLATS_COLOR,
+  },
+  [TerrainType.DUNE_SEA]: {
+    name: 'Dune Sea', symbol: '🏜️', color: 'fill-yellow-200',
+    speedMultiplier: 1.8, visibilityFactor: 1.1,
+    baseInherentVisibilityBonus: 0, prominence: 10, canopyBlockage: 0,
+    encounterChanceOnEnter: 10, encounterChanceOnDiscover: 5,
+    isImpassable: false, blocksLineOfSight: false,
+    elevationColor: (elevation) => DUNE_SEA_COLOR,
+  },
+  [TerrainType.SALT_DESERT]: {
+    name: 'Salt Desert', symbol: '🧂', color: 'fill-white',
+    speedMultiplier: 1.5, visibilityFactor: 1.2,
+    baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
+    encounterChanceOnEnter: 7, encounterChanceOnDiscover: 3,
+    isImpassable: false, blocksLineOfSight: false,
+    elevationColor: (elevation) => SALT_DESERT_COLOR,
+  },
+  [TerrainType.RED_DESERT]: {
+    name: 'Red Desert', symbol: '🏜️', color: 'fill-red-400',
+    speedMultiplier: 1.3, visibilityFactor: 1.1,
+    baseInherentVisibilityBonus: 0, prominence: 5, canopyBlockage: 0,
+    encounterChanceOnEnter: 9, encounterChanceOnDiscover: 4,
+    isImpassable: false, blocksLineOfSight: false,
+    elevationColor: (elevation) => RED_DESERT_COLOR,
+  },
+  [TerrainType.ROCK_GARDEN]: {
+    name: 'Rock Garden', symbol: '🪨', color: 'fill-stone-500',
+    speedMultiplier: 1.7, visibilityFactor: 0.9,
+    baseInherentVisibilityBonus: 0, prominence: 5, canopyBlockage: 2,
+    encounterChanceOnEnter: 12, encounterChanceOnDiscover: 6,
+    isImpassable: false, blocksLineOfSight: false,
+    elevationColor: (elevation) => ROCK_GARDEN_COLOR,
+  },
+  [TerrainType.BOG]: {
+    name: 'Bog', symbol: '🌿', color: 'fill-green-800',
+    speedMultiplier: 3.5, visibilityFactor: 0.5,
+    baseInherentVisibilityBonus: -1, prominence: 2, canopyBlockage: 8,
+    encounterChanceOnEnter: 28, encounterChanceOnDiscover: 6,
+    isImpassable: false, blocksLineOfSight: false,
+    elevationColor: (elevation) => BOG_COLOR,
+  },
+  [TerrainType.FENS]: {
+    name: 'Fens', symbol: '🌾', color: 'fill-green-600',
+    speedMultiplier: 2.8, visibilityFactor: 0.7,
+    baseInherentVisibilityBonus: 0, prominence: 1, canopyBlockage: 5,
+    encounterChanceOnEnter: 22, encounterChanceOnDiscover: 5,
+    isImpassable: false, blocksLineOfSight: false,
+    elevationColor: (elevation) => FENS_COLOR,
+  },
+  [TerrainType.MIRE]: {
+    name: 'Mire', symbol: '🕳️', color: 'fill-gray-800',
+    speedMultiplier: 999, visibilityFactor: 0.4, // Impassable for ground movement due to deep mud/water
+    baseInherentVisibilityBonus: -2, prominence: 0, canopyBlockage: 3,
+    encounterChanceOnEnter: 32, encounterChanceOnDiscover: 8,
+    isImpassable: true, blocksLineOfSight: false,
+    elevationColor: (elevation) => MIRE_COLOR,
+  },
+  [TerrainType.PEATLANDS]: {
+    name: 'Peatlands', symbol: '🍂', color: 'fill-amber-900',
+    speedMultiplier: 3.2, visibilityFactor: 0.6,
+    baseInherentVisibilityBonus: -1, prominence: 1, canopyBlockage: 6,
+    encounterChanceOnEnter: 25, encounterChanceOnDiscover: 7,
+    isImpassable: false, blocksLineOfSight: false,
+    elevationColor: (elevation) => PEATLANDS_COLOR,
+  },
+  [TerrainType.WHISPERING_WOODS]: {
+    name: 'Whispering Woods', symbol: '👻', color: 'fill-indigo-800',
+    speedMultiplier: 2.5, visibilityFactor: 0.3,
+    baseInherentVisibilityBonus: -2, prominence: 10, canopyBlockage: 18,
+    encounterChanceOnEnter: 30, encounterChanceOnDiscover: 25,
+    isImpassable: false, blocksLineOfSight: true, // Magical obscurity and dense trees block LOS
+    elevationColor: (elevation) => WHISPERING_WOODS_COLOR,
+  },
+  [TerrainType.TAR_PITS]: {
+    name: 'Tar Pits', symbol: '🕳️', color: 'fill-neutral-900',
+    speedMultiplier: 999, visibilityFactor: 0.3,
+    baseInherentVisibilityBonus: -3, prominence: 0, canopyBlockage: 0,
+    encounterChanceOnEnter: 10, encounterChanceOnDiscover: 3,
+    isImpassable: true, blocksLineOfSight: false, // Impassable due to stickiness/trapping
+    elevationColor: (elevation) => TAR_PITS_COLOR,
+  },
+
+  // Rocky/Impassable/LOS-blocking
+  [TerrainType.CANYON]: {
+    name: 'Canyon', symbol: '🏜️', color: 'fill-red-800',
+    speedMultiplier: 999, visibilityFactor: 0, // Effectively impassable for ground travel
+    baseInherentVisibilityBonus: -5, prominence: 100, canopyBlockage: 0,
+    encounterChanceOnEnter: 10, encounterChanceOnDiscover: 5,
+    isImpassable: true, blocksLineOfSight: true, // Steep walls block LOS. Passable by flight/special means.
+    elevationColor: (elevation) => {
+      if (elevation < 100) return CANYON_COLOR_LOW;
+      if (elevation < 500) return CANYON_COLOR_MID;
+      return CANYON_COLOR_HIGH;
+    },
+  },
+  [TerrainType.CRYSTAL_SPIRES]: {
+    name: 'Crystal Spires', symbol: '💎', color: 'fill-cyan-500',
+    speedMultiplier: 999, visibilityFactor: 0, // Effectively impassable for ground travel
+    baseInherentVisibilityBonus: -5, prominence: 100, canopyBlockage: 0,
+    encounterChanceOnEnter: 10, encounterChanceOnDiscover: 20,
+    isImpassable: true, blocksLineOfSight: true, // Jagged spires block LOS and movement
+    elevationColor: (elevation) => {
+      if (elevation < 100) return CRYSTAL_SPIRES_COLOR_LOW;
+      if (elevation < 500) return CRYSTAL_SPIRES_COLOR_MID;
+      return CRYSTAL_SPIRES_COLOR_HIGH;
+    },
+  },
+  [TerrainType.ANCIENT_RUINS]: {
+    name: 'Ancient Ruins', symbol: '🏛️', color: 'fill-gray-700',
+    speedMultiplier: 2.5, visibilityFactor: 0.6,
+    baseInherentVisibilityBonus: -1, prominence: 20, canopyBlockage: 5,
+    encounterChanceOnEnter: 20, encounterChanceOnDiscover: 15,
+    isImpassable: false, blocksLineOfSight: true, // Walls and rubble can block LOS
+    elevationColor: (elevation) => ANCIENT_RUINS_COLOR,
+  },
+  [TerrainType.METEORITE_CRATER]: {
+    name: 'Meteorite Crater', symbol: '🌑', color: 'fill-gray-800',
+    speedMultiplier: 3, visibilityFactor: 0.5,
+    baseInherentVisibilityBonus: -2, prominence: 50, canopyBlockage: 0,
+    encounterChanceOnEnter: 15, encounterChanceOnDiscover: 10,
+    isImpassable: false, blocksLineOfSight: true, // Crater walls block LOS
+    elevationColor: (elevation) => METEORITE_CRATER_COLOR,
+  },
+  [TerrainType.BASALT_COLUMNS]: {
+    name: 'Basalt Columns', symbol: '🪨', color: 'fill-slate-900',
+    speedMultiplier: 999, visibilityFactor: 0, // Effectively impassable for ground travel
+    baseInherentVisibilityBonus: -10, prominence: 100, canopyBlockage: 0,
+    encounterChanceOnEnter: 18, encounterChanceOnDiscover: 7,
+    isImpassable: true, blocksLineOfSight: true, // Vertical columns block LOS and movement
+    elevationColor: (elevation) => BASALT_COLUMNS_COLOR,
+  },
+  [TerrainType.LUNAR_CRATER]: {
+    name: 'Lunar Crater', symbol: '🌕', color: 'fill-gray-700',
+    speedMultiplier: 2.8, visibilityFactor: 0.5,
+    baseInherentVisibilityBonus: -2, prominence: 50, canopyBlockage: 0,
+    encounterChanceOnEnter: 15, encounterChanceOnDiscover: 8,
+    isImpassable: false, blocksLineOfSight: true, // Crater walls block LOS
+    elevationColor: (elevation) => LUNAR_CRATER_COLOR,
+  },
+
+  // Underground Terrains (Extended)
+  [TerrainType.GLOWWORM_CAVE]: {
+    name: 'Glowworm Cave', symbol: '✨', color: 'fill-sky-700',
+    speedMultiplier: 1.5, visibilityFactor: 0.6,
+    baseInherentVisibilityBonus: -1, prominence: 0, canopyBlockage: 0,
+    encounterChanceOnEnter: 15, encounterChanceOnDiscover: 10,
+    isImpassable: false, blocksLineOfSight: false,
+    elevationColor: (elevation) => GLOWWORM_CAVE_COLOR,
+  },
+  [TerrainType.SUBTERRANEAN_FOREST]: {
+    name: 'Subterranean Forest', symbol: '🍄', color: 'fill-lime-900',
+    speedMultiplier: 2.5, visibilityFactor: 0.3,
+    baseInherentVisibilityBonus: -3, prominence: 5, canopyBlockage: 15,
+    encounterChanceOnEnter: 25, encounterChanceOnDiscover: 10,
+    isImpassable: false, blocksLineOfSight: true, // Dense fungal/crystal growths block LOS
+    elevationColor: (elevation) => SUBTERRANEAN_FOREST_COLOR,
+  },
+  [TerrainType.CHASM]: {
+    name: 'Chasm', symbol: '⚫', color: 'fill-black',
+    speedMultiplier: 999, visibilityFactor: 0,
+    baseInherentVisibilityBonus: -10, prominence: 100, canopyBlockage: 0,
+    encounterChanceOnEnter: 20, encounterChanceOnDiscover: 5,
+    isImpassable: true, blocksLineOfSight: true, // Sheer drop blocks LOS and movement
+    elevationColor: (elevation) => CHASM_COLOR,
+  },
+  [TerrainType.MAGMA_CAVERN]: {
+    name: 'Magma Cavern', symbol: '🔥', color: 'fill-red-800',
+    speedMultiplier: 999, visibilityFactor: 0.1, // Effectively impassable due to heat/molten rock
+    baseInherentVisibilityBonus: -5, prominence: 0, canopyBlockage: 0,
+    encounterChanceOnEnter: 30, encounterChanceOnDiscover: 15,
+    isImpassable: true, blocksLineOfSight: false, // Heat haze, but not necessarily physical LOS block
+    elevationColor: (elevation) => MAGMA_CAVERN_COLOR,
+  },
+
+  // Underwater Terrains (Extended)
+  [TerrainType.HYDROTHERMAL_VENTS]: {
+    name: 'Hydrothermal Vents', symbol: '🫧', color: 'fill-gray-950',
+    speedMultiplier: 999, visibilityFactor: 0.05, // Impassable due to extreme heat/pressure
+    baseInherentVisibilityBonus: -10, prominence: 0, canopyBlockage: 0,
+    encounterChanceOnEnter: 20, encounterChanceOnDiscover: 10,
+    isImpassable: true, blocksLineOfSight: false, // Steam/chemicals obscure, but not a solid wall
+    elevationColor: (elevation) => HYDROTHERMAL_VENTS_COLOR,
+  },
+  [TerrainType.SUBMARINE_CANYON]: {
+    name: 'Submarine Canyon', symbol: '↯', color: 'fill-blue-950',
+    speedMultiplier: 3.5, visibilityFactor: 0.2,
+    baseInherentVisibilityBonus: -4, prominence: 50, canopyBlockage: 0,
+    encounterChanceOnEnter: 15, encounterChanceOnDiscover: 7,
+    isImpassable: false, blocksLineOfSight: true, // Deep walls block LOS for submersibles
+    elevationColor: (elevation) => SUBMARINE_CANYON_COLOR,
+  },
+
+  // Sky Terrains
+  [TerrainType.OPEN_SKY]: {
+    name: 'Open Sky', symbol: '☁️', color: 'fill-sky-300',
+    speedMultiplier: 0.5, visibilityFactor: 1.5, // Faster travel, very open
+    baseInherentVisibilityBonus: 2, prominence: 0, canopyBlockage: 0,
+    encounterChanceOnEnter: 5, encounterChanceOnDiscover: 2,
+    isImpassable: false, blocksLineOfSight: false,
+    elevationColor: (elevation) => OPEN_SKY_COLOR,
+  },
+  [TerrainType.STRONG_WIND_CURRENTS]: {
+    name: 'Strong Wind Currents', symbol: '🌬️', color: 'fill-sky-400',
+    speedMultiplier: 2, visibilityFactor: 0.8, // Difficult due to turbulence
+    baseInherentVisibilityBonus: -1, prominence: 0, canopyBlockage: 0,
+    encounterChanceOnEnter: 10, encounterChanceOnDiscover: 5,
+    isImpassable: false, blocksLineOfSight: false,
+    elevationColor: (elevation) => STRONG_WIND_CURRENTS_COLOR,
+  },
+  [TerrainType.THUNDERHEAD_CLOUD]: {
+    name: 'Thunderhead Cloud', symbol: '⛈️', color: 'fill-gray-700',
+    speedMultiplier: 4, visibilityFactor: 0.1, // Very difficult, low visibility
+    baseInherentVisibilityBonus: -5, prominence: 0, canopyBlockage: 0,
+    encounterChanceOnEnter: 20, encounterChanceOnDiscover: 10,
+    isImpassable: false, blocksLineOfSight: true, // Dense clouds block LOS
+    elevationColor: (elevation) => THUNDERHEAD_CLOUD_COLOR,
+  },
+  [TerrainType.CELESTIAL_ISLAND]: {
+    name: 'Celestial Island', symbol: '🏝️', color: 'fill-yellow-100',
+    speedMultiplier: 1.2, visibilityFactor: 1, // Like normal land, but floating
+    baseInherentVisibilityBonus: 1, prominence: 50, canopyBlockage: 10,
+    encounterChanceOnEnter: 8, encounterChanceOnDiscover: 15,
+    isImpassable: false, blocksLineOfSight: true, // Landmass blocks LOS
+    elevationColor: (elevation) => CELESTIAL_ISLAND_COLOR,
   },
 };
 
@@ -777,7 +1276,26 @@ export const PARTY_ACTIVITIES = {
     isGroupActivity: true,
     terrainModifiers: [
         { terrains: [TerrainType.ROAD], movementPenaltyFactor: 0.5 },
-        { terrains: [TerrainType.FOREST, TerrainType.JUNGLE, TerrainType.SWAMP, TerrainType.HILLS, TerrainType.MOUNTAIN, TerrainType.BADLANDS, TerrainType.THICK_FOREST, TerrainType.SKELETAL_FOREST, TerrainType.ASHEN_WASTELAND, TerrainType.BLOOD_MARSH, TerrainType.VOLCANIC_WASTELAND, TerrainType.QUICKSAND, TerrainType.ICE_PLAIN, TerrainType.OBSIDIAN_FIELD], movementPenaltyFactor: 2.5 }
+        { terrains: [
+            TerrainType.FOREST, TerrainType.JUNGLE, TerrainType.SWAMP, TerrainType.HILLS, TerrainType.MOUNTAIN,
+            TerrainType.BADLANDS, TerrainType.THICK_FOREST, TerrainType.SKELETAL_FOREST, TerrainType.ASHEN_WASTELAND,
+            TerrainType.BLOOD_MARSH, TerrainType.MAGMA_LAKE, TerrainType.VOLCANIC_WASTELAND, TerrainType.QUICKSAND, TerrainType.ICE_PLAIN,
+            TerrainType.OBSIDIAN_FIELD, 
+            // New difficult/impassable terrains
+            TerrainType.SAVANNA, TerrainType.TUNDRA, TerrainType.STEPPE, TerrainType.ANCIENT_FOREST,
+            TerrainType.PETRIFIED_FOREST, TerrainType.BIOLUMINESCENT_GROVE, TerrainType.MANGROVE_SWAMP,
+            TerrainType.CLOUD_FOREST, TerrainType.GLACIER, TerrainType.GEOTHERMAL_FIELD,
+            TerrainType.SALT_FLATS, TerrainType.DUNE_SEA, TerrainType.SALT_DESERT,
+            TerrainType.RED_DESERT, TerrainType.ROCK_GARDEN, TerrainType.BOG,
+            TerrainType.FENS, TerrainType.MIRE, TerrainType.PEATLANDS,
+            TerrainType.WHISPERING_WOODS, TerrainType.TAR_PITS,
+            TerrainType.CANYON, TerrainType.CRYSTAL_SPIRES, TerrainType.ANCIENT_RUINS,
+            TerrainType.METEORITE_CRATER, TerrainType.BASALT_COLUMNS, TerrainType.LUNAR_CRATER,
+            TerrainType.GLOWWORM_CAVE, TerrainType.SUBTERRANEAN_FOREST, TerrainType.CHASM,
+            TerrainType.MAGMA_CAVERN, TerrainType.HYDROTHERMAL_VENTS, TerrainType.SUBMARINE_CANYON,
+            TerrainType.OPEN_SKY, TerrainType.STRONG_WIND_CURRENTS, TerrainType.THUNDERHEAD_CLOUD,
+            TerrainType.CELESTIAL_ISLAND,
+        ], movementPenaltyFactor: 2.5 } // A general penalty for rough terrain
     ],
     traits: ['Move'],
     source: 'Custom Rule'
