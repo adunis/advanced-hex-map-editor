@@ -13,7 +13,7 @@ export const ViewMode = {
 export const ElevationBrushMode = {
   INCREASE: 'increase',
   DECREASE: 'decrease',
-  SET_TO_VALUE: 'set_to_value', // New mode
+  SET_TO_VALUE: 'set_to_value',
 };
 
 export const PaintMode = {
@@ -33,322 +33,740 @@ export const TerrainFeature = {
   SECRET: 'SECRET',
 };
 
-export const TerrainType = {
-  PLAINS: 'plains',
-  FOREST: 'forest',
-  THICK_FOREST: 'thick_forest',
-  YOUNG_FOREST: 'young_forest',
-  HILLS: 'hills',
-  MOUNTAIN: 'mountain',
-  SWAMP: 'swamp',
-  DESERT: 'desert',
-  JUNGLE: 'jungle',
-  BADLANDS: 'badlands',
-  ROAD: 'road',
-  SETTLEMENT: 'settlement',
-  WATER: 'water',
-  CAVERN_FLOOR: 'cavern_floor',
-  TUNNEL: 'tunnel',
-  MUSHROOM_FOREST: 'mushroom_forest',
-  CRYSTAL_CAVE: 'crystal_cave',
-  UNDERGROUND_RIVER: 'underground_river',
-  LAVA_TUBE: 'lava_tube',
-  SHALLOW_WATER: 'shallow_water',
-  DEEP_OCEAN: 'deep_ocean',
-  CORAL_REEF: 'coral_reef',
-  KELP_FOREST: 'kelp_forest',
-  TRENCH: 'trench',
-  SKELETAL_FOREST: 'skeletal_forest',
-  ASHEN_WASTELAND: 'ashen_wasteland',
-  BLOOD_MARSH: 'blood_marsh',
-  MAGMA_LAKE: 'magma_lake',
-  VOLCANIC_WASTELAND: 'volcanic_wasteland',
-  FLOATING_ISLANDS: 'floating_islands',
-  ETHEREAL_MIST: 'ethereal_mist',
-  QUICKSAND: 'quicksand',
-  ICE_PLAIN: 'ice_plain',
-  OBSIDIAN_FIELD: 'obsidian_field',
+// ==================================================================
+// TERRAIN MASTER DATA
+// Central source of truth for all terrain types.
+// The TerrainType and TERRAIN_TYPES_CONFIG exports are generated from this object.
+// ==================================================================
 
-  // --- NEW TERRAIN TYPES (35 added for a total of 70) ---
+const TERRAIN_METADATA = {
+  // --- Terrestrial - Mundane/Semi-Mundane ---
+  ROLLING_PLAINS: {
+    id: 'rolling_plains', name: 'Rolling Plains', symbol: '🌾', color: 'fill-green-400',
+    speedMultiplier: 1, visibilityFactor: 1, baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(134, 239, 172)', mid: 'rgb(74, 222, 128)', high: 'rgb(34, 197, 94)' },
+    elevationThresholds: { mid: 50, high: 150 },
+  },
+  TALLGRASS_PRAIRIE: {
+    id: 'tallgrass_prairie', name: 'Tallgrass Prairie', symbol: '🌿', color: 'fill-lime-600',
+    speedMultiplier: 1.2, visibilityFactor: 0.9, baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 5,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(100, 150, 70)', mid: 'rgb(120, 170, 90)', high: 'rgb(140, 190, 110)' },
+    elevationThresholds: { mid: 50, high: 200 },
+  },
+  SHORTGRASS_STEPPE: {
+    id: 'shortgrass_steppe', name: 'Shortgrass Steppe', symbol: '🐎', color: 'fill-amber-300',
+    speedMultiplier: 0.9, visibilityFactor: 1.1, baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(180, 180, 100)', mid: 'rgb(190, 190, 120)', high: 'rgb(200, 200, 140)' },
+    elevationThresholds: { mid: 100, high: 400 },
+  },
+  OAK_FOREST: {
+    id: 'oak_forest', name: 'Oak Forest', symbol: '🌳', color: 'fill-green-700',
+    speedMultiplier: 1.8, visibilityFactor: 0.6, baseInherentVisibilityBonus: -1, prominence: 5, canopyBlockage: 15,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(40, 100, 30)', mid: 'rgb(50, 110, 40)', high: 'rgb(60, 120, 50)' },
+    elevationThresholds: { mid: 100, high: 300 },
+  },
+  PINE_FOREST: {
+    id: 'pine_forest', name: 'Pine Forest', symbol: '🌲', color: 'fill-emerald-800',
+    speedMultiplier: 1.9, visibilityFactor: 0.55, baseInherentVisibilityBonus: -1, prominence: 5, canopyBlockage: 17,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(10, 80, 50)', mid: 'rgb(20, 90, 60)', high: 'rgb(30, 100, 70)' },
+    elevationThresholds: { mid: 150, high: 500 },
+  },
+  BIRCH_FOREST: {
+    id: 'birch_forest', name: 'Birch Forest', symbol: '🤍', color: 'fill-lime-500',
+    speedMultiplier: 1.6, visibilityFactor: 0.8, baseInherentVisibilityBonus: 0, prominence: 3, canopyBlockage: 10,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(120, 160, 90)', mid: 'rgb(130, 170, 100)', high: 'rgb(140, 180, 110)' },
+    elevationThresholds: { mid: 100, high: 300 },
+  },
+  GRASSY_HILLS: {
+    id: 'grassy_hills', name: 'Grassy Hills', symbol: '⛰️', color: 'fill-amber-600',
+    speedMultiplier: 1.5, visibilityFactor: 1, baseInherentVisibilityBonus: 1, prominence: 20, canopyBlockage: 5,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(218, 165, 32)', mid: 'rgb(228, 175, 42)', high: 'rgb(238, 185, 52)' },
+    elevationThresholds: { mid: 300, high: 600 },
+  },
+  ROCKY_FOOTHILLS: {
+    id: 'rocky_foothills', name: 'Rocky Foothills', symbol: '🪨', color: 'fill-stone-700',
+    speedMultiplier: 1.8, visibilityFactor: 1, baseInherentVisibilityBonus: 1, prominence: 25, canopyBlockage: 10,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(140, 110, 80)', mid: 'rgb(150, 120, 90)', high: 'rgb(160, 130, 100)' },
+    elevationThresholds: { mid: 400, high: 800 },
+  },
+  ALPINE_TUNDRA: {
+    id: 'alpine_tundra', name: 'Alpine Tundra', symbol: '❄️', color: 'fill-gray-400',
+    speedMultiplier: 2.2, visibilityFactor: 1, baseInherentVisibilityBonus: 0, prominence: 5, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(110, 120, 100)', mid: 'rgb(120, 130, 110)', high: 'rgb(130, 140, 120)' },
+    elevationThresholds: { mid: 2000, high: 3000 },
+  },
+  COASTAL_BEACH: {
+    id: 'coastal_beach', name: 'Coastal Beach', symbol: '🏖️', color: 'fill-yellow-100',
+    speedMultiplier: 1, visibilityFactor: 1.1, baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(255, 245, 190)', mid: 'rgb(255, 250, 200)', high: 'rgb(255, 255, 210)' },
+    elevationThresholds: { mid: 1, high: 5 },
+  },
+  FRESHWATER_SWAMP: {
+    id: 'freshwater_swamp', name: 'Freshwater Swamp', symbol: '🐊', color: 'fill-teal-700',
+    speedMultiplier: 2.5, visibilityFactor: 0.6, baseInherentVisibilityBonus: -1, prominence: 1, canopyBlockage: 8,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(13, 148, 136)', mid: 'rgb(23, 158, 146)', high: 'rgb(33, 168, 156)' },
+    elevationThresholds: { mid: -5, high: 10 },
+  },
+  REED_MARSH: {
+    id: 'reed_marsh', name: 'Reed Marsh', symbol: '🌾', color: 'fill-teal-500',
+    speedMultiplier: 2.8, visibilityFactor: 0.7, baseInherentVisibilityBonus: 0, prominence: 1, canopyBlockage: 5,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(30, 120, 110)', mid: 'rgb(40, 130, 120)', high: 'rgb(50, 140, 130)' },
+    elevationThresholds: { mid: -2, high: 5 },
+  },
+  SAND_DUNES_DESERT: {
+    id: 'sand_dunes_desert', name: 'Sand Dunes Desert', symbol: '🏜️', color: 'fill-yellow-300',
+    speedMultiplier: 1.5, visibilityFactor: 1.2, baseInherentVisibilityBonus: 1, prominence: 10, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(250, 204, 21)', mid: 'rgb(255, 214, 31)', high: 'rgb(255, 224, 41)' },
+    elevationThresholds: { mid: 200, high: 600 },
+  },
+  ROCKY_INFERTILE_DESERT: {
+    id: 'rocky_infertile_desert', name: 'Rocky Infertile Desert', symbol: '🌵', color: 'fill-amber-700',
+    speedMultiplier: 1.3, visibilityFactor: 1.1, baseInherentVisibilityBonus: 0, prominence: 5, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(200, 160, 80)', mid: 'rgb(210, 170, 90)', high: 'rgb(220, 180, 100)' },
+    elevationThresholds: { mid: 300, high: 700 },
+  },
+  ARCTIC_ICE_FLATS: {
+    id: 'arctic_ice_flats', name: 'Arctic Ice Flats', symbol: '❄️', color: 'fill-cyan-200',
+    speedMultiplier: 1.5, visibilityFactor: 1.2, baseInherentVisibilityBonus: 1, prominence: 0, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(207, 250, 254)', mid: 'rgb(217, 252, 255)', high: 'rgb(227, 255, 255)' },
+    elevationThresholds: { mid: 0, high: 50 },
+  },
 
-  // Ecosystems (General)
-  SAVANNA: 'savanna',
-  TUNDRA: 'tundra',
-  STEPPE: 'steppe',
-  ANCIENT_FOREST: 'ancient_forest',
-  PETRIFIED_FOREST: 'petrified_forest', 
-  BIOLUMINESCENT_GROVE: 'bioluminescent_grove',
-  MANGROVE_SWAMP: 'mangrove_swamp',
-  CLOUD_FOREST: 'cloud_forest',
-  GLACIER: 'glacier',
-  GEOTHERMAL_FIELD: 'geothermal_field',
-  SALT_FLATS: 'salt_flats',
-  DUNE_SEA: 'dune_sea',
-  SALT_DESERT: 'salt_desert',
-  RED_DESERT: 'red_desert',
-  ROCK_GARDEN: 'rock_garden',
-  BOG: 'bog',
-  FENS: 'fens',
-  MIRE: 'mire', // Impassable for ground movement
-  PEATLANDS: 'peatlands',
-  WHISPERING_WOODS: 'whispering_woods',
-  TAR_PITS: 'tar_pits', // Impassable for ground movement
+  // --- Terrestrial - Lore-Inspired & Exotic ---
+  SAVANNA_WOODLAND: {
+    id: 'savanna_woodland', name: 'Savanna Woodland', symbol: '🌳', color: 'fill-yellow-500',
+    speedMultiplier: 1.1, visibilityFactor: 1, baseInherentVisibilityBonus: 0, prominence: 5, canopyBlockage: 5,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(160, 190, 70)', mid: 'rgb(170, 200, 80)', high: 'rgb(180, 210, 90)' },
+    elevationThresholds: { mid: 100, high: 400 },
+  },
+  RAINFOREST_JUNGLE: {
+    id: 'rainforest_jungle', name: 'Rainforest Jungle', symbol: '🌴', color: 'fill-green-900',
+    speedMultiplier: 3.5, visibilityFactor: 0.15, baseInherentVisibilityBonus: -3, prominence: 10, canopyBlockage: 25,
+    isImpassable: false, blocksLineOfSight: true,
+    colors: { low: 'rgb(4, 120, 87)', mid: 'rgb(14, 130, 97)', high: 'rgb(24, 140, 107)' },
+    elevationThresholds: { mid: 100, high: 500 },
+  },
+  MANGROVE_COAST: {
+    id: 'mangrove_coast', name: 'Mangrove Coast', symbol: '🌿', color: 'fill-emerald-700',
+    speedMultiplier: 3.5, visibilityFactor: 0.3, baseInherentVisibilityBonus: -2, prominence: 8, canopyBlockage: 18,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(60, 100, 90)', mid: 'rgb(70, 110, 100)', high: 'rgb(80, 120, 110)' },
+    elevationThresholds: { mid: -2, high: 2 },
+  },
+  CLOUD_MIST_FOREST: {
+    id: 'cloud_mist_forest', name: 'Cloud Mist Forest', symbol: '☁️', color: 'fill-gray-300',
+    speedMultiplier: 2.8, visibilityFactor: 0.2, baseInherentVisibilityBonus: -3, prominence: 10, canopyBlockage: 15,
+    isImpassable: false, blocksLineOfSight: true,
+    colors: { low: 'rgb(150, 190, 170)', mid: 'rgb(160, 200, 180)', high: 'rgb(170, 210, 190)' },
+    elevationThresholds: { mid: 1000, high: 2000 },
+  },
+  GLACIAL_FJORDS: {
+    id: 'glacial_fjords', name: 'Glacial Fjords', symbol: '🧊🌊', color: 'fill-blue-600',
+    speedMultiplier: 2.5, visibilityFactor: 0.9, baseInherentVisibilityBonus: 0, prominence: 10, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: true,
+    colors: { low: 'rgb(40, 120, 180)', mid: 'rgb(50, 130, 190)', high: 'rgb(60, 140, 200)' },
+    elevationThresholds: { mid: -50, high: 0 },
+  },
+  SALT_FLATS_DRY: {
+    id: 'salt_flats_dry', name: 'Dry Salt Flats', symbol: '🧂', color: 'fill-stone-100',
+    speedMultiplier: 1.2, visibilityFactor: 1.3, baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(240, 240, 230)', mid: 'rgb(245, 245, 235)', high: 'rgb(250, 250, 240)' },
+    elevationThresholds: { mid: -10, high: 10 },
+  },
+  CRIMSON_CANYON_LANDS: {
+    id: 'crimson_canyon_lands', name: 'Crimson Canyon Lands', symbol: '🏜️', color: 'fill-red-800',
+    speedMultiplier: 3.5, visibilityFactor: 0.9, baseInherentVisibilityBonus: -1, prominence: 50, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: true,
+    colors: { low: 'rgb(234, 88, 12)', mid: 'rgb(244, 98, 22)', high: 'rgb(254, 108, 32)' },
+    elevationThresholds: { mid: 200, high: 600 },
+  },
+  GEOTHERMAL_SPRINGS: {
+    id: 'geothermal_springs', name: 'Geothermal Springs', symbol: '♨️', color: 'fill-orange-600',
+    speedMultiplier: 3, visibilityFactor: 0.7, baseInherentVisibilityBonus: -1, prominence: 5, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(255, 120, 0)', mid: 'rgb(255, 140, 20)', high: 'rgb(255, 160, 40)' },
+    elevationThresholds: { mid: 50, high: 150 },
+  },
+  ANCIENT_OVERGROWN_RUINS: {
+    id: 'ancient_overgrown_ruins', name: 'Ancient Overgrown Ruins', symbol: '🏛️', color: 'fill-gray-700',
+    speedMultiplier: 2.5, visibilityFactor: 0.6, baseInherentVisibilityBonus: -1, prominence: 20, canopyBlockage: 5,
+    isImpassable: false, blocksLineOfSight: true,
+    colors: { low: 'rgb(130, 120, 110)', mid: 'rgb(140, 130, 120)', high: 'rgb(150, 140, 130)' },
+    elevationThresholds: { mid: 100, high: 300 },
+  },
+  METEORITE_IMPACT_CRATER: {
+    id: 'meteorite_impact_crater', name: 'Meteorite Impact Crater', symbol: '🌑', color: 'fill-gray-800',
+    speedMultiplier: 3, visibilityFactor: 0.5, baseInherentVisibilityBonus: -2, prominence: 50, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: true,
+    colors: { low: 'rgb(70, 60, 50)', mid: 'rgb(80, 70, 60)', high: 'rgb(90, 80, 70)' },
+    elevationThresholds: { mid: 0, high: 100 },
+  },
+  SHALLOW_QUICKSAND_PIT: {
+    id: 'shallow_quicksand_pit', name: 'Shallow Quicksand Pit', symbol: '⏳', color: 'fill-yellow-700',
+    speedMultiplier: 4, visibilityFactor: 1, baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(161, 98, 7)', mid: 'rgb(171, 108, 17)', high: 'rgb(181, 118, 27)' },
+    elevationThresholds: { mid: -5, high: 0 },
+  },
+  SINKING_TAR_PITS: {
+    id: 'sinking_tar_pits', name: 'Sinking Tar Pits', symbol: '🕳️', color: 'fill-neutral-900',
+    speedMultiplier: 999, visibilityFactor: 0.3, baseInherentVisibilityBonus: -3, prominence: 0, canopyBlockage: 0,
+    isImpassable: true, blocksLineOfSight: false,
+    colors: { low: 'rgb(20, 20, 20)', mid: 'rgb(30, 30, 30)', high: 'rgb(40, 40, 40)' },
+    elevationThresholds: { mid: -10, high: 0 },
+  },
+  DEEP_MIRE: {
+    id: 'deep_mire', name: 'Deep Mire', symbol: '🕳️', color: 'fill-gray-800',
+    speedMultiplier: 999, visibilityFactor: 0.4, baseInherentVisibilityBonus: -2, prominence: 0, canopyBlockage: 3,
+    isImpassable: true, blocksLineOfSight: false,
+    colors: { low: 'rgb(20, 30, 10)', mid: 'rgb(30, 40, 20)', high: 'rgb(40, 50, 30)' },
+    elevationThresholds: { mid: -20, high: -5 },
+  },
+  IRONLEAF_FOREST: {
+    id: 'ironleaf_forest', name: 'Ironleaf Forest', symbol: '🛡️', color: 'fill-slate-500',
+    speedMultiplier: 2, visibilityFactor: 0.7, baseInherentVisibilityBonus: -1, prominence: 10, canopyBlockage: 10,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(130, 140, 150)', mid: 'rgb(140, 150, 160)', high: 'rgb(150, 160, 170)' },
+    elevationThresholds: { mid: 100, high: 400 },
+  },
+  MOONOAK_FOREST: {
+    id: 'moonlit_oak_forest', name: 'Moon-Oak Forest', symbol: '🌕', color: 'fill-indigo-700',
+    speedMultiplier: 2.5, visibilityFactor: 0.4, baseInherentVisibilityBonus: -2, prominence: 15, canopyBlockage: 20,
+    isImpassable: false, blocksLineOfSight: true,
+    colors: { low: 'rgb(80, 100, 140)', mid: 'rgb(90, 110, 150)', high: 'rgb(100, 120, 160)' },
+    elevationThresholds: { mid: 100, high: 400 },
+  },
+  PETRIFIED_STONE_FOREST: {
+    id: 'petrified_stone_forest', name: 'Petrified Stone Forest', symbol: '🗿', color: 'fill-stone-600',
+    speedMultiplier: 3.5, visibilityFactor: 0.5, baseInherentVisibilityBonus: -2, prominence: 10, canopyBlockage: 5,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(110, 100, 90)', mid: 'rgb(120, 110, 100)', high: 'rgb(130, 120, 110)' },
+    elevationThresholds: { mid: 50, high: 200 },
+  },
+  BIOLUMINESCENT_GROVE: {
+    id: 'bioluminescent_grove', name: 'Bioluminescent Grove', symbol: '✨', color: 'fill-purple-500',
+    speedMultiplier: 2.5, visibilityFactor: 0.4, baseInherentVisibilityBonus: -3, prominence: 5, canopyBlockage: 12,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(70, 20, 120)', mid: 'rgb(80, 30, 130)', high: 'rgb(90, 40, 140)' },
+    elevationThresholds: { mid: -20, high: 30 },
+  },
+  SNOW_CAPPED_MOUNTAIN: {
+    id: 'snow_capped_mountain', name: 'Snow-Capped Mountain', symbol: '🏔️', color: 'fill-blue-100',
+    speedMultiplier: 5, visibilityFactor: 1, baseInherentVisibilityBonus: 2, prominence: 70, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: true,
+    colors: { low: 'rgb(180, 190, 200)', mid: 'rgb(200, 220, 255)', high: 'rgb(230, 240, 255)' },
+    elevationThresholds: { mid: 1500, high: 3000 },
+  },
+  OBSIDIAN_LAVA_FLOW_FIELD: {
+    id: 'obsidian_lava_flow_field', name: 'Obsidian Lava Flow Field', symbol: '🌋', color: 'fill-neutral-700',
+    speedMultiplier: 2.5, visibilityFactor: 0.8, baseInherentVisibilityBonus: 0, prominence: 10, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(40, 40, 50)', mid: 'rgb(50, 50, 60)', high: 'rgb(60, 60, 70)' },
+    elevationThresholds: { mid: 100, high: 500 },
+  },
 
-  // Rocky/Impassable/LOS-blocking
-  CANYON: 'canyon', // Rocky, impassable for ground, sight-blocking
-  CRYSTAL_SPIRES: 'crystal_spires', // Rocky, impassable for ground, sight-blocking
-  ANCIENT_RUINS: 'ancient_ruins', // Rocky, sight-blocking
-  METEORITE_CRATER: 'meteorite_crater', // Rocky, sight-blocking
-  BASALT_COLUMNS: 'basalt_columns', // Rocky, impassable for ground, sight-blocking
-  LUNAR_CRATER: 'lunar_crater', // Rocky, sight-blocking
+  // --- Underground - Traversable ---
+  COMPACT_EARTH_CAVERN: {
+    id: 'compact_earth_cavern', name: 'Compact Earth Cavern', symbol: '🕳️', color: 'fill-gray-600',
+    speedMultiplier: 1, visibilityFactor: 0.7, baseInherentVisibilityBonus: -2, prominence: 0, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(97, 104, 118)', mid: 'rgb(107, 114, 128)', high: 'rgb(117, 124, 138)' },
+    elevationThresholds: { mid: -1000, high: -200 },
+  },
+  NATURAL_CAVE_TUNNEL: {
+    id: 'natural_cave_tunnel', name: 'Natural Cave Tunnel', symbol: '↦', color: 'fill-gray-800',
+    speedMultiplier: 1.2, visibilityFactor: 0.2, baseInherentVisibilityBonus: -4, prominence: 0, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: true,
+    colors: { low: 'rgb(21, 31, 45)', mid: 'rgb(31, 41, 55)', high: 'rgb(41, 51, 65)' },
+    elevationThresholds: { mid: -2000, high: -500 },
+  },
+  SUBTERRANEAN_RIVER_BED: {
+    id: 'subterranean_river_bed', name: 'Subterranean River Bed', symbol: '🏞️', color: 'fill-blue-800',
+    speedMultiplier: 3, visibilityFactor: 0.4, baseInherentVisibilityBonus: -3, prominence: 0, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(20, 54, 165)', mid: 'rgb(30, 64, 175)', high: 'rgb(40, 74, 185)' },
+    elevationThresholds: { mid: -1500, high: -400 },
+  },
+  LUMINOUS_CRYSTAL_CAVERNS: {
+    id: 'luminous_crystal_caverns', name: 'Luminous Crystal Caverns', symbol: '💎', color: 'fill-cyan-400',
+    speedMultiplier: 1.5, visibilityFactor: 0.9, baseInherentVisibilityBonus: -1, prominence: 2, canopyBlockage: 2,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(93, 222, 239)', mid: 'rgb(103, 232, 249)', high: 'rgb(113, 242, 255)' },
+    elevationThresholds: { mid: -800, high: -300 },
+  },
+  UNDERGROUND_FUNGI_FOREST: {
+    id: 'underground_fungi_forest', name: 'Underground Fungi Forest', symbol: '🍄', color: 'fill-purple-600',
+    speedMultiplier: 2, visibilityFactor: 0.3, baseInherentVisibilityBonus: -2, prominence: 3, canopyBlockage: 10,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(158, 75, 237)', mid: 'rgb(168, 85, 247)', high: 'rgb(178, 95, 255)' },
+    elevationThresholds: { mid: -600, high: -150 },
+  },
+  GLOWWORM_LIT_CAVE: {
+    id: 'glowworm_lit_cave', name: 'Glowworm-Lit Cave', symbol: '✨', color: 'fill-sky-700',
+    speedMultiplier: 1.5, visibilityFactor: 0.6, baseInherentVisibilityBonus: -1, prominence: 0, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(70, 90, 110)', mid: 'rgb(80, 100, 120)', high: 'rgb(90, 110, 130)' },
+    elevationThresholds: { mid: -1200, high: -300 },
+  },
+  COOLING_MAGMA_TUBE: {
+    id: 'cooling_magma_tube', name: 'Cooling Magma Tube', symbol: '🌋', color: 'fill-red-900',
+    speedMultiplier: 1.2, visibilityFactor: 0.1, baseInherentVisibilityBonus: -5, prominence: 0, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(45, 15, 15)', mid: 'rgb(55, 25, 25)', high: 'rgb(65, 35, 35)' },
+    elevationThresholds: { mid: -2500, high: -1000 },
+  },
 
-  // Underground Terrains (Extended)
-  GLOWWORM_CAVE: 'glowworm_cave',
-  SUBTERRANEAN_FOREST: 'subterranean_forest',
-  CHASM: 'chasm', // Impassable for ground, sight-blocking
-  MAGMA_CAVERN: 'magma_cavern', // Impassable, hazardous
+  // --- Underground - Impassable Geology/Barriers ---
+  SHEER_GRANITE_WALL: {
+    id: 'sheer_granite_wall', name: 'Sheer Granite Wall', symbol: '⛰️', color: 'fill-gray-700',
+    speedMultiplier: 999, visibilityFactor: 0, baseInherentVisibilityBonus: -10, prominence: 100, canopyBlockage: 0,
+    isImpassable: true, blocksLineOfSight: true,
+    colors: { dark: 'rgb(100, 90, 80)', light: 'rgb(120, 110, 100)' },
+    elevationThresholds: { light: -1000 },
+  },
+  BASALT_COLUMN_BARRIER: {
+    id: 'basalt_column_barrier', name: 'Basalt Column Barrier', symbol: '🪨', color: 'fill-slate-900',
+    speedMultiplier: 999, visibilityFactor: 0, baseInherentVisibilityBonus: -10, prominence: 100, canopyBlockage: 0,
+    isImpassable: true, blocksLineOfSight: true,
+    colors: { dark: 'rgb(50, 50, 60)', light: 'rgb(70, 70, 80)' },
+    elevationThresholds: { light: -1000 },
+  },
+  QUARTZ_CRYSTAL_SPINES: {
+    id: 'quartz_crystal_spines', name: 'Quartz Crystal Spines', symbol: '💎', color: 'fill-cyan-500',
+    speedMultiplier: 999, visibilityFactor: 0, baseInherentVisibilityBonus: -5, prominence: 100, canopyBlockage: 0,
+    isImpassable: true, blocksLineOfSight: true,
+    colors: { dark: 'rgb(190, 230, 245)', light: 'rgb(210, 250, 255)' },
+    elevationThresholds: { light: -1000 },
+  },
+  LIMESTONE_FLOWSTONE_WALL: {
+    id: 'limestone_flowstone_wall', name: 'Limestone Flowstone Wall', symbol: '⛰️', color: 'fill-amber-400',
+    speedMultiplier: 999, visibilityFactor: 0, baseInherentVisibilityBonus: -2, prominence: 15, canopyBlockage: 5,
+    isImpassable: true, blocksLineOfSight: true,
+    colors: { dark: 'rgb(160, 150, 140)', light: 'rgb(180, 170, 160)' },
+    elevationThresholds: { light: -1000 },
+  },
+  SOLID_OBSIDIAN_WALL: {
+    id: 'solid_obsidian_wall', name: 'Solid Obsidian Wall', symbol: '🔮', color: 'fill-gray-900',
+    speedMultiplier: 999, visibilityFactor: 0, baseInherentVisibilityBonus: -10, prominence: 100, canopyBlockage: 0,
+    isImpassable: true, blocksLineOfSight: true,
+    colors: { dark: 'rgb(0,0,0)', light: 'rgb(10, 5, 15)' },
+    elevationThresholds: { light: -1000 },
+  },
+  MARBLE_STRATA_WALL: {
+    id: 'marble_strata_wall', name: 'Marble Strata Wall', symbol: '🧱', color: 'fill-gray-200',
+    speedMultiplier: 999, visibilityFactor: 0, baseInherentVisibilityBonus: -10, prominence: 100, canopyBlockage: 0,
+    isImpassable: true, blocksLineOfSight: true,
+    colors: { dark: 'rgb(180, 170, 160)', light: 'rgb(200, 190, 180)' },
+    elevationThresholds: { light: -1000 },
+  },
+  COMPACTED_CLAY_DEPOSIT: {
+    id: 'compacted_clay_deposit', name: 'Compacted Clay Deposit', symbol: '🕳️', color: 'fill-amber-900',
+    speedMultiplier: 999, visibilityFactor: 0, baseInherentVisibilityBonus: -5, prominence: 50, canopyBlockage: 0,
+    isImpassable: true, blocksLineOfSight: true,
+    colors: { dark: 'rgb(130, 90, 50)', light: 'rgb(150, 110, 70)' },
+    elevationThresholds: { light: -500 },
+  },
+  ADAMANTINE_ORE_VEIN: {
+    id: 'adamantine_ore_vein', name: 'Adamantine Ore Vein', symbol: '💎', color: 'fill-slate-800',
+    speedMultiplier: 999, visibilityFactor: 0, baseInherentVisibilityBonus: -10, prominence: 100, canopyBlockage: 0,
+    isImpassable: true, blocksLineOfSight: true,
+    colors: { dark: 'rgb(40, 50, 60)', light: 'rgb(60, 70, 80)' },
+    elevationThresholds: { light: -2000 },
+  },
+  DEEP_SUBTERRANEAN_CHASM: {
+    id: 'deep_subterranean_chasm', name: 'Deep Subterranean Chasm', symbol: '⚫', color: 'fill-black',
+    speedMultiplier: 999, visibilityFactor: 0, baseInherentVisibilityBonus: -10, prominence: 100, canopyBlockage: 0,
+    isImpassable: true, blocksLineOfSight: true,
+    colors: { dark: 'rgb(0,0,0)', light: 'rgb(20,20,20)' },
+    elevationThresholds: { light: -4000 },
+  },
+  VOLCANIC_LAVA_RIVER: {
+    id: 'volcanic_lava_river', name: 'Volcanic Lava River', symbol: '🔥', color: 'fill-red-800',
+    speedMultiplier: 999, visibilityFactor: 0.1, baseInherentVisibilityBonus: -5, prominence: 0, canopyBlockage: 0,
+    isImpassable: true, blocksLineOfSight: false,
+    colors: { cool: 'rgb(200, 50, 0)', hot: 'rgb(255, 150, 50)' },
+    elevationThresholds: { hot: -1500 },
+  },
 
-  // Underwater Terrains (Extended)
-  HYDROTHERMAL_VENTS: 'hydrothermal_vents', // Impassable, hazardous
-  SUBMARINE_CANYON: 'submarine_canyon', // Impassable for submersible, sight-blocking
+  // --- Aquatic - Underwater ---
+  COASTAL_SHALLOWS: {
+    id: 'coastal_shallows', name: 'Coastal Shallows', symbol: '🌊', color: 'fill-cyan-400',
+    speedMultiplier: 1.5, visibilityFactor: 0.8, baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { deep: 'rgb(46, 179, 238)', mid: 'rgb(56, 189, 248)', shallow: 'rgb(66, 199, 255)' },
+    elevationThresholds: { mid: -50, shallow: -10 },
+  },
+  VIBRANT_CORAL_REEF: {
+    id: 'vibrant_coral_reef', name: 'Vibrant Coral Reef', symbol: '🐠', color: 'fill-pink-400',
+    speedMultiplier: 1.8, visibilityFactor: 0.7, baseInherentVisibilityBonus: -1, prominence: 2, canopyBlockage: 5,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { deep: 'rgb(239, 158, 202)', mid: 'rgb(249, 168, 212)', shallow: 'rgb(255, 178, 222)' },
+    elevationThresholds: { mid: -40, shallow: -15 },
+  },
+  DENSE_KELP_FOREST: {
+    id: 'dense_kelp_forest', name: 'Dense Kelp Forest', symbol: '🌿', color: 'fill-teal-600',
+    speedMultiplier: 2.5, visibilityFactor: 0.4, baseInherentVisibilityBonus: -2, prominence: 3, canopyBlockage: 15,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { deep: 'rgb(5, 108, 100)', mid: 'rgb(15, 118, 110)', shallow: 'rgb(25, 128, 120)' },
+    elevationThresholds: { mid: -100, shallow: -30 },
+  },
+  ABYSSAL_OCEAN_FLOOR: {
+    id: 'abyssal_ocean_floor', name: 'Abyssal Ocean Floor', symbol: '🌑', color: 'fill-blue-900',
+    speedMultiplier: 2, visibilityFactor: 0.3, baseInherentVisibilityBonus: -2, prominence: 0, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { deep: 'rgb(7, 14, 29)', mid: 'rgb(17, 24, 39)', high: 'rgb(27, 34, 49)' },
+    elevationThresholds: { mid: -4000, high: -1000 },
+  },
+  HYDROTHERMAL_VENT_FIELD: {
+    id: 'hydrothermal_vent_field', name: 'Hydrothermal Vent Field', symbol: '🫧', color: 'fill-gray-950',
+    speedMultiplier: 999, visibilityFactor: 0.05, baseInherentVisibilityBonus: -10, prominence: 0, canopyBlockage: 0,
+    isImpassable: true, blocksLineOfSight: false,
+    colors: { deep: 'rgb(0,0,10)', mid: 'rgb(5, 5, 20)', high: 'rgb(10, 10, 30)' },
+    elevationThresholds: { mid: -5000, high: -2000 },
+  },
+  OCEANIC_TRENCH: {
+    id: 'oceanic_trench', name: 'Oceanic Trench', symbol: '↯', color: 'fill-black',
+    speedMultiplier: 3, visibilityFactor: 0.05, baseInherentVisibilityBonus: -5, prominence: 0, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { deepest: 'rgb(0,0,0)', mid: 'rgb(0,0,5)', upper: 'rgb(0,0,10)' },
+    elevationThresholds: { mid: -8000, upper: -4000 },
+  },
 
-  // Sky Terrains
-  OPEN_SKY: 'open_sky', // Default sky environment
-  STRONG_WIND_CURRENTS: 'strong_wind_currents',
-  THUNDERHEAD_CLOUD: 'thunderhead_cloud', // Blocks LOS, difficult
-  CELESTIAL_ISLAND: 'celestial_island', // Floating landmass, blocks LOS
+  // --- Sky - Traversable & Structures ---
+  CLEAR_SKY: {
+    id: 'clear_sky', name: 'Clear Sky', symbol: '☁️', color: 'fill-sky-300',
+    speedMultiplier: 0.5, visibilityFactor: 1.5, baseInherentVisibilityBonus: 2, prominence: 0, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(125, 196, 225)', mid: 'rgb(135, 206, 235)', high: 'rgb(145, 216, 245)' },
+    elevationThresholds: { mid: 10000, high: 20000 },
+  },
+  TURBULENT_AIR_CURRENTS: {
+    id: 'turbulent_air_currents', name: 'Turbulent Air Currents', symbol: '🌬️', color: 'fill-sky-400',
+    speedMultiplier: 2, visibilityFactor: 0.8, baseInherentVisibilityBonus: -1, prominence: 0, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(90, 170, 210)', mid: 'rgb(100, 180, 220)', high: 'rgb(110, 190, 230)' },
+    elevationThresholds: { mid: 8000, high: 16000 },
+  },
+  FLOATING_EARTHMOTE_CLUSTER: {
+    id: 'floating_earthmote_cluster', name: 'Floating Earthmote Cluster', symbol: '🏝️', color: 'fill-amber-700',
+    speedMultiplier: 1.2, visibilityFactor: 1, baseInherentVisibilityBonus: 1, prominence: 50, canopyBlockage: 10,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(170, 140, 90)', mid: 'rgb(180, 150, 100)', high: 'rgb(190, 160, 110)' },
+    elevationThresholds: { mid: 5000, high: 10000 },
+  },
+  CELESTIAL_SKY_ISLAND: {
+    id: 'celestial_sky_island', name: 'Celestial Sky Island', symbol: '🏝️', color: 'fill-yellow-100',
+    speedMultiplier: 1.2, visibilityFactor: 1, baseInherentVisibilityBonus: 1, prominence: 50, canopyBlockage: 10,
+    isImpassable: false, blocksLineOfSight: true,
+    colors: { low: 'rgb(244, 239, 185)', mid: 'rgb(254, 249, 195)', high: 'rgb(255, 255, 205)' },
+    elevationThresholds: { mid: 15000, high: 25000 },
+  },
+
+  // --- Post-Descent & Planar Anomalies ---
+  ETERNAL_BATTLEFIELD_PLAINS: {
+    id: 'eternal_battlefield_plains', name: 'Eternal Battlefield Plains', symbol: '⚔️', color: 'fill-slate-600',
+    speedMultiplier: 1.2, visibilityFactor: 0.8, baseInherentVisibilityBonus: -1, prominence: 0, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(140, 140, 150)', mid: 'rgb(150, 150, 160)', high: 'rgb(160, 160, 170)' },
+    elevationThresholds: { mid: 100, high: 400 },
+  },
+  ARCANE_RADIATION_WASTES: {
+    id: 'arcane_radiation_wastes', name: 'Arcane Radiation Wastes', symbol: '☢️', color: 'fill-purple-700',
+    speedMultiplier: 1.5, visibilityFactor: 1.1, baseInherentVisibilityBonus: -2, prominence: 5, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(170, 140, 190)', mid: 'rgb(180, 150, 200)', high: 'rgb(190, 160, 210)' },
+    elevationThresholds: { mid: 200, high: 800 },
+  },
+  NON_EUCLIDEAN_RUINS: {
+    id: 'non_euclidean_ruins', name: 'Non-Euclidean Ruins', symbol: '🌀', color: 'fill-indigo-800',
+    speedMultiplier: 4, visibilityFactor: 0.5, baseInherentVisibilityBonus: -3, prominence: 20, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: true,
+    colors: { low: 'rgb(110, 70, 140)', mid: 'rgb(120, 80, 150)', high: 'rgb(130, 90, 160)' },
+    elevationThresholds: { mid: 500, high: 1500 },
+  },
+  FLESHCRAFTING_LABORATORY: {
+    id: 'fleshcrafting_laboratory', name: 'Fleshcrafting Laboratory', symbol: '🧬', color: 'fill-red-900',
+    speedMultiplier: 1.2, visibilityFactor: 0.7, baseInherentVisibilityBonus: -1, prominence: 0, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(170, 70, 70)', mid: 'rgb(180, 80, 80)', high: 'rgb(190, 90, 90)' },
+    elevationThresholds: { mid: 0, high: 50 },
+  },
+  WHITE_ASH_NECROPOLIS: {
+    id: 'white_ash_necropolis', name: 'White Ash Necropolis', symbol: '💀', color: 'fill-gray-300',
+    speedMultiplier: 1.3, visibilityFactor: 0.9, baseInherentVisibilityBonus: 0, prominence: 10, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(200, 200, 210)', mid: 'rgb(210, 210, 220)', high: 'rgb(220, 220, 230)' },
+    elevationThresholds: { mid: 100, high: 300 },
+  },
+  REALITY_CANCER_FLESHLANDS: {
+    id: 'reality_cancer_fleshlands', name: 'Reality-Cancer Fleshlands', symbol: '🦠', color: 'fill-pink-800',
+    speedMultiplier: 4, visibilityFactor: 0.6, baseInherentVisibilityBonus: -4, prominence: 15, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(190, 40, 90)', mid: 'rgb(200, 50, 100)', high: 'rgb(210, 60, 110)' },
+    elevationThresholds: { mid: 0, high: 100 },
+  },
+  FEY_EMOTION_LANDSCAPE: {
+    id: 'fey_emotion_landscape', name: 'Fey Emotion-Landscape', symbol: '🎭', color: 'fill-fuchsia-400',
+    speedMultiplier: 2.5, visibilityFactor: 0.7, baseInherentVisibilityBonus: -1, prominence: 10, canopyBlockage: 10,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(210, 90, 245)', mid: 'rgb(220, 100, 255)', high: 'rgb(230, 110, 255)' },
+    elevationThresholds: { mid: 50, high: 250 },
+  },
+  AERIAL_VORTEX: {
+    id: 'aerial_vortex', name: 'Aerial Vortex', symbol: '🌀', color: 'fill-purple-900',
+    speedMultiplier: 999, visibilityFactor: 0.1, baseInherentVisibilityBonus: -10, prominence: 0, canopyBlockage: 0,
+    isImpassable: true, blocksLineOfSight: false,
+    colors: { low: 'rgb(20, 0, 40)', mid: 'rgb(30, 0, 50)', high: 'rgb(40, 0, 60)' },
+    elevationThresholds: { mid: 10000, high: 20000 },
+  },
+  FLOATING_MOUNTAIN_BARRIER: {
+    id: 'floating_mountain_barrier', name: 'Floating Mountain Barrier', symbol: '☁️🏔️', color: 'fill-slate-500',
+    speedMultiplier: 999, visibilityFactor: 0.5, baseInherentVisibilityBonus: 5, prominence: 100, canopyBlockage: 0,
+    isImpassable: true, blocksLineOfSight: true,
+    colors: { low: 'rgb(90, 110, 130)', mid: 'rgb(100, 120, 140)', high: 'rgb(110, 130, 150)' },
+    elevationThresholds: { mid: 8000, high: 15000 },
+  },
+
+  // --- New Terrains from Lore ---
+  SPECTRAL_RAIN_ZONE: {
+    id: 'spectral_rain_zone', name: 'Spectral Rain Zone', symbol: '💧', color: 'fill-slate-400',
+    speedMultiplier: 1.1, visibilityFactor: 0.7, baseInherentVisibilityBonus: -1, prominence: 0, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(160, 160, 180)', mid: 'rgb(170, 170, 190)', high: 'rgb(180, 180, 200)' },
+    elevationThresholds: { mid: 50, high: 200 },
+  },
+  ECHO_STORM_FIELD: {
+    id: 'echo_storm_field', name: 'Echo Storm Field', symbol: '🌩️', color: 'fill-indigo-400',
+    speedMultiplier: 2.0, visibilityFactor: 0.5, baseInherentVisibilityBonus: -3, prominence: 5, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: true,
+    colors: { low: 'rgb(120, 120, 140)', mid: 'rgb(130, 130, 150)', high: 'rgb(140, 140, 160)' },
+    elevationThresholds: { mid: 100, high: 500 },
+  },
+  ETERNAL_WEEPING_HILLS: {
+    id: 'eternal_weeping_hills', name: 'Eternal Weeping Hills', symbol: '😢', color: 'fill-teal-800',
+    speedMultiplier: 1.5, visibilityFactor: 0.8, baseInherentVisibilityBonus: 1, prominence: 15, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(100, 130, 120)', mid: 'rgb(110, 140, 130)', high: 'rgb(120, 150, 140)' },
+    elevationThresholds: { mid: 200, high: 500 },
+  },
+  VOID_QUARTZ_VEINS: {
+    id: 'void_quartz_veins', name: 'Void Quartz Veins', symbol: '🔮', color: 'fill-purple-900',
+    speedMultiplier: 1.8, visibilityFactor: 1, baseInherentVisibilityBonus: 0, prominence: 2, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(10, 0, 20)', mid: 'rgb(20, 5, 30)', high: 'rgb(30, 10, 40)' },
+    elevationThresholds: { mid: 0, high: 200 },
+  },
+  FLOATING_RUIN_FIELD: {
+    id: 'floating_ruin_field', name: 'Floating Ruin Field', symbol: '🏛️', color: 'fill-gray-600',
+    speedMultiplier: 1.3, visibilityFactor: 1.2, baseInherentVisibilityBonus: 2, prominence: 30, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(110, 110, 120)', mid: 'rgb(120, 120, 130)', high: 'rgb(130, 130, 140)' },
+    elevationThresholds: { mid: 4000, high: 8000 },
+  },
+  UNSTABLE_LEY_LINE_CONFLUX: {
+    id: 'unstable_ley_line_conflux', name: 'Unstable Ley Line Conflux', symbol: '💥', color: 'fill-fuchsia-600',
+    speedMultiplier: 3.0, visibilityFactor: 0.6, baseInherentVisibilityBonus: -2, prominence: 10, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(150, 50, 200)', mid: 'rgb(170, 70, 220)', high: 'rgb(190, 90, 240)' },
+    elevationThresholds: { mid: 100, high: 500 },
+  },
+  CRIMSON_WIDOWS_VEIL_FIELD: {
+    id: 'crimson_widows_veil_field', name: "Crimson Widow's Veil Field", symbol: '🍄', color: 'fill-red-700',
+    speedMultiplier: 1.8, visibilityFactor: 0.4, baseInherentVisibilityBonus: -2, prominence: 5, canopyBlockage: 8,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(150, 20, 20)', mid: 'rgb(180, 30, 30)', high: 'rgb(210, 40, 40)' },
+    elevationThresholds: { mid: 0, high: 100 },
+  },
+  MARROW_CAP_GROVE: {
+    id: 'marrow_cap_grove', name: 'Marrow Cap Grove', symbol: '🦴', color: 'fill-stone-300',
+    speedMultiplier: 1.2, visibilityFactor: 0.9, baseInherentVisibilityBonus: 0, prominence: 2, canopyBlockage: 5,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(200, 200, 180)', mid: 'rgb(210, 210, 190)', high: 'rgb(220, 220, 200)' },
+    elevationThresholds: { mid: 50, high: 150 },
+  },
+  ASHEN_BONE_PLAINS: {
+    id: 'ashen_bone_plains', name: 'Ashen Bone Plains', symbol: '💀', color: 'fill-gray-400',
+    speedMultiplier: 1.1, visibilityFactor: 1.1, baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(190, 190, 190)', mid: 'rgb(200, 200, 200)', high: 'rgb(210, 210, 210)' },
+    elevationThresholds: { mid: 100, high: 300 },
+  },
+  HARMONIC_CRYSTAL_PILLARS: {
+    id: 'harmonic_crystal_pillars', name: 'Harmonic Crystal Pillars', symbol: '💎', color: 'fill-teal-400',
+    speedMultiplier: 2.2, visibilityFactor: 0.8, baseInherentVisibilityBonus: 0, prominence: 30, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: true,
+    colors: { low: 'rgb(100, 180, 180)', mid: 'rgb(120, 200, 200)', high: 'rgb(140, 220, 220)' },
+    elevationThresholds: { mid: 200, high: 800 },
+  },
+  TELLURIC_FLUX_ZONE: {
+    id: 'telluric_flux_zone', name: 'Telluric Flux Zone', symbol: '🌍', color: 'fill-amber-800',
+    speedMultiplier: 1.8, visibilityFactor: 0.7, baseInherentVisibilityBonus: -1, prominence: 10, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(140, 100, 60)', mid: 'rgb(160, 120, 80)', high: 'rgb(180, 140, 100)' },
+    elevationThresholds: { mid: 0, high: 200 },
+  },
+  LIVING_MIST_SEA: {
+    id: 'living_mist_sea', name: 'Living Mist Sea', symbol: '🌫️', color: 'fill-slate-500',
+    speedMultiplier: 1.5, visibilityFactor: 0.1, baseInherentVisibilityBonus: -4, prominence: 0, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: true,
+    colors: { low: 'rgb(140, 150, 160)', mid: 'rgb(160, 170, 180)', high: 'rgb(180, 190, 200)' },
+    elevationThresholds: { mid: 50, high: 250 },
+  },
+  ECHO_BAZAAR: {
+    id: 'echo_bazaar', name: 'Echo Bazaar', symbol: '🗣️', color: 'fill-violet-600',
+    speedMultiplier: 1, visibilityFactor: 0.9, baseInherentVisibilityBonus: -1, prominence: 5, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(120, 100, 130)', mid: 'rgb(140, 120, 150)', high: 'rgb(160, 140, 170)' },
+    elevationThresholds: { mid: 0, high: 100 },
+  },
+  FROZEN_SOUL_GLACIER: {
+    id: 'frozen_soul_glacier', name: 'Frozen Soul Glacier', symbol: '🧊', color: 'fill-sky-300',
+    speedMultiplier: 3, visibilityFactor: 1, baseInherentVisibilityBonus: 1, prominence: 40, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(150, 180, 220)', mid: 'rgb(170, 200, 240)', high: 'rgb(190, 220, 255)' },
+    elevationThresholds: { mid: 1000, high: 2500 },
+  },
+  WHITE_BLOOD_SNOWFIELD: {
+    id: 'white_blood_snowfield', name: 'White Blood Snowfield', symbol: '❄️', color: 'fill-gray-200',
+    speedMultiplier: 1.6, visibilityFactor: 0.8, baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(220, 210, 210)', mid: 'rgb(230, 220, 220)', high: 'rgb(240, 230, 230)' },
+    elevationThresholds: { mid: 500, high: 1500 },
+  },
+  KRAKEN_BONE_TRENCH: {
+    id: 'kraken_bone_trench', name: 'Kraken Bone Trench', symbol: '🐙', color: 'fill-slate-800',
+    speedMultiplier: 2.5, visibilityFactor: 0.2, baseInherentVisibilityBonus: -3, prominence: 0, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(20, 20, 40)', mid: 'rgb(30, 30, 50)', high: 'rgb(40, 40, 60)' },
+    elevationThresholds: { mid: -5000, high: -2000 },
+  },
+  WHISPERING_JELLYFISH_SWARM: {
+    id: 'whispering_jellyfish_swarm', name: 'Whispering Jellyfish Swarm', symbol: '🎐', color: 'fill-blue-300',
+    speedMultiplier: 1.8, visibilityFactor: 0.6, baseInherentVisibilityBonus: -1, prominence: 0, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(150, 150, 220)', mid: 'rgb(170, 170, 240)', high: 'rgb(190, 190, 255)' },
+    elevationThresholds: { mid: -500, high: -100 },
+  },
+  OBSIDIAN_ZIGGURAT_RUINS: {
+    id: 'obsidian_ziggurat_ruins', name: 'Obsidian Ziggurat Ruins', symbol: '🔺', color: 'fill-black',
+    speedMultiplier: 2, visibilityFactor: 0.7, baseInherentVisibilityBonus: 1, prominence: 40, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: true,
+    colors: { low: 'rgb(25, 10, 30)', mid: 'rgb(35, 15, 40)', high: 'rgb(45, 20, 50)' },
+    elevationThresholds: { mid: 100, high: 400 },
+  },
+  BLOODVINE_JUNGLE: {
+    id: 'bloodvine_jungle', name: 'Bloodvine Jungle', symbol: '🩸', color: 'fill-red-800',
+    speedMultiplier: 3.8, visibilityFactor: 0.1, baseInherentVisibilityBonus: -3, prominence: 12, canopyBlockage: 30,
+    isImpassable: false, blocksLineOfSight: true,
+    colors: { low: 'rgb(100, 20, 30)', mid: 'rgb(120, 30, 40)', high: 'rgb(140, 40, 50)' },
+    elevationThresholds: { mid: 50, high: 300 },
+  },
+  SILVERDEW_SPRING: {
+    id: 'silverdew_spring', name: 'Silverdew Spring', symbol: '💧', color: 'fill-cyan-100',
+    speedMultiplier: 1, visibilityFactor: 1.1, baseInherentVisibilityBonus: 1, prominence: 1, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(180, 200, 210)', mid: 'rgb(200, 220, 230)', high: 'rgb(220, 240, 250)' },
+    elevationThresholds: { mid: 50, high: 200 },
+  },
+  FLESHFORGED_DEMON_CITADEL: {
+    id: 'fleshforged_demon_citadel', name: 'Fleshforged Demon Citadel', symbol: '👹', color: 'fill-rose-900',
+    speedMultiplier: 1.5, visibilityFactor: 0.6, baseInherentVisibilityBonus: -2, prominence: 60, canopyBlockage: 0,
+    isImpassable: false, blocksLineOfSight: true,
+    colors: { low: 'rgb(110, 50, 60)', mid: 'rgb(130, 60, 70)', high: 'rgb(150, 70, 80)' },
+    elevationThresholds: { mid: 100, high: 500 },
+  },
+  VOID_FUNGUS_CAVERNS: {
+    id: 'void_fungus_caverns', name: 'Void Fungus Caverns', symbol: '🍄', color: 'fill-indigo-900',
+    speedMultiplier: 2.2, visibilityFactor: 0.2, baseInherentVisibilityBonus: -4, prominence: 5, canopyBlockage: 15,
+    isImpassable: false, blocksLineOfSight: false,
+    colors: { low: 'rgb(40, 30, 50)', mid: 'rgb(60, 50, 70)', high: 'rgb(80, 70, 90)' },
+    elevationThresholds: { mid: -2000, high: -800 },
+  },
 };
 
-export const HEX_SIZE = 30;
-export const INITIAL_GRID_WIDTH = 12;
-export const INITIAL_GRID_HEIGHT = 8;
-export const MIN_GRID_DIMENSION = 1;
-export const MAX_GRID_DIMENSION = 50;
+// ==================================================================
+// GENERATED CONFIGURATIONS
+// These exports are generated from TERRAIN_METADATA for use in the application.
+// Do not edit these directly. Modify TERRAIN_METADATA instead.
+// ==================================================================
 
-export const MIN_ELEVATION = -16000; // Deepest ocean trench / underground abyss
-export const MAX_ELEVATION = 46000; // Highest mountain / lower stratosphere
-export const ELEVATION_STEP = 100; // Default step for increase/decrease
-export const DEFAULT_CUSTOM_ELEVATION_STEP = 100; // Default for the input field
-export const DEFAULT_SET_ELEVATION_VALUE = 0; // Default for "Set to..."
-export const INITIAL_ELEVATION = 0;
-export const INITIAL_BASE_VISIBILITY = 1;
+/**
+ * An enum-like object for referencing terrain types programmatically.
+ * e.g., TerrainType.OAK_FOREST returns 'oak_forest'
+ */
+export const TerrainType = Object.fromEntries(
+  Object.entries(TERRAIN_METADATA).map(([key, data]) => [key, data.id])
+);
 
-export const DEFAULT_HEX_SIZE_VALUE = 5;
-export const DEFAULT_HEX_SIZE_UNIT = 'km';
-export const DEFAULT_HEX_TRAVERSAL_TIME_VALUE = 1;
-export const DEFAULT_HEX_TRAVERSAL_TIME_UNIT = 'hour';
+/**
+ * The main configuration object used by the application, keyed by terrain ID string.
+ * This loop constructs the object and its `elevationColor` functions from the master data.
+ */
+export const TERRAIN_TYPES_CONFIG = Object.fromEntries(
+  Object.entries(TERRAIN_METADATA).map(([key, data]) => {
+    const { colors, elevationThresholds, ...gameplayData } = data;
+    
+    const finalConfig = {
+      ...gameplayData,
+      elevationColor: (elevation) => {
+        // Handle two-color terrains (like impassable walls)
+        if (elevationThresholds.light !== undefined && colors.light && colors.dark) {
+          return elevation < elevationThresholds.light ? colors.dark : colors.light;
+        }
+        // Handle two-color terrains (like lava rivers)
+        if (elevationThresholds.hot !== undefined && colors.hot && colors.cool) {
+          return elevation < elevationThresholds.hot ? colors.cool : colors.hot;
+        }
+        // Handle three-color terrains (most common type)
+        if (elevationThresholds.mid !== undefined && elevationThresholds.high !== undefined) {
+          if (elevation < elevationThresholds.mid) return colors.low;
+          if (elevation < elevationThresholds.high) return colors.mid;
+          return colors.high;
+        }
+        // Handle three-color terrains for underwater depths
+        if (elevationThresholds.mid !== undefined && elevationThresholds.shallow !== undefined) {
+            if (elevation < elevationThresholds.mid) return colors.deep;
+            if (elevation < elevationThresholds.shallow) return colors.mid;
+            return colors.shallow;
+        }
+        // Handle three-color terrains for deep ocean/trenches
+        if (elevationThresholds.mid !== undefined && elevationThresholds.upper !== undefined) {
+          if (elevation < elevationThresholds.mid) return colors.deepest;
+          if (elevation < elevationThresholds.upper) return colors.mid;
+          return colors.upper;
+      }
+        // Fallback for any misconfigured or single-color terrains
+        return colors.low || colors.dark || colors.cool || Object.values(colors)[0];
+      }
+    };
 
-export const DISTANCE_UNITS = [
-    { key: 'm', label: 'Meters' },
-    { key: 'km', label: 'Kilometers' },
-    { key: 'mi', label: 'Miles' },
-    { key: 'ft', label: 'Feet' },
-    { key: 'ly', label: 'Light Years' }
-];
-
-export const TIME_UNITS = [
-    { key: 'second', label: 'Seconds' },
-    { key: 'minute', label: 'Minutes' },
-    { key: 'hour', label: 'Hours' },
-    { key: 'day', label: 'Days' },
-    { key: 'week', label: 'Weeks' },
-    { key: 'month', label: 'Months' },
-    { key: 'year', label: 'Years' }
-];
-
-export const MIN_BRUSH_SIZE = 1;
-export const MAX_BRUSH_SIZE = 5;
-export const DEFAULT_BRUSH_SIZE = 1;
-
-export const ELEVATION_VISIBILITY_STEP_BONUS = 200;
-export const OBSERVER_EYE_HEIGHT_M = 5;
-export const TARGET_VISIBILITY_THRESHOLD_M = 1;
-export const PROFILE_LOS_BLOCKAGE_MARGIN = 1;
-export const ELEVATION_TIME_PENALTY_FACTOR_PER_100M = 0.15;
-export const FOREST_CANOPY_BLOCKAGE_ADDITION = 15;
-export const THICK_FOREST_CANOPY_BLOCKAGE_ADDITION = 20;
-export const YOUNG_FOREST_CANOPY_BLOCKAGE_ADDITION = 10;
-export const JUNGLE_CANOPY_BLOCKAGE_ADDITION = 25;
-export const HILLS_TERRAIN_BLOCKAGE_ADDITION = 5;
-export const ENCOUNTER_FEATURE_ICON = "⚠️";
-
-export const FEATURE_ICON_COLORS = [
-    { name: "Default Yellow", class: "fill-yellow-200" },
-    { name: "Bright Red", class: "fill-red-500" },
-    { name: "Sky Blue", class: "fill-sky-400" },
-    { name: "Lime Green", class: "fill-lime-500" },
-    { name: "Orange", class: "fill-orange-400" },
-    { name: "Purple", class: "fill-purple-400" },
-    { name: "Pink", class: "fill-pink-400" },
-    { name: "Teal", class: "fill-teal-400" },
-    { name: "White", class: "fill-white" },
-    { name: "Gray", class: "fill-gray-300" }
-];
-
-export const DEFAULT_LANDMARK_ICON_COLOR_CLASS = "fill-yellow-200";
-export const DEFAULT_ENCOUNTER_ICON_COLOR_CLASS = "fill-red-500";
-export const DEFAULT_SECRET_ICON_COLOR_CLASS = "fill-purple-400";
-
-export const PLAINS_LOW_ELEV_COLOR = 'rgb(134, 239, 172)';
-export const PLAINS_MID_ELEV_COLOR = 'rgb(74, 222, 128)';
-export const PLAINS_HIGH_ELEV_COLOR = 'rgb(34, 197, 94)';
-export const FOREST_LOW_ELEV_COLOR = 'rgb(22, 163, 74)';
-export const FOREST_MID_ELEV_COLOR = 'rgb(21, 128, 61)';
-export const FOREST_HIGH_ELEV_COLOR = 'rgb(22, 101, 52)';
-export const THICK_FOREST_LOW_ELEV_COLOR = 'rgb(22, 101, 52)';
-export const THICK_FOREST_MID_ELEV_COLOR = 'rgb(20, 83, 45)';
-export const THICK_FOREST_HIGH_ELEV_COLOR = 'rgb(18, 70, 38)';
-export const YOUNG_FOREST_LOW_ELEV_COLOR = 'rgb(163, 230, 53)';
-export const YOUNG_FOREST_MID_ELEV_COLOR = 'rgb(132, 204, 22)';
-export const YOUNG_FOREST_HIGH_ELEV_COLOR = 'rgb(101, 163, 13)';
-export const HILLS_COLOR_LOW = 'rgb(245, 222, 179)';
-export const HILLS_COLOR_MID = 'rgb(229, 195, 101)';
-export const HILLS_COLOR_HIGH = 'rgb(218, 165, 32)';
-export const MOUNTAIN_COLOR_LOW_SLOPE = 'rgb(160, 120, 80)';
-export const MOUNTAIN_COLOR_MID_SLOPE = 'rgb(100, 70, 40)';
-export const MOUNTAIN_ELEV_MID_SLOPE_END = 1999;
-export const MOUNTAIN_COLOR_SNOW_LINE = 'rgb(250, 250, 250)';
-export const MOUNTAIN_ELEV_SNOW_LINE_START = 2000;
-export const MOUNTAIN_COLOR_ICE_PEAK = 'rgb(200, 220, 255)';
-export const MOUNTAIN_ELEV_ICE_TRANSITION_START = 3000;
-export const MOUNTAIN_ELEV_ICE_PEAK_END = 5000;
-export const MOUNTAIN_LIGHT_SURFACE_TEXT_COLOR = 'fill-gray-800';
-export const SWAMP_LOW_ELEV_COLOR = 'rgb(17, 94, 89)';
-export const SWAMP_MID_ELEV_COLOR = 'rgb(15, 118, 110)';
-export const SWAMP_HIGH_ELEV_COLOR = 'rgb(13, 148, 136)';
-export const DESERT_LOW_ELEV_COLOR = 'rgb(254, 240, 138)';
-export const DESERT_MID_ELEV_COLOR = 'rgb(253, 224, 71)';
-export const DESERT_HIGH_ELEV_COLOR = 'rgb(250, 204, 21)';
-export const JUNGLE_LOW_ELEV_COLOR = 'rgb(6, 78, 59)';
-export const JUNGLE_MID_ELEV_COLOR = 'rgb(6, 95, 70)';
-export const JUNGLE_HIGH_ELEV_COLOR = 'rgb(4, 120, 87)';
-export const BADLANDS_LOW_ELEV_COLOR = 'rgb(154, 52, 18)';
-export const BADLANDS_MID_ELEV_COLOR = 'rgb(194, 65, 12)';
-export const BADLANDS_HIGH_ELEV_COLOR = 'rgb(234, 88, 12)';
-export const WATER_SURFACE_COLOR = 'rgb(3, 105, 161)';
-export const WATER_SHALLOW_DEPTH_COLOR = 'rgb(7, 89, 133)';
-export const WATER_MID_DEPTH_COLOR = 'rgb(30, 58, 138)';
-export const WATER_DEEP_DEPTH_COLOR = 'rgb(30, 64, 175)';
-export const CAVERN_DEEP_COLOR = 'rgb(55, 65, 81)';
-export const CAVERN_MID_COLOR = 'rgb(75, 85, 99)';
-export const CAVERN_HIGH_COLOR = 'rgb(107, 114, 128)';
-export const TUNNEL_COLOR = 'rgb(31, 41, 55)';
-export const MUSHROOM_FOREST_DEEP_COLOR = 'rgb(126, 34, 206)';
-export const MUSHROOM_FOREST_MID_COLOR = 'rgb(147, 51, 234)';
-export const MUSHROOM_FOREST_HIGH_COLOR = 'rgb(168, 85, 247)';
-export const CRYSTAL_CAVE_DEEP_COLOR = 'rgb(6, 182, 212)';
-export const CRYSTAL_CAVE_MID_COLOR = 'rgb(34, 211, 238)';
-export const CRYSTAL_CAVE_HIGH_COLOR = 'rgb(103, 232, 249)';
-export const UNDERGROUND_RIVER_SURFACE_COLOR = 'rgb(30, 64, 175)';
-export const UNDERGROUND_RIVER_DEEP_COLOR = 'rgb(30, 58, 138)';
-export const UNDERGROUND_RIVER_VERY_DEEP_COLOR = 'rgb(31, 41, 55)';
-export const LAVA_TUBE_COLOR = 'rgb(55, 25, 25)';
-export const SHALLOW_WATER_VERY_SHALLOW_COLOR = 'rgb(56, 189, 248)';
-export const SHALLOW_WATER_MID_DEPTH_COLOR = 'rgb(14, 165, 233)';
-export const SHALLOW_WATER_DEEP_COLOR = 'rgb(2, 132, 199)';
-export const DEEP_OCEAN_SURFACE_COLOR = 'rgb(30, 58, 138)';
-export const DEEP_OCEAN_MID_DEPTH_COLOR = 'rgb(23, 37, 84)';
-export const DEEP_OCEAN_VERY_DEEP_COLOR = 'rgb(17, 24, 39)';
-export const CORAL_REEF_SHALLOW_COLOR = 'rgb(249, 168, 212)';
-export const CORAL_REEF_MID_COLOR = 'rgb(244, 114, 182)';
-export const CORAL_REEF_DEEP_COLOR = 'rgb(236, 72, 153)';
-export const KELP_FOREST_SHALLOW_COLOR = 'rgb(20, 184, 166)';
-export const KELP_FOREST_MID_COLOR = 'rgb(13, 148, 136)';
-export const KELP_FOREST_DEEP_COLOR = 'rgb(15, 118, 110)';
-export const TRENCH_UPPER_COLOR = 'rgb(39, 39, 42)';
-export const TRENCH_MID_COLOR = 'rgb(24, 24, 27)';
-export const TRENCH_DEEPEST_COLOR = 'rgb(0, 0, 0)';
-export const SKELETAL_FOREST_LOW_COLOR = 'rgb(156, 163, 175)';
-export const SKELETAL_FOREST_MID_COLOR = 'rgb(209, 213, 219)';
-export const SKELETAL_FOREST_HIGH_COLOR = 'rgb(229, 231, 235)';
-export const ASHEN_WASTELAND_LOW_COLOR = 'rgb(71, 85, 105)';
-export const ASHEN_WASTELAND_MID_COLOR = 'rgb(100, 116, 139)';
-export const ASHEN_WASTELAND_HIGH_COLOR = 'rgb(148, 163, 184)';
-export const BLOOD_MARSH_DEEP_COLOR = 'rgb(153, 27, 27)';
-export const BLOOD_MARSH_MID_COLOR = 'rgb(185, 28, 28)';
-export const BLOOD_MARSH_SHALLOW_COLOR = 'rgb(220, 38, 38)';
-export const MAGMA_LAKE_HOT_COLOR = 'rgb(250, 204, 21)';
-export const MAGMA_LAKE_MID_COLOR = 'rgb(249, 115, 22)';
-export const MAGMA_LAKE_COOLER_COLOR = 'rgb(220, 38, 38)';
-export const VOLCANIC_LOW_COLOR = 'rgb(82, 82, 91)';
-export const VOLCANIC_MID_COLOR = 'rgb(63, 63, 70)';
-export const VOLCANIC_HIGH_COLOR = 'rgb(39, 39, 42)';
-export const FLOATING_ISLAND_LOW_COLOR = 'rgb(252, 211, 77)';
-export const FLOATING_ISLAND_MID_COLOR = 'rgb(253, 230, 138)';
-export const FLOATING_ISLAND_HIGH_COLOR = 'rgb(254, 249, 195)';
-export const ETHEREAL_MIST_DENSE_COLOR = 'rgb(167, 139, 250)';
-export const ETHEREAL_MIST_MID_COLOR = 'rgb(192, 132, 252)';
-export const ETHEREAL_MIST_THIN_COLOR = 'rgb(221, 190, 253)';
-export const QUICKSAND_COLOR = 'rgb(161, 98, 7)';
-export const ICE_PLAIN_LOW_COLOR = 'rgb(103, 232, 249)';
-export const ICE_PLAIN_MID_COLOR = 'rgb(165, 243, 252)';
-export const ICE_PLAIN_HIGH_COLOR = 'rgb(207, 250, 254)';
-export const OBSIDIAN_FIELD_LOW_COLOR = 'rgb(0,0,0)';
-export const OBSIDIAN_FIELD_MID_COLOR = 'rgb(17, 24, 39)';
-export const OBSIDIAN_FIELD_HIGH_COLOR = 'rgb(39, 39, 42)';
+    return [data.id, finalConfig];
+  })
+);
 
 
-// --- NEW COLOR CONSTANTS for added terrains ---
-export const SAVANNA_COLOR_LOW = 'rgb(180, 210, 80)';
-export const SAVANNA_COLOR_MID = 'rgb(140, 180, 60)';
-export const SAVANNA_COLOR_HIGH = 'rgb(100, 140, 40)';
-export const TUNDRA_COLOR_LOW = 'rgb(170, 180, 160)';
-export const TUNDRA_COLOR_MID = 'rgb(140, 150, 130)';
-export const TUNDRA_COLOR_HIGH = 'rgb(110, 120, 100)';
-export const STEPPE_COLOR_LOW = 'rgb(200, 200, 150)';
-export const STEPPE_COLOR_MID = 'rgb(180, 180, 120)';
-export const STEPPE_COLOR_HIGH = 'rgb(160, 160, 90)';
-export const ANCIENT_FOREST_COLOR_LOW = 'rgb(0, 50, 0)';
-export const ANCIENT_FOREST_COLOR_MID = 'rgb(0, 30, 0)';
-export const ANCIENT_FOREST_COLOR_HIGH = 'rgb(0, 10, 0)';
-export const PETRIFIED_FOREST_COLOR = 'rgb(100, 90, 80)';
-export const BIOLUMINESCENT_GROVE_COLOR_LOW = 'rgb(50, 0, 100)';
-export const BIOLUMINESCENT_GROVE_COLOR_MID = 'rgb(70, 20, 120)';
-export const BIOLUMINESCENT_GROVE_COLOR_HIGH = 'rgb(90, 40, 140)';
-export const MANGROVE_SWAMP_COLOR = 'rgb(40, 80, 70)';
-export const CLOUD_FOREST_COLOR = 'rgb(150, 190, 170)';
-export const GLACIER_COLOR = 'rgb(180, 230, 255)';
-export const GEOTHERMAL_COLOR_LOW = 'rgb(255, 160, 0)';
-export const GEOTHERMAL_COLOR_MID = 'rgb(255, 120, 0)';
-export const GEOTHERMAL_COLOR_HIGH = 'rgb(200, 60, 0)';
-export const SALT_FLATS_COLOR = 'rgb(240, 240, 230)';
-export const DUNE_SEA_COLOR = 'rgb(255, 230, 180)';
-export const SALT_DESERT_COLOR = 'rgb(250, 250, 240)';
-export const RED_DESERT_COLOR = 'rgb(180, 60, 40)';
-export const ROCK_GARDEN_COLOR = 'rgb(150, 140, 130)';
-export const BOG_COLOR = 'rgb(50, 60, 40)';
-export const FENS_COLOR = 'rgb(70, 80, 50)';
-export const MIRE_COLOR = 'rgb(30, 40, 20)';
-export const PEATLANDS_COLOR = 'rgb(60, 50, 40)';
-export const WHISPERING_WOODS_COLOR = 'rgb(80, 100, 80)';
-export const TAR_PITS_COLOR = 'rgb(20, 20, 20)';
+// ==================================================================
+// OTHER CONSTANTS
+// ==================================================================
 
-export const CANYON_COLOR_LOW = 'rgb(120, 70, 30)';
-export const CANYON_COLOR_MID = 'rgb(90, 50, 10)';
-export const CANYON_COLOR_HIGH = 'rgb(60, 30, 0)';
-export const CRYSTAL_SPIRES_COLOR_LOW = 'rgb(100, 200, 255)';
-export const CRYSTAL_SPIRES_COLOR_MID = 'rgb(150, 220, 255)';
-export const CRYSTAL_SPIRES_COLOR_HIGH = 'rgb(200, 240, 255)';
-export const ANCIENT_RUINS_COLOR = 'rgb(130, 120, 110)';
-export const METEORITE_CRATER_COLOR = 'rgb(70, 60, 50)';
-export const BASALT_COLUMNS_COLOR = 'rgb(60, 60, 70)';
-export const LUNAR_CRATER_COLOR = 'rgb(50, 50, 60)';
-
-export const GLOWWORM_CAVE_COLOR = 'rgb(80, 100, 120)';
-export const SUBTERRANEAN_FOREST_COLOR = 'rgb(30, 50, 30)';
-export const CHASM_COLOR = 'rgb(10, 10, 10)';
-export const MAGMA_CAVERN_COLOR = 'rgb(100, 20, 0)';
-
-export const HYDROTHERMAL_VENTS_COLOR = 'rgb(0, 0, 40)';
-export const SUBMARINE_CANYON_COLOR = 'rgb(0, 20, 40)';
-
-export const OPEN_SKY_COLOR = 'rgb(135, 206, 235)';
-export const STRONG_WIND_CURRENTS_COLOR = 'rgb(100, 180, 220)';
-export const THUNDERHEAD_CLOUD_COLOR = 'rgb(70, 80, 90)';
-export const CELESTIAL_ISLAND_COLOR = 'rgb(250, 250, 200)';
-
-
-export const DEFAULT_TERRAIN_TYPE = TerrainType.PLAINS;
+export const DEFAULT_TERRAIN_TYPE = TerrainType.ROLLING_PLAINS;
 export const MOUNTAIN_THRESHOLD = 600;
 export const HILLS_THRESHOLD = 300;
 
@@ -367,794 +785,13 @@ export const HEX_3D_SIDE_COLOR_DARKEN_FACTOR = 0.25;
 export const HEX_3D_MIN_VISUAL_DEPTH = 1.5;
 export const HEX_PREVIEW_STROKE_WIDTH_ADDITION = 1.5;
 
-// Config for auto terrain change based on elevation
-export const AUTO_TERRAIN_CHANGE_ENABLED_DEFAULT = true; // New constant
-// Weather System Constants
-export const WEATHER_UPDATE_INTERVAL_HOURS = 1; // Changed to 1
-export const WEATHER_MOVEMENT_DIRECTIONS = {
-    STATIONARY: { dCol: 0, dRow: 0, name: 'Stationary' },
-    EAST: { dCol: 1, dRow: 0, name: 'East' },
-    WEST: { dCol: -1, dRow: 0, name: 'West' },
-    SOUTH_EAST: { dCol: 1, dRow: 1, name: 'South-East (approx)' }, // Imperfect on hex grid
-    NORTH_WEST: { dCol: -1, dRow: -1, name: 'North-West (approx)' }, // Imperfect on hex grid
-    // More directions could be added, e.g., dCol: 0, dRow: 1 (South), dCol: 0, dRow: -1 (North)
-    // For true hex grid neighbors, cube coordinate math or specific neighbor functions are better.
-};
+export const AUTO_TERRAIN_CHANGE_ENABLED_DEFAULT = true;
+export const WEATHER_UPDATE_INTERVAL_HOURS = 1;
+export const WEATHER_MOVEMENT_DIRECTIONS = { STATIONARY: { dCol: 0, dRow: 0, name: 'Stationary' }, EAST: { dCol: 1, dRow: 0, name: 'East' }, WEST: { dCol: -1, dRow: 0, name: 'West' }, SOUTH_EAST: { dCol: 1, dRow: 1, name: 'South-East (approx)' }, NORTH_WEST: { dCol: -1, dRow: -1, name: 'North-West (approx)' }, };
 export const NEW_WEATHER_SYSTEM_SPAWN_INTERVAL_HOURS = 8;
 export const MAX_ACTIVE_WEATHER_SYSTEMS = 5;
-export const AUTO_TERRAIN_IGNORE_TYPES = [ // Types not to change automatically
-    TerrainType.ROAD, TerrainType.SETTLEMENT, TerrainType.WATER,
-    TerrainType.SHALLOW_WATER, TerrainType.DEEP_OCEAN,
-    TerrainType.CAVERN_FLOOR, TerrainType.TUNNEL, TerrainType.MUSHROOM_FOREST,
-    TerrainType.CRYSTAL_CAVE, TerrainType.UNDERGROUND_RIVER, TerrainType.LAVA_TUBE,
-    TerrainType.MAGMA_LAKE, TerrainType.BLOOD_MARSH,
-    // New types to ignore for auto-conversion
-    TerrainType.SAVANNA, TerrainType.TUNDRA, TerrainType.STEPPE, TerrainType.ANCIENT_FOREST,
-    TerrainType.PETRIFIED_FOREST, TerrainType.BIOLUMINESCENT_GROVE, TerrainType.MANGROVE_SWAMP,
-    TerrainType.CLOUD_FOREST, TerrainType.GLACIER, TerrainType.GEOTHERMAL_FIELD,
-    TerrainType.SALT_FLATS, TerrainType.DUNE_SEA, TerrainType.SALT_DESERT,
-    TerrainType.RED_DESERT, TerrainType.ROCK_GARDEN, TerrainType.BOG,
-    TerrainType.FENS, TerrainType.MIRE, TerrainType.PEATLANDS,
-    TerrainType.WHISPERING_WOODS, TerrainType.TAR_PITS,
-    TerrainType.CANYON, TerrainType.CRYSTAL_SPIRES, TerrainType.ANCIENT_RUINS,
-    TerrainType.METEORITE_CRATER, TerrainType.BASALT_COLUMNS, TerrainType.LUNAR_CRATER,
-    TerrainType.GLOWWORM_CAVE, TerrainType.SUBTERRANEAN_FOREST, TerrainType.CHASM,
-    TerrainType.MAGMA_CAVERN, TerrainType.HYDROTHERMAL_VENTS, TerrainType.SUBMARINE_CANYON,
-    TerrainType.OPEN_SKY, TerrainType.STRONG_WIND_CURRENTS, TerrainType.THUNDERHEAD_CLOUD,
-    TerrainType.CELESTIAL_ISLAND,
-];
+export const AUTO_TERRAIN_IGNORE_TYPES = Object.values(TerrainType);
 
-
-export const TERRAIN_TYPES_CONFIG = {
-  [TerrainType.PLAINS]: {
-    name: 'Plains', symbol: '🌾', color: 'fill-green-400',
-    speedMultiplier: 1, visibilityFactor: 1,
-    baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
-    encounterChanceOnEnter: 5, encounterChanceOnDiscover: 2,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation < 50) return PLAINS_LOW_ELEV_COLOR;
-      if (elevation < 150) return PLAINS_MID_ELEV_COLOR;
-      return PLAINS_HIGH_ELEV_COLOR;
-    },
-  },
-  [TerrainType.FOREST]: {
-    name: 'Forest', symbol: '🌲', color: 'fill-green-700',
-    speedMultiplier: 2, visibilityFactor: 0.5,
-    baseInherentVisibilityBonus: -1, prominence: 5,
-    canopyBlockage: FOREST_CANOPY_BLOCKAGE_ADDITION,
-    encounterChanceOnEnter: 15, encounterChanceOnDiscover: 5,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation < 100) return FOREST_LOW_ELEV_COLOR;
-      if (elevation < 400) return FOREST_MID_ELEV_COLOR;
-      return FOREST_HIGH_ELEV_COLOR;
-    },
-  },
-  [TerrainType.THICK_FOREST]: {
-    name: 'Thick Forest', symbol: '🌳', color: 'fill-green-900',
-    speedMultiplier: 3, visibilityFactor: 0.25,
-    baseInherentVisibilityBonus: -2, prominence: 8,
-    canopyBlockage: THICK_FOREST_CANOPY_BLOCKAGE_ADDITION,
-    encounterChanceOnEnter: 25, encounterChanceOnDiscover: 10,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation < 100) return THICK_FOREST_LOW_ELEV_COLOR;
-      if (elevation < 400) return THICK_FOREST_MID_ELEV_COLOR;
-      return THICK_FOREST_HIGH_ELEV_COLOR;
-    },
-  },
-  [TerrainType.YOUNG_FOREST]: {
-    name: 'Young Forest', symbol: '🌿', color: 'fill-lime-500',
-    speedMultiplier: 1.5, visibilityFactor: 0.75,
-    baseInherentVisibilityBonus: 0, prominence: 2,
-    canopyBlockage: YOUNG_FOREST_CANOPY_BLOCKAGE_ADDITION,
-    encounterChanceOnEnter: 10, encounterChanceOnDiscover: 3,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation < 80) return YOUNG_FOREST_LOW_ELEV_COLOR;
-      if (elevation < 250) return YOUNG_FOREST_MID_ELEV_COLOR;
-      return YOUNG_FOREST_HIGH_ELEV_COLOR;
-    },
-  },
-  [TerrainType.HILLS]: {
-    name: 'Hills', symbol: '⛰️', color: 'fill-amber-600',
-    speedMultiplier: 1.5, visibilityFactor: 1,
-    baseInherentVisibilityBonus: 1, prominence: 20,
-    canopyBlockage: HILLS_TERRAIN_BLOCKAGE_ADDITION,
-    encounterChanceOnEnter: 10, encounterChanceOnDiscover: 7,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      const typicalHillBase = 50;
-      const hillRange = MOUNTAIN_THRESHOLD - typicalHillBase;
-      if (elevation < typicalHillBase + hillRange * 0.33) return HILLS_COLOR_LOW;
-      if (elevation < typicalHillBase + hillRange * 0.66) return HILLS_COLOR_MID;
-      return HILLS_COLOR_HIGH;
-    },
-  },
-  [TerrainType.MOUNTAIN]: {
-    name: 'Mountain', symbol: '🏔️', color: 'fill-gray-500',
-    speedMultiplier: 4, visibilityFactor: 1, 
-    baseInherentVisibilityBonus: 2, prominence: 50,
-    canopyBlockage: 0,
-    encounterChanceOnEnter: 20, encounterChanceOnDiscover: 15,
-    isImpassable: false, blocksLineOfSight: true, // Mountains block LOS beyond them
-    elevationColor: (elevation) => {
-      if (elevation < MOUNTAIN_THRESHOLD) return MOUNTAIN_COLOR_LOW_SLOPE; 
-      const midSlopeStart = MOUNTAIN_THRESHOLD + (MOUNTAIN_ELEV_SNOW_LINE_START - MOUNTAIN_THRESHOLD) * 0.4;
-      if (elevation < midSlopeStart) return MOUNTAIN_COLOR_LOW_SLOPE;
-      if (elevation <= MOUNTAIN_ELEV_MID_SLOPE_END) return MOUNTAIN_COLOR_MID_SLOPE;
-      if (elevation < MOUNTAIN_ELEV_ICE_TRANSITION_START) return MOUNTAIN_COLOR_SNOW_LINE;
-      if (elevation <= MOUNTAIN_ELEV_ICE_PEAK_END) return MOUNTAIN_COLOR_ICE_PEAK;
-      // Handle extended elevation range for mountains
-      if (elevation > MOUNTAIN_ELEV_ICE_PEAK_END && elevation < MAX_ELEVATION / 2) return 'rgb(180, 200, 235)'; // Higher snow/ice
-      return 'rgb(220, 230, 245)'; // Extreme peaks
-    },
-  },
-  [TerrainType.SWAMP]: {
-    name: 'Swamp', symbol: '🐊', color: 'fill-teal-700',
-    speedMultiplier: 2.5, visibilityFactor: 0.6,
-    baseInherentVisibilityBonus: -1, prominence: 1,
-    canopyBlockage: 8,
-    encounterChanceOnEnter: 30, encounterChanceOnDiscover: 5,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation < -10) return SWAMP_LOW_ELEV_COLOR;
-      if (elevation < 20) return SWAMP_MID_ELEV_COLOR;
-      return SWAMP_HIGH_ELEV_COLOR;
-    },
-  },
-  [TerrainType.DESERT]: {
-    name: 'Desert', symbol: '🏜️', color: 'fill-yellow-300',
-    speedMultiplier: 1.2, visibilityFactor: 1.2,
-    baseInherentVisibilityBonus: 1, prominence: 0,
-    canopyBlockage: 0,
-    encounterChanceOnEnter: 8, encounterChanceOnDiscover: 3,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation < 100) return DESERT_LOW_ELEV_COLOR;
-      if (elevation < 500) return DESERT_MID_ELEV_COLOR;
-      return DESERT_HIGH_ELEV_COLOR;
-    },
-  },
-  [TerrainType.JUNGLE]: {
-    name: 'Jungle', symbol: '🌴', color: 'fill-emerald-800',
-    speedMultiplier: 3.5, visibilityFactor: 0.15,
-    baseInherentVisibilityBonus: -3, prominence: 10,
-    canopyBlockage: JUNGLE_CANOPY_BLOCKAGE_ADDITION,
-    encounterChanceOnEnter: 35, encounterChanceOnDiscover: 10,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation < 50) return JUNGLE_LOW_ELEV_COLOR;
-      if (elevation < 300) return JUNGLE_MID_ELEV_COLOR;
-      return JUNGLE_HIGH_ELEV_COLOR;
-    },
-  },
-  [TerrainType.BADLANDS]: {
-    name: 'Badlands', symbol: '🌵', color: 'fill-orange-700',
-    speedMultiplier: 2, visibilityFactor: 0.9,
-    baseInherentVisibilityBonus: 0, prominence: 5,
-    canopyBlockage: 2,
-    encounterChanceOnEnter: 12, encounterChanceOnDiscover: 8,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation < 200) return BADLANDS_LOW_ELEV_COLOR;
-      if (elevation < 700) return BADLANDS_MID_ELEV_COLOR;
-      return BADLANDS_HIGH_ELEV_COLOR;
-    },
-  },
-  [TerrainType.ROAD]: {
-    name: 'Road', symbol: '🛣️', color: 'fill-yellow-600',
-    speedMultiplier: 0.5, visibilityFactor: 1,
-    baseInherentVisibilityBonus: 0, prominence: 0,
-    canopyBlockage: 0,
-    encounterChanceOnEnter: 2, encounterChanceOnDiscover: 0,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => 'rgb(168, 162, 158)',
-  },
-  [TerrainType.SETTLEMENT]: {
-    name: 'Settlement', symbol: '🏘️', color: 'fill-orange-500',
-    speedMultiplier: 1, visibilityFactor: 1,
-    baseInherentVisibilityBonus: 1, prominence: 5,
-    canopyBlockage: 5,
-    encounterChanceOnEnter: 3, encounterChanceOnDiscover: 1,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => 'rgb(200, 150, 100)',
-  },
-  [TerrainType.WATER]: {
-    name: 'Open Water', symbol: '🌊', color: 'fill-sky-700',
-    speedMultiplier: 3, visibilityFactor: 1,
-    baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
-    encounterChanceOnEnter: 10, encounterChanceOnDiscover: 5,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation <= -100) return WATER_DEEP_DEPTH_COLOR;
-      if (elevation < -20) return WATER_MID_DEPTH_COLOR;
-      if (elevation < 0) return WATER_SHALLOW_DEPTH_COLOR;
-      return WATER_SURFACE_COLOR;
-    },
-  },
-  [TerrainType.CAVERN_FLOOR]: {
-    name: 'Cavern Floor', symbol: '🕳️', color: 'fill-gray-600',
-    speedMultiplier: 1, visibilityFactor: 0.7,
-    baseInherentVisibilityBonus: -2, prominence: 0, canopyBlockage: 0,
-    encounterChanceOnEnter: 15, encounterChanceOnDiscover: 5,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation < -50) return CAVERN_DEEP_COLOR;
-      if (elevation < 0) return CAVERN_MID_COLOR;
-      return CAVERN_HIGH_COLOR;
-    },
-  },
-  [TerrainType.TUNNEL]: {
-    name: 'Tunnel', symbol: '↦', color: 'fill-gray-800',
-    speedMultiplier: 1, visibilityFactor: 0.2,
-    baseInherentVisibilityBonus: -4, prominence: 0, canopyBlockage: 0,
-    encounterChanceOnEnter: 10, encounterChanceOnDiscover: 2,
-    isImpassable: false, blocksLineOfSight: true, // Tunnels are enclosed, block LOS
-    elevationColor: (elevation) => TUNNEL_COLOR,
-  },
-  [TerrainType.MUSHROOM_FOREST]: {
-    name: 'Mushroom Forest', symbol: '🍄', color: 'fill-purple-600',
-    speedMultiplier: 2, visibilityFactor: 0.3,
-    baseInherentVisibilityBonus: -2, prominence: 3, canopyBlockage: 10,
-    encounterChanceOnEnter: 20, encounterChanceOnDiscover: 10,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation < -30) return MUSHROOM_FOREST_DEEP_COLOR;
-      if (elevation < 10) return MUSHROOM_FOREST_MID_COLOR;
-      return MUSHROOM_FOREST_HIGH_COLOR;
-    },
-  },
-  [TerrainType.CRYSTAL_CAVE]: {
-    name: 'Crystal Cave', symbol: '💎', color: 'fill-cyan-400',
-    speedMultiplier: 1.5, visibilityFactor: 0.9,
-    baseInherentVisibilityBonus: -1, prominence: 2, canopyBlockage: 2,
-    encounterChanceOnEnter: 10, encounterChanceOnDiscover: 15,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation < -40) return CRYSTAL_CAVE_DEEP_COLOR;
-      if (elevation < 5) return CRYSTAL_CAVE_MID_COLOR;
-      return CRYSTAL_CAVE_HIGH_COLOR;
-    },
-  },
-  [TerrainType.UNDERGROUND_RIVER]: {
-    name: 'Underground River', symbol: '🏞️', color: 'fill-blue-800',
-    speedMultiplier: 3, visibilityFactor: 0.4,
-    baseInherentVisibilityBonus: -3, prominence: 0, canopyBlockage: 0,
-    encounterChanceOnEnter: 18, encounterChanceOnDiscover: 6,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation <= -50) return UNDERGROUND_RIVER_VERY_DEEP_COLOR;
-      if (elevation < -10) return UNDERGROUND_RIVER_DEEP_COLOR;
-      return UNDERGROUND_RIVER_SURFACE_COLOR;
-    },
-  },
-  [TerrainType.LAVA_TUBE]: {
-    name: 'Lava Tube', symbol: '🌋', color: 'fill-red-900',
-    speedMultiplier: 1.2, visibilityFactor: 0.1,
-    baseInherentVisibilityBonus: -5, prominence: 0, canopyBlockage: 0,
-    encounterChanceOnEnter: 5, encounterChanceOnDiscover: 1,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => LAVA_TUBE_COLOR,
-  },
-  [TerrainType.SHALLOW_WATER]: {
-    name: 'Shallow Water', symbol: '얕', color: 'fill-sky-400',
-    speedMultiplier: 1.5, visibilityFactor: 0.8,
-    baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
-    encounterChanceOnEnter: 8, encounterChanceOnDiscover: 3,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation <= -30) return SHALLOW_WATER_DEEP_COLOR;
-      if (elevation < -5) return SHALLOW_WATER_MID_DEPTH_COLOR;
-      return SHALLOW_WATER_VERY_SHALLOW_COLOR;
-    },
-  },
-  [TerrainType.DEEP_OCEAN]: {
-    name: 'Deep Ocean', symbol: '⚓', color: 'fill-blue-900',
-    speedMultiplier: 2, visibilityFactor: 0.3,
-    baseInherentVisibilityBonus: -2, prominence: 0, canopyBlockage: 0,
-    encounterChanceOnEnter: 20, encounterChanceOnDiscover: 7,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation <= -500) return DEEP_OCEAN_VERY_DEEP_COLOR;
-      if (elevation < -100) return DEEP_OCEAN_MID_DEPTH_COLOR;
-      return DEEP_OCEAN_SURFACE_COLOR;
-    },
-  },
-  [TerrainType.CORAL_REEF]: {
-    name: 'Coral Reef', symbol: '🐠', color: 'fill-pink-400',
-    speedMultiplier: 1.8, visibilityFactor: 0.7,
-    baseInherentVisibilityBonus: -1, prominence: 2, canopyBlockage: 5,
-    encounterChanceOnEnter: 15, encounterChanceOnDiscover: 10,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation <= -20) return CORAL_REEF_DEEP_COLOR;
-      if (elevation < -5) return CORAL_REEF_MID_COLOR;
-      return CORAL_REEF_SHALLOW_COLOR;
-    },
-  },
-  [TerrainType.KELP_FOREST]: {
-    name: 'Kelp Forest', symbol: '🌿', color: 'fill-teal-600',
-    speedMultiplier: 2.5, visibilityFactor: 0.4,
-    baseInherentVisibilityBonus: -2, prominence: 3, canopyBlockage: 15,
-    encounterChanceOnEnter: 18, encounterChanceOnDiscover: 8,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation <= -40) return KELP_FOREST_DEEP_COLOR;
-      if (elevation < -10) return KELP_FOREST_MID_COLOR;
-      return KELP_FOREST_SHALLOW_COLOR;
-    },
-  },
-  [TerrainType.TRENCH]: {
-    name: 'Ocean Trench', symbol: '↯', color: 'fill-black',
-    speedMultiplier: 3, visibilityFactor: 0.05,
-    baseInherentVisibilityBonus: -5, prominence: 0, canopyBlockage: 0,
-    encounterChanceOnEnter: 25, encounterChanceOnDiscover: 2,
-    isImpassable: false, blocksLineOfSight: false, 
-    elevationColor: (elevation) => {
-      if (elevation <= -2000) return TRENCH_DEEPEST_COLOR;
-      if (elevation < -1000) return TRENCH_MID_COLOR;
-      return TRENCH_UPPER_COLOR;
-    },
-  },
-  [TerrainType.SKELETAL_FOREST]: {
-    name: 'Skeletal Forest', symbol: '💀', color: 'fill-gray-300',
-    speedMultiplier: 2.2, visibilityFactor: 0.6,
-    baseInherentVisibilityBonus: -1, prominence: 4, canopyBlockage: 10,
-    encounterChanceOnEnter: 22, encounterChanceOnDiscover: 9,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation < 0) return SKELETAL_FOREST_LOW_COLOR;
-      if (elevation < 100) return SKELETAL_FOREST_MID_COLOR;
-      return SKELETAL_FOREST_HIGH_COLOR;
-    },
-  },
-  [TerrainType.ASHEN_WASTELAND]: {
-    name: 'Ashen Wasteland', symbol: '🌫️', color: 'fill-slate-500',
-    speedMultiplier: 1.3, visibilityFactor: 0.7,
-    baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
-    encounterChanceOnEnter: 12, encounterChanceOnDiscover: 4,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation < 50) return ASHEN_WASTELAND_LOW_COLOR;
-      if (elevation < 200) return ASHEN_WASTELAND_MID_COLOR;
-      return ASHEN_WASTELAND_HIGH_COLOR;
-    },
-  },
-  [TerrainType.BLOOD_MARSH]: {
-    name: 'Blood Marsh', symbol: '🩸', color: 'fill-red-700',
-    speedMultiplier: 2.8, visibilityFactor: 0.5,
-    baseInherentVisibilityBonus: -1, prominence: 1, canopyBlockage: 6,
-    encounterChanceOnEnter: 35, encounterChanceOnDiscover: 12,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation < -5) return BLOOD_MARSH_DEEP_COLOR;
-      if (elevation < 10) return BLOOD_MARSH_MID_COLOR;
-      return BLOOD_MARSH_SHALLOW_COLOR;
-    },
-  },
-  [TerrainType.MAGMA_LAKE]: {
-    name: 'Magma Lake', symbol: '🔥', color: 'fill-orange-500',
-    speedMultiplier: 999, visibilityFactor: 0.8, // Impassable for ground movement
-    baseInherentVisibilityBonus: 1, prominence: 2, canopyBlockage: 0,
-    encounterChanceOnEnter: 40, encounterChanceOnDiscover: 10,
-    isImpassable: true, blocksLineOfSight: false, 
-    elevationColor: (elevation) => {
-      if (elevation < -10) return MAGMA_LAKE_COOLER_COLOR;
-      if (elevation < 10) return MAGMA_LAKE_MID_COLOR;
-      return MAGMA_LAKE_HOT_COLOR;
-    },
-  },
-  [TerrainType.VOLCANIC_WASTELAND]: {
-    name: 'Volcanic Wasteland', symbol: '🌋', color: 'fill-neutral-700',
-    speedMultiplier: 2.5, visibilityFactor: 0.9,
-    baseInherentVisibilityBonus: 0, prominence: 10,
-    canopyBlockage: 0,
-    encounterChanceOnEnter: 18, encounterChanceOnDiscover: 8,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation < 300) return VOLCANIC_LOW_COLOR;
-      if (elevation < 1000) return VOLCANIC_MID_COLOR;
-      return VOLCANIC_HIGH_COLOR;
-    },
-  },
-  [TerrainType.FLOATING_ISLANDS]: {
-    name: 'Floating Islands', symbol: '☁️', color: 'fill-sky-300',
-    speedMultiplier: 1.5, visibilityFactor: 1.5,
-    baseInherentVisibilityBonus: 2, prominence: 30, canopyBlockage: 2,
-    encounterChanceOnEnter: 10, encounterChanceOnDiscover: 15,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation < 100) return FLOATING_ISLAND_LOW_COLOR;
-      if (elevation < 300) return FLOATING_ISLAND_MID_COLOR;
-      return FLOATING_ISLAND_HIGH_COLOR;
-    },
-  },
-  [TerrainType.ETHEREAL_MIST]: {
-    name: 'Ethereal Mist', symbol: '💨', color: 'fill-purple-300',
-    speedMultiplier: 1.2, visibilityFactor: 0.1,
-    baseInherentVisibilityBonus: -4, prominence: 0, canopyBlockage: 0,
-    encounterChanceOnEnter: 20, encounterChanceOnDiscover: 5,
-    isImpassable: false, blocksLineOfSight: false, 
-    elevationColor: (elevation) => {
-      if (elevation < 0) return ETHEREAL_MIST_DENSE_COLOR;
-      if (elevation < 50) return ETHEREAL_MIST_MID_COLOR;
-      return ETHEREAL_MIST_THIN_COLOR;
-    },
-  },
-  [TerrainType.QUICKSAND]: {
-    name: 'Quicksand', symbol: '⏳', color: 'fill-yellow-700',
-    speedMultiplier: 999, visibilityFactor: 1, // Impassable for ground movement
-    baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
-    encounterChanceOnEnter: 5, encounterChanceOnDiscover: 1,
-    isImpassable: true, blocksLineOfSight: false, 
-    elevationColor: (elevation) => QUICKSAND_COLOR,
-  },
-  [TerrainType.ICE_PLAIN]: {
-    name: 'Ice Plain', symbol: '❄️', color: 'fill-cyan-200',
-    speedMultiplier: 1.5, visibilityFactor: 1.2,
-    baseInherentVisibilityBonus: 1, prominence: 0, canopyBlockage: 0,
-    encounterChanceOnEnter: 10, encounterChanceOnDiscover: 4,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation < 0) return ICE_PLAIN_LOW_COLOR;
-      if (elevation < 50) return ICE_PLAIN_MID_COLOR;
-      return ICE_PLAIN_HIGH_COLOR;
-    },
-  },
-  [TerrainType.OBSIDIAN_FIELD]: {
-    name: 'Obsidian Field', symbol: '🔮', color: 'fill-gray-900',
-    speedMultiplier: 999, visibilityFactor: 0, // Impassable and blocks sight
-    baseInherentVisibilityBonus: -10, prominence: 100, canopyBlockage: 0,
-    encounterChanceOnEnter: 15, encounterChanceOnDiscover: 6,
-    isImpassable: true, blocksLineOfSight: true,
-    elevationColor: (elevation) => {
-      if (elevation < 0) return OBSIDIAN_FIELD_LOW_COLOR;
-      if (elevation < 50) return OBSIDIAN_FIELD_MID_COLOR;
-      return OBSIDIAN_FIELD_HIGH_COLOR;
-    },
-  },
-
-  // --- NEW TERRAIN CONFIGS ---
-
-  [TerrainType.SAVANNA]: {
-    name: 'Savanna', symbol: '🦁', color: 'fill-yellow-400',
-    speedMultiplier: 1.1, visibilityFactor: 1.1,
-    baseInherentVisibilityBonus: 0, prominence: 5, canopyBlockage: 5,
-    encounterChanceOnEnter: 10, encounterChanceOnDiscover: 4,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation < 100) return SAVANNA_COLOR_LOW;
-      if (elevation < 300) return SAVANNA_COLOR_MID;
-      return SAVANNA_COLOR_HIGH;
-    },
-  },
-  [TerrainType.TUNDRA]: {
-    name: 'Tundra', symbol: '❄️', color: 'fill-gray-400',
-    speedMultiplier: 1.8, visibilityFactor: 1,
-    baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
-    encounterChanceOnEnter: 8, encounterChanceOnDiscover: 3,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation < 0) return TUNDRA_COLOR_LOW;
-      if (elevation < 100) return TUNDRA_COLOR_MID;
-      return TUNDRA_COLOR_HIGH;
-    },
-  },
-  [TerrainType.STEPPE]: {
-    name: 'Steppe', symbol: '🐎', color: 'fill-lime-300',
-    speedMultiplier: 1, visibilityFactor: 1.1,
-    baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
-    encounterChanceOnEnter: 6, encounterChanceOnDiscover: 2,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation < 50) return STEPPE_COLOR_LOW;
-      if (elevation < 150) return STEPPE_COLOR_MID;
-      return STEPPE_COLOR_HIGH;
-    },
-  },
-  [TerrainType.ANCIENT_FOREST]: {
-    name: 'Ancient Forest', symbol: '🌲', color: 'fill-green-950',
-    speedMultiplier: 4, visibilityFactor: 0.1,
-    baseInherentVisibilityBonus: -4, prominence: 15, canopyBlockage: 30,
-    encounterChanceOnEnter: 40, encounterChanceOnDiscover: 15,
-    isImpassable: false, blocksLineOfSight: true, // Extremely dense, ancient trees block LOS
-    elevationColor: (elevation) => {
-      if (elevation < 150) return ANCIENT_FOREST_COLOR_LOW;
-      if (elevation < 500) return ANCIENT_FOREST_COLOR_MID;
-      return ANCIENT_FOREST_COLOR_HIGH;
-    },
-  },
-  [TerrainType.PETRIFIED_FOREST]: {
-    name: 'Petrified Forest', symbol: '🗿', color: 'fill-stone-600',
-    speedMultiplier: 3.5, visibilityFactor: 0.5,
-    baseInherentVisibilityBonus: -2, prominence: 10, canopyBlockage: 5,
-    encounterChanceOnEnter: 20, encounterChanceOnDiscover: 10,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => PETRIFIED_FOREST_COLOR,
-  },
-  [TerrainType.BIOLUMINESCENT_GROVE]: {
-    name: 'Bioluminescent Grove', symbol: '✨', color: 'fill-purple-500',
-    speedMultiplier: 2.5, visibilityFactor: 0.4,
-    baseInherentVisibilityBonus: -3, prominence: 5, canopyBlockage: 12,
-    encounterChanceOnEnter: 25, encounterChanceOnDiscover: 20,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation < -20) return BIOLUMINESCENT_GROVE_COLOR_LOW;
-      if (elevation < 30) return BIOLUMINESCENT_GROVE_COLOR_MID;
-      return BIOLUMINESCENT_GROVE_COLOR_HIGH;
-    },
-  },
-  [TerrainType.MANGROVE_SWAMP]: {
-    name: 'Mangrove Swamp', symbol: '🌿', color: 'fill-emerald-700',
-    speedMultiplier: 3.5, visibilityFactor: 0.3,
-    baseInherentVisibilityBonus: -2, prominence: 8, canopyBlockage: 18,
-    encounterChanceOnEnter: 30, encounterChanceOnDiscover: 8,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => MANGROVE_SWAMP_COLOR,
-  },
-  [TerrainType.CLOUD_FOREST]: {
-    name: 'Cloud Forest', symbol: '☁️', color: 'fill-gray-300',
-    speedMultiplier: 2.8, visibilityFactor: 0.2,
-    baseInherentVisibilityBonus: -3, prominence: 10, canopyBlockage: 15,
-    encounterChanceOnEnter: 20, encounterChanceOnDiscover: 12,
-    isImpassable: false, blocksLineOfSight: true, // Thick mist/clouds block LOS
-    elevationColor: (elevation) => CLOUD_FOREST_COLOR,
-  },
-  [TerrainType.GLACIER]: {
-    name: 'Glacier', symbol: '🧊', color: 'fill-blue-200',
-    speedMultiplier: 4, visibilityFactor: 1.1,
-    baseInherentVisibilityBonus: 1, prominence: 20, canopyBlockage: 0,
-    encounterChanceOnEnter: 15, encounterChanceOnDiscover: 8,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => GLACIER_COLOR,
-  },
-  [TerrainType.GEOTHERMAL_FIELD]: {
-    name: 'Geothermal Field', symbol: '♨️', color: 'fill-orange-600',
-    speedMultiplier: 3, visibilityFactor: 0.7,
-    baseInherentVisibilityBonus: -1, prominence: 5, canopyBlockage: 0,
-    encounterChanceOnEnter: 25, encounterChanceOnDiscover: 10,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => {
-      if (elevation < 0) return GEOTHERMAL_COLOR_LOW;
-      if (elevation < 100) return GEOTHERMAL_COLOR_MID;
-      return GEOTHERMAL_COLOR_HIGH;
-    },
-  },
-  [TerrainType.SALT_FLATS]: {
-    name: 'Salt Flats', symbol: '🧂', color: 'fill-stone-100',
-    speedMultiplier: 1.2, visibilityFactor: 1.3,
-    baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
-    encounterChanceOnEnter: 5, encounterChanceOnDiscover: 2,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => SALT_FLATS_COLOR,
-  },
-  [TerrainType.DUNE_SEA]: {
-    name: 'Dune Sea', symbol: '🏜️', color: 'fill-yellow-200',
-    speedMultiplier: 1.8, visibilityFactor: 1.1,
-    baseInherentVisibilityBonus: 0, prominence: 10, canopyBlockage: 0,
-    encounterChanceOnEnter: 10, encounterChanceOnDiscover: 5,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => DUNE_SEA_COLOR,
-  },
-  [TerrainType.SALT_DESERT]: {
-    name: 'Salt Desert', symbol: '🧂', color: 'fill-white',
-    speedMultiplier: 1.5, visibilityFactor: 1.2,
-    baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
-    encounterChanceOnEnter: 7, encounterChanceOnDiscover: 3,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => SALT_DESERT_COLOR,
-  },
-  [TerrainType.RED_DESERT]: {
-    name: 'Red Desert', symbol: '🏜️', color: 'fill-red-400',
-    speedMultiplier: 1.3, visibilityFactor: 1.1,
-    baseInherentVisibilityBonus: 0, prominence: 5, canopyBlockage: 0,
-    encounterChanceOnEnter: 9, encounterChanceOnDiscover: 4,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => RED_DESERT_COLOR,
-  },
-  [TerrainType.ROCK_GARDEN]: {
-    name: 'Rock Garden', symbol: '🪨', color: 'fill-stone-500',
-    speedMultiplier: 1.7, visibilityFactor: 0.9,
-    baseInherentVisibilityBonus: 0, prominence: 5, canopyBlockage: 2,
-    encounterChanceOnEnter: 12, encounterChanceOnDiscover: 6,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => ROCK_GARDEN_COLOR,
-  },
-  [TerrainType.BOG]: {
-    name: 'Bog', symbol: '🌿', color: 'fill-green-800',
-    speedMultiplier: 3.5, visibilityFactor: 0.5,
-    baseInherentVisibilityBonus: -1, prominence: 2, canopyBlockage: 8,
-    encounterChanceOnEnter: 28, encounterChanceOnDiscover: 6,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => BOG_COLOR,
-  },
-  [TerrainType.FENS]: {
-    name: 'Fens', symbol: '🌾', color: 'fill-green-600',
-    speedMultiplier: 2.8, visibilityFactor: 0.7,
-    baseInherentVisibilityBonus: 0, prominence: 1, canopyBlockage: 5,
-    encounterChanceOnEnter: 22, encounterChanceOnDiscover: 5,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => FENS_COLOR,
-  },
-  [TerrainType.MIRE]: {
-    name: 'Mire', symbol: '🕳️', color: 'fill-gray-800',
-    speedMultiplier: 999, visibilityFactor: 0.4, // Impassable for ground movement due to deep mud/water
-    baseInherentVisibilityBonus: -2, prominence: 0, canopyBlockage: 3,
-    encounterChanceOnEnter: 32, encounterChanceOnDiscover: 8,
-    isImpassable: true, blocksLineOfSight: false,
-    elevationColor: (elevation) => MIRE_COLOR,
-  },
-  [TerrainType.PEATLANDS]: {
-    name: 'Peatlands', symbol: '🍂', color: 'fill-amber-900',
-    speedMultiplier: 3.2, visibilityFactor: 0.6,
-    baseInherentVisibilityBonus: -1, prominence: 1, canopyBlockage: 6,
-    encounterChanceOnEnter: 25, encounterChanceOnDiscover: 7,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => PEATLANDS_COLOR,
-  },
-  [TerrainType.WHISPERING_WOODS]: {
-    name: 'Whispering Woods', symbol: '👻', color: 'fill-indigo-800',
-    speedMultiplier: 2.5, visibilityFactor: 0.3,
-    baseInherentVisibilityBonus: -2, prominence: 10, canopyBlockage: 18,
-    encounterChanceOnEnter: 30, encounterChanceOnDiscover: 25,
-    isImpassable: false, blocksLineOfSight: true, // Magical obscurity and dense trees block LOS
-    elevationColor: (elevation) => WHISPERING_WOODS_COLOR,
-  },
-  [TerrainType.TAR_PITS]: {
-    name: 'Tar Pits', symbol: '🕳️', color: 'fill-neutral-900',
-    speedMultiplier: 999, visibilityFactor: 0.3,
-    baseInherentVisibilityBonus: -3, prominence: 0, canopyBlockage: 0,
-    encounterChanceOnEnter: 10, encounterChanceOnDiscover: 3,
-    isImpassable: true, blocksLineOfSight: false, // Impassable due to stickiness/trapping
-    elevationColor: (elevation) => TAR_PITS_COLOR,
-  },
-
-  // Rocky/Impassable/LOS-blocking
-  [TerrainType.CANYON]: {
-    name: 'Canyon', symbol: '🏜️', color: 'fill-red-800',
-    speedMultiplier: 999, visibilityFactor: 0, // Effectively impassable for ground travel
-    baseInherentVisibilityBonus: -5, prominence: 100, canopyBlockage: 0,
-    encounterChanceOnEnter: 10, encounterChanceOnDiscover: 5,
-    isImpassable: true, blocksLineOfSight: true, // Steep walls block LOS. Passable by flight/special means.
-    elevationColor: (elevation) => {
-      if (elevation < 100) return CANYON_COLOR_LOW;
-      if (elevation < 500) return CANYON_COLOR_MID;
-      return CANYON_COLOR_HIGH;
-    },
-  },
-  [TerrainType.CRYSTAL_SPIRES]: {
-    name: 'Crystal Spires', symbol: '💎', color: 'fill-cyan-500',
-    speedMultiplier: 999, visibilityFactor: 0, // Effectively impassable for ground travel
-    baseInherentVisibilityBonus: -5, prominence: 100, canopyBlockage: 0,
-    encounterChanceOnEnter: 10, encounterChanceOnDiscover: 20,
-    isImpassable: true, blocksLineOfSight: true, // Jagged spires block LOS and movement
-    elevationColor: (elevation) => {
-      if (elevation < 100) return CRYSTAL_SPIRES_COLOR_LOW;
-      if (elevation < 500) return CRYSTAL_SPIRES_COLOR_MID;
-      return CRYSTAL_SPIRES_COLOR_HIGH;
-    },
-  },
-  [TerrainType.ANCIENT_RUINS]: {
-    name: 'Ancient Ruins', symbol: '🏛️', color: 'fill-gray-700',
-    speedMultiplier: 2.5, visibilityFactor: 0.6,
-    baseInherentVisibilityBonus: -1, prominence: 20, canopyBlockage: 5,
-    encounterChanceOnEnter: 20, encounterChanceOnDiscover: 15,
-    isImpassable: false, blocksLineOfSight: true, // Walls and rubble can block LOS
-    elevationColor: (elevation) => ANCIENT_RUINS_COLOR,
-  },
-  [TerrainType.METEORITE_CRATER]: {
-    name: 'Meteorite Crater', symbol: '🌑', color: 'fill-gray-800',
-    speedMultiplier: 3, visibilityFactor: 0.5,
-    baseInherentVisibilityBonus: -2, prominence: 50, canopyBlockage: 0,
-    encounterChanceOnEnter: 15, encounterChanceOnDiscover: 10,
-    isImpassable: false, blocksLineOfSight: true, // Crater walls block LOS
-    elevationColor: (elevation) => METEORITE_CRATER_COLOR,
-  },
-  [TerrainType.BASALT_COLUMNS]: {
-    name: 'Basalt Columns', symbol: '🪨', color: 'fill-slate-900',
-    speedMultiplier: 999, visibilityFactor: 0, // Effectively impassable for ground travel
-    baseInherentVisibilityBonus: -10, prominence: 100, canopyBlockage: 0,
-    encounterChanceOnEnter: 18, encounterChanceOnDiscover: 7,
-    isImpassable: true, blocksLineOfSight: true, // Vertical columns block LOS and movement
-    elevationColor: (elevation) => BASALT_COLUMNS_COLOR,
-  },
-  [TerrainType.LUNAR_CRATER]: {
-    name: 'Lunar Crater', symbol: '🌕', color: 'fill-gray-700',
-    speedMultiplier: 2.8, visibilityFactor: 0.5,
-    baseInherentVisibilityBonus: -2, prominence: 50, canopyBlockage: 0,
-    encounterChanceOnEnter: 15, encounterChanceOnDiscover: 8,
-    isImpassable: false, blocksLineOfSight: true, // Crater walls block LOS
-    elevationColor: (elevation) => LUNAR_CRATER_COLOR,
-  },
-
-  // Underground Terrains (Extended)
-  [TerrainType.GLOWWORM_CAVE]: {
-    name: 'Glowworm Cave', symbol: '✨', color: 'fill-sky-700',
-    speedMultiplier: 1.5, visibilityFactor: 0.6,
-    baseInherentVisibilityBonus: -1, prominence: 0, canopyBlockage: 0,
-    encounterChanceOnEnter: 15, encounterChanceOnDiscover: 10,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => GLOWWORM_CAVE_COLOR,
-  },
-  [TerrainType.SUBTERRANEAN_FOREST]: {
-    name: 'Subterranean Forest', symbol: '🍄', color: 'fill-lime-900',
-    speedMultiplier: 2.5, visibilityFactor: 0.3,
-    baseInherentVisibilityBonus: -3, prominence: 5, canopyBlockage: 15,
-    encounterChanceOnEnter: 25, encounterChanceOnDiscover: 10,
-    isImpassable: false, blocksLineOfSight: true, // Dense fungal/crystal growths block LOS
-    elevationColor: (elevation) => SUBTERRANEAN_FOREST_COLOR,
-  },
-  [TerrainType.CHASM]: {
-    name: 'Chasm', symbol: '⚫', color: 'fill-black',
-    speedMultiplier: 999, visibilityFactor: 0,
-    baseInherentVisibilityBonus: -10, prominence: 100, canopyBlockage: 0,
-    encounterChanceOnEnter: 20, encounterChanceOnDiscover: 5,
-    isImpassable: true, blocksLineOfSight: true, // Sheer drop blocks LOS and movement
-    elevationColor: (elevation) => CHASM_COLOR,
-  },
-  [TerrainType.MAGMA_CAVERN]: {
-    name: 'Magma Cavern', symbol: '🔥', color: 'fill-red-800',
-    speedMultiplier: 999, visibilityFactor: 0.1, // Effectively impassable due to heat/molten rock
-    baseInherentVisibilityBonus: -5, prominence: 0, canopyBlockage: 0,
-    encounterChanceOnEnter: 30, encounterChanceOnDiscover: 15,
-    isImpassable: true, blocksLineOfSight: false, // Heat haze, but not necessarily physical LOS block
-    elevationColor: (elevation) => MAGMA_CAVERN_COLOR,
-  },
-
-  // Underwater Terrains (Extended)
-  [TerrainType.HYDROTHERMAL_VENTS]: {
-    name: 'Hydrothermal Vents', symbol: '🫧', color: 'fill-gray-950',
-    speedMultiplier: 999, visibilityFactor: 0.05, // Impassable due to extreme heat/pressure
-    baseInherentVisibilityBonus: -10, prominence: 0, canopyBlockage: 0,
-    encounterChanceOnEnter: 20, encounterChanceOnDiscover: 10,
-    isImpassable: true, blocksLineOfSight: false, // Steam/chemicals obscure, but not a solid wall
-    elevationColor: (elevation) => HYDROTHERMAL_VENTS_COLOR,
-  },
-  [TerrainType.SUBMARINE_CANYON]: {
-    name: 'Submarine Canyon', symbol: '↯', color: 'fill-blue-950',
-    speedMultiplier: 3.5, visibilityFactor: 0.2,
-    baseInherentVisibilityBonus: -4, prominence: 50, canopyBlockage: 0,
-    encounterChanceOnEnter: 15, encounterChanceOnDiscover: 7,
-    isImpassable: false, blocksLineOfSight: true, // Deep walls block LOS for submersibles
-    elevationColor: (elevation) => SUBMARINE_CANYON_COLOR,
-  },
-
-  // Sky Terrains
-  [TerrainType.OPEN_SKY]: {
-    name: 'Open Sky', symbol: '☁️', color: 'fill-sky-300',
-    speedMultiplier: 0.5, visibilityFactor: 1.5, // Faster travel, very open
-    baseInherentVisibilityBonus: 2, prominence: 0, canopyBlockage: 0,
-    encounterChanceOnEnter: 5, encounterChanceOnDiscover: 2,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => OPEN_SKY_COLOR,
-  },
-  [TerrainType.STRONG_WIND_CURRENTS]: {
-    name: 'Strong Wind Currents', symbol: '🌬️', color: 'fill-sky-400',
-    speedMultiplier: 2, visibilityFactor: 0.8, // Difficult due to turbulence
-    baseInherentVisibilityBonus: -1, prominence: 0, canopyBlockage: 0,
-    encounterChanceOnEnter: 10, encounterChanceOnDiscover: 5,
-    isImpassable: false, blocksLineOfSight: false,
-    elevationColor: (elevation) => STRONG_WIND_CURRENTS_COLOR,
-  },
-  [TerrainType.THUNDERHEAD_CLOUD]: {
-    name: 'Thunderhead Cloud', symbol: '⛈️', color: 'fill-gray-700',
-    speedMultiplier: 4, visibilityFactor: 0.1, // Very difficult, low visibility
-    baseInherentVisibilityBonus: -5, prominence: 0, canopyBlockage: 0,
-    encounterChanceOnEnter: 20, encounterChanceOnDiscover: 10,
-    isImpassable: false, blocksLineOfSight: true, // Dense clouds block LOS
-    elevationColor: (elevation) => THUNDERHEAD_CLOUD_COLOR,
-  },
-  [TerrainType.CELESTIAL_ISLAND]: {
-    name: 'Celestial Island', symbol: '🏝️', color: 'fill-yellow-100',
-    speedMultiplier: 1.2, visibilityFactor: 1, // Like normal land, but floating
-    baseInherentVisibilityBonus: 1, prominence: 50, canopyBlockage: 10,
-    encounterChanceOnEnter: 8, encounterChanceOnDiscover: 15,
-    isImpassable: false, blocksLineOfSight: true, // Landmass blocks LOS
-    elevationColor: (elevation) => CELESTIAL_ISLAND_COLOR,
-  },
-};
 
 export const PARTY_ACTIVITIES = {
   avoid_notice: {
@@ -1275,27 +912,8 @@ export const PARTY_ACTIVITIES = {
     movementPenaltyFactor: 1.2,
     isGroupActivity: true,
     terrainModifiers: [
-        { terrains: [TerrainType.ROAD], movementPenaltyFactor: 0.5 },
-        { terrains: [
-            TerrainType.FOREST, TerrainType.JUNGLE, TerrainType.SWAMP, TerrainType.HILLS, TerrainType.MOUNTAIN,
-            TerrainType.BADLANDS, TerrainType.THICK_FOREST, TerrainType.SKELETAL_FOREST, TerrainType.ASHEN_WASTELAND,
-            TerrainType.BLOOD_MARSH, TerrainType.MAGMA_LAKE, TerrainType.VOLCANIC_WASTELAND, TerrainType.QUICKSAND, TerrainType.ICE_PLAIN,
-            TerrainType.OBSIDIAN_FIELD, 
-            // New difficult/impassable terrains
-            TerrainType.SAVANNA, TerrainType.TUNDRA, TerrainType.STEPPE, TerrainType.ANCIENT_FOREST,
-            TerrainType.PETRIFIED_FOREST, TerrainType.BIOLUMINESCENT_GROVE, TerrainType.MANGROVE_SWAMP,
-            TerrainType.CLOUD_FOREST, TerrainType.GLACIER, TerrainType.GEOTHERMAL_FIELD,
-            TerrainType.SALT_FLATS, TerrainType.DUNE_SEA, TerrainType.SALT_DESERT,
-            TerrainType.RED_DESERT, TerrainType.ROCK_GARDEN, TerrainType.BOG,
-            TerrainType.FENS, TerrainType.MIRE, TerrainType.PEATLANDS,
-            TerrainType.WHISPERING_WOODS, TerrainType.TAR_PITS,
-            TerrainType.CANYON, TerrainType.CRYSTAL_SPIRES, TerrainType.ANCIENT_RUINS,
-            TerrainType.METEORITE_CRATER, TerrainType.BASALT_COLUMNS, TerrainType.LUNAR_CRATER,
-            TerrainType.GLOWWORM_CAVE, TerrainType.SUBTERRANEAN_FOREST, TerrainType.CHASM,
-            TerrainType.MAGMA_CAVERN, TerrainType.HYDROTHERMAL_VENTS, TerrainType.SUBMARINE_CANYON,
-            TerrainType.OPEN_SKY, TerrainType.STRONG_WIND_CURRENTS, TerrainType.THUNDERHEAD_CLOUD,
-            TerrainType.CELESTIAL_ISLAND,
-        ], movementPenaltyFactor: 2.5 } // A general penalty for rough terrain
+        { terrains: [TerrainType.COBBLESTONE_ROAD], movementPenaltyFactor: 0.5 },
+        { terrains: Object.values(TerrainType).filter(t => t !== TerrainType.COBBLESTONE_ROAD), movementPenaltyFactor: 2.5 }
     ],
     traits: ['Move'],
     source: 'Custom Rule'
