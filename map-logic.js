@@ -1336,15 +1336,22 @@ export function startTravelAnimation(terrainType, travelDuration) {
   appState.travelAnimation.duration = travelDuration; // in milliseconds
   appState.travelAnimation.markerPosition = 0;
 
-  renderApp(); // Show the animation popup
+  renderApp(); // Show the animation popup. This is important to make it visible initially.
   syncTravelAnimationStateToFoundry();
 
-  animationIntervalId = setInterval(updateTravelAnimation, 50); // Update ~20 times per second
+  animationIntervalId = setInterval(performAnimationStep, 50); // Update ~20 times per second
 }
 
-function updateTravelAnimation() {
+function performAnimationStep() {
   if (!appState.travelAnimation.isActive) {
-    stopTravelAnimation(); // Should not happen if logic is correct, but as a safeguard
+    // This might be called if stopTravelAnimation clears the interval
+    // but an animation step was already queued.
+    // Or if stopTravelAnimation was called for other reasons.
+    // We ensure the interval is definitely cleared if we enter here unexpectedly.
+    if (animationIntervalId) {
+        clearInterval(animationIntervalId);
+        animationIntervalId = null;
+    }
     return;
   }
 
@@ -1352,11 +1359,17 @@ function updateTravelAnimation() {
   const progress = Math.min(1, elapsed / appState.travelAnimation.duration);
   appState.travelAnimation.markerPosition = progress * 100;
 
-  renderApp(); // Update marker
+  // Direct DOM manipulation for marker
+  const markerElement = document.querySelector('.travel-animation-marker');
+  if (markerElement && appState.travelAnimation.isActive) { // Re-check isActive
+    markerElement.style.left = appState.travelAnimation.markerPosition + '%';
+  }
+
+  // Sync state to Foundry (if GM)
   syncTravelAnimationStateToFoundry();
 
   if (progress >= 1) {
-    stopTravelAnimation();
+    stopTravelAnimation(); // This will also call sync and renderApp once at the end.
   }
 }
 
@@ -1365,9 +1378,20 @@ export function stopTravelAnimation() {
     clearInterval(animationIntervalId);
     animationIntervalId = null;
   }
+
+  const markerWasActive = appState.travelAnimation.isActive;
   appState.travelAnimation.isActive = false;
-  // Optional: Reset other travelAnimation fields if desired, or leave them for inspection
-  // appState.travelAnimation.markerPosition = 100; // Or 0 if hiding means reset
-  renderApp(); // Hide the popup
-  syncTravelAnimationStateToFoundry();
+
+  // Ensure marker is visually at the end if it was active
+  // This is mostly for visual completeness before the popup is hidden by renderApp.
+  if (markerWasActive) {
+      appState.travelAnimation.markerPosition = 100; // Ensure state reflects end
+      const markerElement = document.querySelector('.travel-animation-marker');
+      if (markerElement) {
+        markerElement.style.left = '100%';
+      }
+  }
+
+  renderApp(); // Hide the popup and update UI based on final state.
+  syncTravelAnimationStateToFoundry(); // Send the final "inactive" state.
 }
