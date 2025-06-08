@@ -46,6 +46,7 @@ export async function compileTemplates() {
         fetch("templates/controls.hbs"),
         fetch("templates/hex-grid.hbs"),
         fetch("templates/hexagon.hbs"),
+        fetch("templates/travel-animation.hbs"),
     ]);
     for (const res of responses) {
         if (!res.ok) throw new Error( `Failed to fetch template: ${res.url} (${res.status} ${res.statusText})`);
@@ -55,6 +56,7 @@ export async function compileTemplates() {
     Handlebars.registerPartial("controls", texts[1]);
     Handlebars.registerPartial("hexGrid", texts[2]);
     Handlebars.registerPartial("hexagon", texts[3]);
+    Handlebars.registerPartial("travelAnimationPopup", texts[4]);
     Handlebars.registerHelper({
         eq: (a, b) => a === b,
         or: (a, b) => a || b,
@@ -438,6 +440,18 @@ export function renderApp(options = {}) {
         activePartyActivitiesDisplay: activePartyActivitiesDisplayArray, // Used by main.hbs for iterating display
         // activePartyActivitiesCount is no longer explicitly needed here as main.hbs can use activePartyActivities.size (from ...appState)
         // isActivePartyActivity is no longer explicitly needed here as controls.hbs uses lookup on the map for checkbox state (from ...appState)
+        travelAnimation: {
+            isActive: appState.travelAnimation.isActive,
+            terrainColor: appState.travelAnimation.terrainColor,
+            terrainName: appState.travelAnimation.terrainName,
+            markerPosition: appState.travelAnimation.markerPosition,
+            // Generate terrainPatternRows: a 10x20 grid of the terrain symbol
+            terrainPatternRows: Array(10).fill(null).map(() =>
+                Array(20).fill(null).map(() => (
+                    { symbol: appState.travelAnimation.terrainSymbol }
+                ))
+            )
+        },
     };
 
     appContainer.innerHTML = mainTemplateCompiled(renderContext);

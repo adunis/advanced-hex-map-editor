@@ -71,6 +71,18 @@ export const appState = {
 
   activePartyActivities: new Map(),
 
+  // Travel Animation State
+  travelAnimation: {
+    isActive: false,
+    terrainType: null,
+    terrainName: '',
+    terrainColor: '#FFFFFF',
+    terrainSymbol: '?',
+    markerPosition: 0,
+    startTime: 0,
+    duration: 0,
+  },
+
   // Weather system properties
   isWeatherEnabled: false,
   weatherConditions: [
@@ -118,6 +130,17 @@ export function resetActiveMapState() {
 
     appState.zoomLevel = 1.0;
     appState.activePartyActivities = new Map();
+
+    appState.travelAnimation = {
+      isActive: false,
+      terrainType: null,
+      terrainName: '',
+      terrainColor: '#FFFFFF',
+      terrainSymbol: '?',
+      markerPosition: 0,
+      startTime: 0,
+      duration: 0,
+    };
 
     // Reset weather system properties
     appState.isWeatherEnabled = false;
