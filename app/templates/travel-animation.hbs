@@ -1,0 +1,15 @@
+<div id="travel-animation-popup" class="travel-animation-container {{#unless isActive}}hidden{{/unless}}">
+  <div class="travel-animation-terrain" style="background-color: {{terrainColor}};">
+    {{#each terrainPatternRows}}
+      <div class="terrain-row">
+        {{#each this}}
+          <span class="terrain-symbol">{{symbol}}</span>
+        {{/each}}
+      </div>
+    {{/each}}
+  </div>
+  <div class="travel-animation-marker" style="left: {{markerPosition}}%;"></div>
+  <div class="travel-animation-info">
+    Travelling through {{terrainName}}...
+  </div>
+</div>
