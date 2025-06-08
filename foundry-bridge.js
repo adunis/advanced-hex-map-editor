@@ -314,6 +314,40 @@ class HexMapApplication extends Application {
           }
           break;
 
+        case 'gmSyncTravelAnimationToFoundry':
+          // Note: isUserGM check might not be strictly necessary if only GM's iframe can send this,
+          // but good for defense. Assuming game.user.isGM is the check.
+          if (game.user?.isGM && event.data.moduleId === MODULE_ID) {
+            const newAnimationState = payload;
+            // Broadcast this state to ALL client iframes for this module
+            // broadcastToAllIframes is already scoped to MODULE_ID implicitly by its implementation
+            broadcastToAllIframes('ahnSyncTravelAnimation', newAnimationState);
+          }
+          break;
+
+          break;
+
+        case 'ahnSyncTravelAnimation':
+          // All clients (GM and players) will receive this from foundry-bridge
+          if (payload) {
+            const oldIsActive = appState.travelAnimation.isActive;
+            appState.travelAnimation = { ...appState.travelAnimation, ...payload };
+
+            // GM's client already manages its interval.
+            // Player clients rely on these messages for updates.
+            // If the animation is stopping, ensure local interval is cleared (though players won't have one).
+            if (!appState.isGM && !appState.travelAnimation.isActive && oldIsActive) {
+                // If a player client had some local animation logic (it shouldn't for synced animations), clear it.
+                // For now, map-logic's stopTravelAnimation isn't called on player clients by this message.
+            }
+
+            // If the animation just started for a player, they don't start their own interval.
+            // They just render the state received from the GM.
+
+            renderApp({ preserveScroll: true });
+          }
+          break;
+
         default:
           console.warn(`AHME_BRIDGE: Received unknown message type '${type}' from iframe.`, payload);
       }

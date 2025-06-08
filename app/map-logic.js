@@ -8,6 +8,7 @@ import { handleSaveCurrentMap } from './map-management.js';
 import * as HexplorationLogic from './hexploration-logic.js';
 
 const APP_MODULE_ID = new URLSearchParams(window.location.search).get('moduleId');
+let animationIntervalId = null;
 
 function rollPercent(chance) {
     return (Math.random() * 100) < (chance || 0);
@@ -429,6 +430,26 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
         
         const totalCalculatedTime = timeAfterWeather + elevationPenalty;
         const finalTimeValue = Math.max(0.1, totalCalculatedTime);
+
+        // Convert travel time to milliseconds for the animation
+        let travelDurationMs = 0;
+        const timeUnit = appState.currentMapHexTraversalTimeUnit;
+        if (timeUnit === 'hour') {
+          travelDurationMs = finalTimeValue * 60 * 60 * 1000;
+        } else if (timeUnit === 'minute') {
+          travelDurationMs = finalTimeValue * 60 * 1000;
+        } else if (timeUnit === 'day') {
+          travelDurationMs = finalTimeValue * 24 * 60 * 60 * 1000;
+        } else { // Assuming seconds or a direct ms value if unit is not standard (e.g. if it was 'second')
+          travelDurationMs = finalTimeValue * 1000;
+        }
+        // Ensure minimum duration for very short travel times to make animation visible
+        travelDurationMs = Math.max(500, travelDurationMs);
+
+        // Start the travel animation if not exploring current hex and duration is positive
+        if (!isExploringCurrentHex && travelDurationMs > 0) {
+          startTravelAnimation(targetHex.terrain, travelDurationMs);
+        }
 
         if (appState.isWeatherEnabled) {
             appState.timeSinceLastWeatherChange += finalTimeValue;
@@ -1270,4 +1291,70 @@ export function getForecastedWeatherGrid(hoursAhead) {
     });
 
     return forecastGrid;
+}
+
+function syncTravelAnimationStateToFoundry() {
+  if (appState.isGM && !appState.isStandaloneMode && window.parent && APP_MODULE_ID) {
+    try {
+      window.parent.postMessage({
+        type: 'gmSyncTravelAnimationToFoundry', // Message for foundry-bridge
+        payload: { ...appState.travelAnimation }, // Send a copy of the state
+        moduleId: APP_MODULE_ID
+      }, '*');
+    } catch (e) {
+      console.error("AHME: Error syncing travel animation state to Foundry:", e);
+    }
+  }
+}
+
+export function startTravelAnimation(terrainType, travelDuration) {
+  if (animationIntervalId) {
+    clearInterval(animationIntervalId); // Clear any existing animation
+  }
+
+  const terrainConfig = CONST.TERRAIN_TYPES_CONFIG[terrainType] || CONST.TERRAIN_TYPES_CONFIG[CONST.DEFAULT_TERRAIN_TYPE];
+
+  appState.travelAnimation.isActive = true;
+  appState.travelAnimation.terrainType = terrainType;
+  appState.travelAnimation.terrainName = terrainConfig.name;
+  appState.travelAnimation.terrainColor = terrainConfig.color; // Assuming color is a direct hex/rgb string
+  appState.travelAnimation.terrainSymbol = terrainConfig.symbol || '?';
+  appState.travelAnimation.startTime = Date.now();
+  appState.travelAnimation.duration = travelDuration; // in milliseconds
+  appState.travelAnimation.markerPosition = 0;
+
+  renderApp(); // Show the animation popup
+  syncTravelAnimationStateToFoundry();
+
+  animationIntervalId = setInterval(updateTravelAnimation, 50); // Update ~20 times per second
+}
+
+function updateTravelAnimation() {
+  if (!appState.travelAnimation.isActive) {
+    stopTravelAnimation(); // Should not happen if logic is correct, but as a safeguard
+    return;
+  }
+
+  const elapsed = Date.now() - appState.travelAnimation.startTime;
+  const progress = Math.min(1, elapsed / appState.travelAnimation.duration);
+  appState.travelAnimation.markerPosition = progress * 100;
+
+  renderApp(); // Update marker
+  syncTravelAnimationStateToFoundry();
+
+  if (progress >= 1) {
+    stopTravelAnimation();
+  }
+}
+
+export function stopTravelAnimation() {
+  if (animationIntervalId) {
+    clearInterval(animationIntervalId);
+    animationIntervalId = null;
+  }
+  appState.travelAnimation.isActive = false;
+  // Optional: Reset other travelAnimation fields if desired, or leave them for inspection
+  // appState.travelAnimation.markerPosition = 100; // Or 0 if hiding means reset
+  renderApp(); // Hide the popup
+  syncTravelAnimationStateToFoundry();
 }
