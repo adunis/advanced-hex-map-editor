@@ -519,7 +519,20 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
              window.parent.postMessage({ type: 'gmPerformedHexplorationAction', payload: { action: hexplorationActionType, kmCost: kmCost, hoursCost: hoursCost, logEntry: travelLogEntry }, moduleId: APP_MODULE_ID }, '*');
         }
         if (appState.currentMapId && (!appState.isStandaloneMode || appState.isGM)) {
+          if (appState.isStandaloneMode && appState.isGM) { // GM in standalone mode
+            // Delay save in standalone to let animation play
+            // Ensure travelAnimation state is accessible and animation has started
+            const animationDuration = (appState.travelAnimation && appState.travelAnimation.isActive)
+                                      ? appState.travelAnimation.duration
+                                      : 0;
+            setTimeout(() => {
+              handleSaveCurrentMap(true); // true for auto-save
+            }, animationDuration + 200); // 200ms buffer after animation should end
+          } else if (!appState.isStandaloneMode && appState.isGM) { // GM in Foundry mode
+            // Non-standalone GMs save immediately (or as per existing logic)
             handleSaveCurrentMap(true);
+          }
+          // Note: Non-GM players do not trigger this save block.
         }
 
         if (!(encounterOnEnterDetails.markedByGM || encounterOnDiscoverDetails.some(d => d.markedByGM))) {
