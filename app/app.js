@@ -348,6 +348,11 @@ async function start() {
     appState.userId = appState.isStandaloneMode ? 'standalone_gm' : (new URLSearchParams(window.location.search).get('userId') || 'unknown_player_iframe');
     appState.appMode = appState.isGM ? CONST.DEFAULT_APP_MODE : CONST.AppMode.PLAYER;
 
+    // Override for standalone mode to ensure GM starts in Player mode
+    if (appState.isStandaloneMode) {
+        appState.appMode = CONST.AppMode.PLAYER;
+    }
+
     const templatesReady = await compileTemplates();
     if (!templatesReady) {
         return;
@@ -373,7 +378,9 @@ async function start() {
         appState.isStandaloneMode = true; 
         appState.isGM = true; 
         appState.userId = 'fallback_standalone_gm';
-        appState.appMode = CONST.DEFAULT_APP_MODE;
+        // appState.appMode = CONST.DEFAULT_APP_MODE; // This would revert our standalone override
+        // Ensure standalone mode also respects the Player mode default for animations
+        appState.appMode = CONST.AppMode.PLAYER;
         MapManagement.handleCreateNewMap(true); 
     }
 }
