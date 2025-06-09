@@ -1,5 +1,3 @@
-// File: app/constants.js
-
 export const AppMode = {
   HEX_EDITOR: 'hex_editor',
   PLAYER: 'player',
@@ -33,14 +31,7 @@ export const TerrainFeature = {
   SECRET: 'SECRET',
 };
 
-// ==================================================================
-// TERRAIN MASTER DATA
-// Central source of truth for all terrain types.
-// The TerrainType and TERRAIN_TYPES_CONFIG exports are generated from this object.
-// ==================================================================
-
 const TERRAIN_METADATA = {
-  // --- Terrestrial - Mundane/Semi-Mundane ---
   ROLLING_PLAINS: {
     id: 'rolling_plains', name: 'Rolling Plains', symbol: '🌾', color: 'fill-green-400',
     speedMultiplier: 1, visibilityFactor: 1, baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
@@ -146,8 +137,6 @@ const TERRAIN_METADATA = {
     colors: { low: 'rgb(207, 250, 254)', mid: 'rgb(217, 252, 255)', high: 'rgb(227, 255, 255)' },
     elevationThresholds: { mid: 0, high: 50 },
   },
-
-  // --- Terrestrial - Lore-Inspired & Exotic ---
   SAVANNA_WOODLAND: {
     id: 'savanna_woodland', name: 'Savanna Woodland', symbol: '🌳', color: 'fill-yellow-500',
     speedMultiplier: 1.1, visibilityFactor: 1, baseInherentVisibilityBonus: 0, prominence: 5, canopyBlockage: 5,
@@ -281,8 +270,6 @@ const TERRAIN_METADATA = {
     colors: { low: 'rgb(40, 40, 50)', mid: 'rgb(50, 50, 60)', high: 'rgb(60, 60, 70)' },
     elevationThresholds: { mid: 100, high: 500 },
   },
-
-  // --- Underground - Traversable ---
   COMPACT_EARTH_CAVERN: {
     id: 'compact_earth_cavern', name: 'Compact Earth Cavern', symbol: '🕳️', color: 'fill-gray-600',
     speedMultiplier: 1, visibilityFactor: 0.7, baseInherentVisibilityBonus: -2, prominence: 0, canopyBlockage: 0,
@@ -332,8 +319,6 @@ const TERRAIN_METADATA = {
     colors: { low: 'rgb(45, 15, 15)', mid: 'rgb(55, 25, 25)', high: 'rgb(65, 35, 35)' },
     elevationThresholds: { mid: -2500, high: -1000 },
   },
-
-  // --- Underground - Impassable Geology/Barriers ---
   SHEER_GRANITE_WALL: {
     id: 'sheer_granite_wall', name: 'Sheer Granite Wall', symbol: '⛰️', color: 'fill-gray-700',
     speedMultiplier: 999, visibilityFactor: 0, baseInherentVisibilityBonus: -10, prominence: 100, canopyBlockage: 0,
@@ -404,8 +389,6 @@ const TERRAIN_METADATA = {
     colors: { cool: 'rgb(200, 50, 0)', hot: 'rgb(255, 150, 50)' },
     elevationThresholds: { hot: -1500 },
   },
-
-  // --- Aquatic - Underwater ---
   COASTAL_SHALLOWS: {
     id: 'coastal_shallows', name: 'Coastal Shallows', symbol: '🌊', color: 'fill-cyan-400',
     speedMultiplier: 1.5, visibilityFactor: 0.8, baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
@@ -448,8 +431,6 @@ const TERRAIN_METADATA = {
     colors: { deepest: 'rgb(0,0,0)', mid: 'rgb(0,0,5)', upper: 'rgb(0,0,10)' },
     elevationThresholds: { mid: -8000, upper: -4000 },
   },
-
-  // --- Sky - Traversable & Structures ---
   CLEAR_SKY: {
     id: 'clear_sky', name: 'Clear Sky', symbol: '☁️', color: 'fill-sky-300',
     speedMultiplier: 0.5, visibilityFactor: 1.5, baseInherentVisibilityBonus: 2, prominence: 0, canopyBlockage: 0,
@@ -478,8 +459,6 @@ const TERRAIN_METADATA = {
     colors: { low: 'rgb(244, 239, 185)', mid: 'rgb(254, 249, 195)', high: 'rgb(255, 255, 205)' },
     elevationThresholds: { mid: 15000, high: 25000 },
   },
-
-  // --- Post-Descent & Planar Anomalies ---
   ETERNAL_BATTLEFIELD_PLAINS: {
     id: 'eternal_battlefield_plains', name: 'Eternal Battlefield Plains', symbol: '⚔️', color: 'fill-slate-600',
     speedMultiplier: 1.2, visibilityFactor: 0.8, baseInherentVisibilityBonus: -1, prominence: 0, canopyBlockage: 0,
@@ -543,8 +522,6 @@ const TERRAIN_METADATA = {
     colors: { low: 'rgb(90, 110, 130)', mid: 'rgb(100, 120, 140)', high: 'rgb(110, 130, 150)' },
     elevationThresholds: { mid: 8000, high: 15000 },
   },
-
-  // --- New Terrains from Lore ---
   SPECTRAL_RAIN_ZONE: {
     id: 'spectral_rain_zone', name: 'Spectral Rain Zone', symbol: '💧', color: 'fill-slate-400',
     speedMultiplier: 1.1, visibilityFactor: 0.7, baseInherentVisibilityBonus: -1, prominence: 0, canopyBlockage: 0,
@@ -701,58 +678,39 @@ const TERRAIN_METADATA = {
   },
 };
 
-// ==================================================================
-// GENERATED CONFIGURATIONS
-// These exports are generated from TERRAIN_METADATA for use in the application.
-// Do not edit these directly. Modify TERRAIN_METADATA instead.
-// ==================================================================
-
-/**
- * An enum-like object for referencing terrain types programmatically.
- * e.g., TerrainType.OAK_FOREST returns 'oak_forest'
- */
 export const TerrainType = Object.fromEntries(
   Object.entries(TERRAIN_METADATA).map(([key, data]) => [key, data.id])
 );
 
-/**
- * The main configuration object used by the application, keyed by terrain ID string.
- * This loop constructs the object and its `elevationColor` functions from the master data.
- */
 export const TERRAIN_TYPES_CONFIG = Object.fromEntries(
   Object.entries(TERRAIN_METADATA).map(([key, data]) => {
     const { colors, elevationThresholds, ...gameplayData } = data;
     
     const finalConfig = {
       ...gameplayData,
+      colors: colors,
       elevationColor: (elevation) => {
-        // Handle two-color terrains (like impassable walls)
         if (elevationThresholds.light !== undefined && colors.light && colors.dark) {
           return elevation < elevationThresholds.light ? colors.dark : colors.light;
         }
-        // Handle two-color terrains (like lava rivers)
         if (elevationThresholds.hot !== undefined && colors.hot && colors.cool) {
           return elevation < elevationThresholds.hot ? colors.cool : colors.hot;
         }
-        // Handle three-color terrains (most common type)
         if (elevationThresholds.mid !== undefined && elevationThresholds.high !== undefined) {
           if (elevation < elevationThresholds.mid) return colors.low;
           if (elevation < elevationThresholds.high) return colors.mid;
           return colors.high;
         }
-        // Handle three-color terrains for underwater depths
         if (elevationThresholds.mid !== undefined && elevationThresholds.shallow !== undefined) {
             if (elevation < elevationThresholds.mid) return colors.deep;
             if (elevation < elevationThresholds.shallow) return colors.mid;
             return colors.shallow;
         }
-        // Handle three-color terrains for deep ocean/trenches
         if (elevationThresholds.mid !== undefined && elevationThresholds.upper !== undefined) {
           if (elevation < elevationThresholds.mid) return colors.deepest;
           if (elevation < elevationThresholds.upper) return colors.mid;
           return colors.upper;
       }
-        // Fallback for any misconfigured or single-color terrains
         return colors.low || colors.dark || colors.cool || Object.values(colors)[0];
       }
     };
@@ -760,11 +718,6 @@ export const TERRAIN_TYPES_CONFIG = Object.fromEntries(
     return [data.id, finalConfig];
   })
 );
-
-
-// ==================================================================
-// OTHER CONSTANTS
-// ==================================================================
 
 export const DEFAULT_TERRAIN_TYPE = TerrainType.ROLLING_PLAINS;
 export const MOUNTAIN_THRESHOLD = 600;
@@ -776,11 +729,11 @@ export const INITIAL_GRID_HEIGHT = 8;
 export const MIN_GRID_DIMENSION = 1;
 export const MAX_GRID_DIMENSION = 50;
 
-export const MIN_ELEVATION = -16000; // Deepest ocean trench / underground abyss
-export const MAX_ELEVATION = 46000; // Highest mountain / lower stratosphere
-export const ELEVATION_STEP = 100; // Default step for increase/decrease
-export const DEFAULT_CUSTOM_ELEVATION_STEP = 100; // Default for the input field
-export const DEFAULT_SET_ELEVATION_VALUE = 0; // Default for "Set to..."
+export const MIN_ELEVATION = -16000;
+export const MAX_ELEVATION = 46000;
+export const ELEVATION_STEP = 100;
+export const DEFAULT_CUSTOM_ELEVATION_STEP = 100;
+export const DEFAULT_SET_ELEVATION_VALUE = 0;
 export const INITIAL_ELEVATION = 0;
 export const INITIAL_BASE_VISIBILITY = 1;
 

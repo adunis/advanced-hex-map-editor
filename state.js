@@ -1,10 +1,9 @@
-// File: app/state.js
 import * as CONST from './constants.js';
 
 export const appState = {
   isGM: new URLSearchParams(window.location.search).get('isGM') === 'true',
   userId: new URLSearchParams(window.location.search).get('userId') || 'unknown_player_iframe',
-  isStandaloneMode: !new URLSearchParams(window.location.search).get('moduleId'), // True if no moduleId
+  isStandaloneMode: !new URLSearchParams(window.location.search).get('moduleId'),
   appMode: null,
   viewMode: CONST.DEFAULT_VIEW_MODE,
   hexplorationTimeElapsedHoursToday: 0,
@@ -25,11 +24,10 @@ export const appState = {
   hexDataMap: new Map(),
   currentMapEventLog: [],
 
-  // Elevation Brush specific state
   elevationBrushMode: CONST.ElevationBrushMode.INCREASE,
-  elevationBrushCustomStep: CONST.DEFAULT_CUSTOM_ELEVATION_STEP, // New state for custom step
-  elevationBrushSetValue: CONST.DEFAULT_SET_ELEVATION_VALUE,   // New state for "Set to..." value
-  autoTerrainChangeOnElevation: CONST.AUTO_TERRAIN_CHANGE_ENABLED_DEFAULT, // New state for toggle
+  elevationBrushCustomStep: CONST.DEFAULT_CUSTOM_ELEVATION_STEP,
+  elevationBrushSetValue: CONST.DEFAULT_SET_ELEVATION_VALUE,
+  autoTerrainChangeOnElevation: CONST.AUTO_TERRAIN_CHANGE_ENABLED_DEFAULT,
 
   paintMode: CONST.PaintMode.ELEVATION,
   featureBrushAction: CONST.FeatureBrushAction.ADD,
@@ -71,7 +69,6 @@ export const appState = {
 
   activePartyActivities: new Map(),
 
-  // Travel Animation State
   travelAnimation: {
     isActive: false,
     terrainType: null,
@@ -81,9 +78,9 @@ export const appState = {
     markerPosition: 0,
     startTime: 0,
     duration: 0,
+    onComplete: null,
   },
 
-  // Weather system properties
   isWeatherEnabled: false,
   weatherConditions: [
     { id: 'sunny', name: 'Sunny', icon: '☀️', effects: { travelSpeed: 1, visibility: 1 } },
@@ -93,10 +90,8 @@ export const appState = {
     { id: 'foggy', name: 'Foggy', icon: '🌫️', effects: { travelSpeed: 0.9, visibility: 0.4 } },
   ],
   weatherGrid: {},
-  // weatherForecast: [], // Removed
   weatherSettings: { sunny: 70, cloudy: 15, rainy: 10, foggy: 5, stormy: 1 },
   timeSinceLastWeatherChange: 0,
-  // playerCanSeeForecast: false, // Removed (or will be if it was tied to old forecast)
   forecastHoursAhead: null,
   displayingForecastWeatherGrid: null,
   playerCanSeeCurrentWeather: true,
@@ -140,29 +135,26 @@ export function resetActiveMapState() {
       markerPosition: 0,
       startTime: 0,
       duration: 0,
+      onComplete: null,
     };
 
-    // Reset weather system properties
     appState.isWeatherEnabled = false;
     appState.weatherGrid = {};
-    // appState.weatherForecast = []; // Removed
     appState.weatherSettings = { sunny: 70, cloudy: 15, rainy: 10, foggy: 5, stormy: 1 };
     appState.timeSinceLastWeatherChange = 0;
-    // appState.playerCanSeeForecast = false; // Removed
     appState.forecastHoursAhead = null;
     appState.displayingForecastWeatherGrid = null;
     appState.playerCanSeeCurrentWeather = true;
     appState.activeWeatherSystems = [];
     appState.timeSinceLastNewWeatherSystemSpawn = 0;
 
-    // Reset new elevation states too if needed, or they can persist across maps
     appState.elevationBrushMode = CONST.ElevationBrushMode.INCREASE;
     appState.elevationBrushCustomStep = CONST.DEFAULT_CUSTOM_ELEVATION_STEP;
     appState.elevationBrushSetValue = CONST.DEFAULT_SET_ELEVATION_VALUE;
     appState.autoTerrainChangeOnElevation = CONST.AUTO_TERRAIN_CHANGE_ENABLED_DEFAULT;
 
 
-    if (!appState.currentMapName || appState.isStandaloneMode) { // Reset grid dims if no map name or in standalone fresh start
+    if (!appState.currentMapName || appState.isStandaloneMode) {
         appState.currentGridWidth = CONST.INITIAL_GRID_WIDTH;
         appState.currentGridHeight = CONST.INITIAL_GRID_HEIGHT;
         appState.tempGridWidth = CONST.INITIAL_GRID_WIDTH.toString();

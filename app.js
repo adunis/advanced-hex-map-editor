@@ -1,11 +1,10 @@
-// File: app/app.js
-
 import { appState, resetActiveMapState } from './state.js';
 import * as CONST from './constants.js';
 import { compileTemplates, renderApp } from './ui.js';
 import * as MapLogic from './map-logic.js';
 import * as MapManagement from './map-management.js';
 import * as HexplorationLogic from './hexploration-logic.js';
+import * as AnimationLogic from './animation-logic.js'; // Added import
 
 const APP_MODULE_ID = new URLSearchParams(window.location.search).get('moduleId');
 appState.isStandaloneMode = !APP_MODULE_ID; 
@@ -42,27 +41,20 @@ window.addEventListener('message', (event) => {
         case 'mapDataLoaded':
             if (appState.isStandaloneMode) return; 
             if (payload && payload.mapId && Array.isArray(payload.hexes)) {
-                resetActiveMapState(); // This clears appState.activePartyActivities
+                resetActiveMapState();
 
-                // === BEGIN NEW/MODIFIED SECTION for Party Activities ===
                 if (payload.partyActivitiesData && typeof payload.partyActivitiesData === 'object') {
-                    // If Foundry sends partyActivitiesData with mapDataLoaded, use it.
                     for (const [activityId, characterName] of Object.entries(payload.partyActivitiesData)) {
                         if (CONST.PARTY_ACTIVITIES[activityId] && typeof characterName === 'string') {
                             appState.activePartyActivities.set(activityId, characterName);
                         }
                     }
-                    console.log("AHME app: Repopulated party activities from mapDataLoaded.partyActivitiesData");
                 } else if (window.parent && APP_MODULE_ID && typeof window.parent.postMessage === 'function') {
-                    // Fallback: If not included in mapDataLoaded, re-request from Foundry.
-                    console.warn("AHME app: partyActivitiesData not found in mapDataLoaded. Re-requesting activities.");
                     window.parent.postMessage({
                         type: 'ahnGetPartyActivities',
                         moduleId: APP_MODULE_ID
                     }, '*');
-                    // The existing 'ahnInitialPartyActivities' handler will process the response.
                 }
-                // === END NEW/MODIFIED SECTION ===
 
                 appState.currentMapId = payload.mapId;
                 appState.currentMapName = payload.name || "Unnamed Map";
@@ -267,72 +259,81 @@ window.addEventListener('message', (event) => {
             }
             break;
 
-        case 'featureDetailsInputResponse':
+case 'featureDetailsInputResponse':
+            // Standalone specific quick exit if cancelled and not waiting (avoids unnecessary render)
             if (appState.isStandaloneMode && payload && payload.cancelled && !appState.isWaitingForFeatureDetails) {
-                renderApp();
+                // Potentially do nothing or minimal render if truly not waiting
+                // renderApp(); // Or remove this if it causes issues
                 return;
             }
+
             if (appState.isWaitingForFeatureDetails && typeof appState.featureDetailsCallback === 'function') {
+                // Check if this response is for the currently pending feature placement
                 if (appState.pendingFeaturePlacement && payload && appState.pendingFeaturePlacement.hexId === payload.hexId) {
-                    appState.featureDetailsCallback(payload);
+                    appState.featureDetailsCallback(payload); // This callback is in encounter-logic.js
+                                                              // It will handle clearing pendingFeaturePlacement and isWaitingForFeatureDetails
                 } else {
+                    // This response is not for the current pending feature or no pending feature matches.
+                    // This could be a stale response or an unexpected situation.
+                    // Resetting state here is a defensive measure.
+                    console.warn("AHME: Received featureDetailsInputResponse that didn't match pending placement or no callback was ready.", payload, appState.pendingFeaturePlacement);
                     appState.isWaitingForFeatureDetails = false;
                     appState.featureDetailsCallback = null;
                     appState.pendingFeaturePlacement = null;
-                    renderApp();
+                    renderApp(); // Re-render to clear any UI waiting for input
                 }
-            } else {
+            } else if (payload && payload.cancelled) {
+                // If it was cancelled and we somehow weren't "waiting" anymore (e.g., another action interrupted)
+                // still ensure state is clean.
                 appState.isWaitingForFeatureDetails = false;
                 appState.featureDetailsCallback = null;
                 appState.pendingFeaturePlacement = null;
                 renderApp();
             }
-            break;
-
-        case 'hexplorationDataUpdated': 
-            if (payload) {
-                if (!appState.isStandaloneMode || (appState.isStandaloneMode && appState.isGM)) {
-                    HexplorationLogic.updateLocalHexplorationDisplayValues(payload);
-                    renderApp({ preserveScroll: true });
-                }
-            }
+            // If none of the above, it's an unexpected message, do nothing or log.
             break;
 
         case 'ahnInitialPartyActivities':
-          if (!appState.isStandaloneMode && payload) { // payload is the object from Foundry
-            // Clear existing activities first to ensure a clean load
+          if (!appState.isStandaloneMode && payload) {
             appState.activePartyActivities.clear();
-            // Convert received object back to a Map
             for (const [activityId, characterName] of Object.entries(payload)) {
-              if (CONST.PARTY_ACTIVITIES[activityId] && typeof characterName === 'string') { // Basic validation
+              if (CONST.PARTY_ACTIVITIES[activityId] && typeof characterName === 'string') {
                 appState.activePartyActivities.set(activityId, characterName);
               }
             }
-            // No need to call syncActivitiesToFoundry() here as this is an update FROM Foundry
-            renderApp({ preserveScroll: true }); // Or false if initial load should center
-          }
-          break;
-
-        case 'ahnSyncTravelAnimation':
-          // All clients (GM and players) will receive this from foundry-bridge
-          if (payload) {
-            const oldIsActive = appState.travelAnimation.isActive;
-            appState.travelAnimation = { ...appState.travelAnimation, ...payload };
-
-            // GM's client already manages its interval.
-            // Player clients rely on these messages for updates.
-            // If the animation is stopping, ensure local interval is cleared (though players won't have one).
-            if (!appState.isGM && !appState.travelAnimation.isActive && oldIsActive) {
-                // If a player client had some local animation logic (it shouldn't for synced animations), clear it.
-                // For now, map-logic's stopTravelAnimation isn't called on player clients by this message.
-            }
-
-            // If the animation just started for a player, they don't start their own interval.
-            // They just render the state received from the GM.
-
             renderApp({ preserveScroll: true });
           }
           break;
+
+case 'ahnSyncTravelAnimation':
+            const wasActive = appState.travelAnimation.isActive;
+            
+            // Update the local appState with the data from the GM
+            // Make sure not to overwrite startTime and duration if the player has already started
+            // and this is just a progress update (though we removed frequent progress updates from GM)
+            // For start/stop, payload will have the definitive state.
+            appState.travelAnimation = { 
+                ...appState.travelAnimation, // Keep existing player-side startTime if already running
+                ...payload 
+            };
+
+            if (!appState.isGM) { // Only player clients react to start/stop their loops
+                if (payload.isActive && !wasActive) {
+                    // If GM says "start" and it wasn't active, player starts their loop
+                    // Ensure startTime and duration are fresh from GM for the player's loop
+                    appState.travelAnimation.startTime = payload.startTime || Date.now(); // Use GM's start or current if missing
+                    appState.travelAnimation.duration = payload.duration;
+                    AnimationLogic.runPlayerAnimationLoop();
+                } else if (!payload.isActive && wasActive) {
+                    // If GM says "stop" and it was active, player stops their loop
+                    AnimationLogic.stopPlayerAnimationLoop();
+                }
+            }
+            
+            // Re-render the UI to show/hide the popup and update marker for all
+            // Player's marker will be driven by its own loop primarily, but this syncs initial/final state
+            renderApp({ preserveScroll: true });
+            break;
 
         default:
             break;
@@ -348,9 +349,8 @@ async function start() {
     appState.userId = appState.isStandaloneMode ? 'standalone_gm' : (new URLSearchParams(window.location.search).get('userId') || 'unknown_player_iframe');
     appState.appMode = appState.isGM ? CONST.DEFAULT_APP_MODE : CONST.AppMode.PLAYER;
 
-    // Override for standalone mode to ensure GM starts in Player mode
     if (appState.isStandaloneMode) {
-        appState.appMode = CONST.AppMode.PLAYER;
+        appState.appMode = CONST.AppMode.PLAYER; // Default standalone to player view for now
     }
 
     const templatesReady = await compileTemplates();
@@ -363,24 +363,20 @@ async function start() {
     } else if (window.parent && APP_MODULE_ID && typeof window.parent.postMessage === 'function') {
         try {
             window.parent.postMessage({ type: 'jsAppReady', moduleId: APP_MODULE_ID }, '*');
-            // === Add the new message dispatch here ===
             window.parent.postMessage({
-                type: 'ahnGetPartyActivities', // As defined in plan step 1
+                type: 'ahnGetPartyActivities',
                 moduleId: APP_MODULE_ID
             }, '*');
-            // =======================================
         } catch (e) {
             alert("AHME: Critical error initializing communication with Foundry. The map editor may not function correctly. Check console (F12).");
             resetActiveMapState();
             renderApp();
         }
-    } else {
+    } else { // Fallback if no parent or module ID, assume standalone
         appState.isStandaloneMode = true; 
-        appState.isGM = true; 
+        appState.isGM = true; // Assume GM rights in this fallback standalone
         appState.userId = 'fallback_standalone_gm';
-        // appState.appMode = CONST.DEFAULT_APP_MODE; // This would revert our standalone override
-        // Ensure standalone mode also respects the Player mode default for animations
-        appState.appMode = CONST.AppMode.PLAYER;
+        appState.appMode = CONST.AppMode.PLAYER; // Default to player for consistency
         MapManagement.handleCreateNewMap(true); 
     }
 }
@@ -393,17 +389,16 @@ if (document.readyState === 'loading') {
 
 export function syncActivitiesToFoundry() {
   if (appState.isStandaloneMode || !window.parent || typeof window.parent.postMessage !== 'function') {
-    return; // Don't sync if in standalone or no parent to post to
+    return;
   }
 
-  // Convert Map to plain object for postMessage
   const activitiesObject = Object.fromEntries(appState.activePartyActivities);
 
   try {
     window.parent.postMessage({
-      type: 'ahnUpdatePartyActivities', // As defined in plan step 1
+      type: 'ahnUpdatePartyActivities',
       payload: activitiesObject,
-      moduleId: APP_MODULE_ID // Standard practice from existing messages
+      moduleId: APP_MODULE_ID
     }, '*');
   } catch (e) {
     console.error("AHME: Error syncing party activities to Foundry:", e);
