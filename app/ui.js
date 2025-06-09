@@ -425,27 +425,24 @@ export function renderApp(options = {}) {
                                        appState.currentGridHeight > 0;
 
     const activePartyActivitiesDisplayArray = Array.from(appState.activePartyActivities, ([key, value]) => ({
-        key, // activityId
-        value, // characterName
+        key,
+        value,
         details: CONST.PARTY_ACTIVITIES[key]
     }));
 
     const renderContext = {
-        ...appState, // Spreads activePartyActivities Map itself, and its .size property
+        ...appState,
         CONST,
         hexGridRenderData,
         svgViewBoxWidth,
         svgViewBoxHeight,
         hasValidGridDataAndInitialized,
-        activePartyActivitiesDisplay: activePartyActivitiesDisplayArray, // Used by main.hbs for iterating display
-        // activePartyActivitiesCount is no longer explicitly needed here as main.hbs can use activePartyActivities.size (from ...appState)
-        // isActivePartyActivity is no longer explicitly needed here as controls.hbs uses lookup on the map for checkbox state (from ...appState)
+        activePartyActivitiesDisplay: activePartyActivitiesDisplayArray,
         travelAnimation: {
             isActive: appState.travelAnimation.isActive,
             terrainColor: appState.travelAnimation.terrainColor,
             terrainName: appState.travelAnimation.terrainName,
             markerPosition: appState.travelAnimation.markerPosition,
-            // Generate terrainPatternRows: a 10x20 grid of the terrain symbol
             terrainPatternRows: Array(10).fill(null).map(() =>
                 Array(20).fill(null).map(() => (
                     { symbol: appState.travelAnimation.terrainSymbol }
@@ -518,9 +515,6 @@ export function renderApp(options = {}) {
                 }
                 newSvgScrollContainer.scrollLeft = finalScrollLeft;
                 newSvgScrollContainer.scrollTop = finalScrollTop;
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                const _unused = newSvgScrollContainer.offsetHeight;
-
                 appState.centerViewOnHexAfterRender = null;
                 appState.targetScrollLeft = null;
                 appState.targetScrollTop = null;
@@ -571,7 +565,6 @@ export function attachEventListeners() {
     };
   }
 
-  // --- Add this block ---
   qsa('input[type="checkbox"][data-activity-id]').forEach(checkbox => {
     checkbox.onchange = (event) => {
       const activityId = event.target.dataset.activityId;
@@ -581,32 +574,28 @@ export function attachEventListeners() {
 
       if (event.target.checked) {
         if (activity && activity.isGroupActivity) {
-          appState.activePartyActivities.set(activityId, "_GROUP_"); // Use placeholder for group activities
+          appState.activePartyActivities.set(activityId, "_GROUP_");
         } else {
-          // Existing logic for individual activities (prompt for character name)
           const characterName = prompt(`Who is the character performing the activity: "${activity?.name || activityId}"?`);
           if (characterName && characterName.trim() !== "") {
             appState.activePartyActivities.set(activityId, characterName.trim());
           } else {
-            event.target.checked = false; // Revert checkbox if no name provided for individual activity
+            event.target.checked = false;
           }
         }
-      } else { // When unchecked
-        // const activityId = event.target.dataset.activityId; // activityId is already defined above
+      } else {
         if (activityId) {
             appState.activePartyActivities.delete(activityId);
         }
       }
 
-      // Common logic for both checked and unchecked (after state is updated)
-      if (activityId) { // Ensure we only proceed if activityId was valid from the start
+      if (activityId) {
           appState.isCurrentMapDirty = true;
           renderApp({ preserveScroll: true });
           syncActivitiesToFoundry();
       }
     };
   });
-  // --- End of block ---
 
   const savedMapSelect = el("savedMapSelect");
   if (savedMapSelect) {
@@ -865,11 +854,7 @@ export function attachEventListeners() {
 
   const rightPanel = el("right-panel");
   if (rightPanel) {
-      // The 'change' listener for activity checkboxes previously on the right panel is now removed,
-      // as those checkboxes are on the left panel and have their own dedicated listeners.
-
       rightPanel.addEventListener('click', (event) => {
-          // Handler for the "X" button on active activities in the right panel display
           const toggleOffButton = event.target.closest('button[data-action="toggle-off-activity-display"]');
           if (toggleOffButton) {
               const activityId = toggleOffButton.dataset.activityId;
@@ -881,13 +866,11 @@ export function attachEventListeners() {
               }
           }
 
-          // Preserve existing click handlers for other elements on the rightPanel
           if (event.target.id === 'exploreCurrentHexBtn' || event.target.closest('#exploreCurrentHexBtn')) {
               if (appState.partyMarkerPosition && appState.isGM && appState.appMode === CONST.AppMode.PLAYER) {
                   MapLogic.handleHexClick(appState.partyMarkerPosition.row, appState.partyMarkerPosition.col, true);
               }
           }
-          // Add other right-panel click handlers here if any in the future
       });
   }
 }

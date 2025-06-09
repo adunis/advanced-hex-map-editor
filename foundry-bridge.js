@@ -1,13 +1,17 @@
 const MODULE_ID = "advanced-hex-map-editor";
 const SETTING_MAP_DATA = "hexMapData";
 const SETTING_ACTIVE_GM_MAP_ID = "activeGmMapId";
-const SETTING_HEXPLORATION_TIME_ELAPSED_HOURS = "hexplorationTimeElapsedHoursToday";
+const SETTING_HEXPLORATION_TIME_ELAPSED_HOURS =
+  "hexplorationTimeElapsedHoursToday";
 const SETTING_HEXPLORATION_KM_TRAVELED_TODAY = "hexplorationKmTraveledToday";
 const AHME_SOCKET_NAME = `module.${MODULE_ID}`;
 
 const DEFAULT_MAP_SETTINGS = {
-    hexSizeValue: 5, hexSizeUnit: 'km', hexTraversalTimeValue: 1,
-    hexTraversalTimeUnit: 'hour', zoomLevel: 1.0
+  hexSizeValue: 5,
+  hexSizeUnit: "km",
+  hexTraversalTimeValue: 1,
+  hexTraversalTimeUnit: "hour",
+  zoomLevel: 1.0,
 };
 const DEFAULT_LANDMARK_ICON_COLOR_CLASS_BRIDGE = "fill-yellow-200";
 
@@ -23,8 +27,10 @@ async function getModuleData() {
   let data;
   try {
     const savedJson = game.settings.get(MODULE_ID, SETTING_MAP_DATA);
-    data = JSON.parse(savedJson || '{}');
-  } catch (e) { data = { maps: {} }; }
+    data = JSON.parse(savedJson || "{}");
+  } catch (e) {
+    data = { maps: {} };
+  }
 
   if (!data || typeof data !== "object") data = { maps: {} };
   if (!data.maps) data.maps = {};
@@ -32,7 +38,10 @@ async function getModuleData() {
   for (const mapId in data.maps) {
     if (data.maps.hasOwnProperty(mapId)) {
       const map = data.maps[mapId];
-      if (!map.exploration || typeof map.exploration.discoveredHexIds === "undefined") {
+      if (
+        !map.exploration ||
+        typeof map.exploration.discoveredHexIds === "undefined"
+      ) {
         map.exploration = { discoveredHexIds: [] };
       }
       if (map.partyMarkerPosition === undefined) map.partyMarkerPosition = null;
@@ -40,11 +49,31 @@ async function getModuleData() {
       if (!map.mapSettings) {
         map.mapSettings = { ...DEFAULT_MAP_SETTINGS };
       } else {
-        map.mapSettings.hexSizeValue = (typeof map.mapSettings.hexSizeValue === 'number' && !isNaN(map.mapSettings.hexSizeValue)) ? map.mapSettings.hexSizeValue : DEFAULT_MAP_SETTINGS.hexSizeValue;
-        map.mapSettings.hexSizeUnit = (typeof map.mapSettings.hexSizeUnit === 'string' && map.mapSettings.hexSizeUnit) ? map.mapSettings.hexSizeUnit : DEFAULT_MAP_SETTINGS.hexSizeUnit;
-        map.mapSettings.hexTraversalTimeValue = (typeof map.mapSettings.hexTraversalTimeValue === 'number' && !isNaN(map.mapSettings.hexTraversalTimeValue)) ? map.mapSettings.hexTraversalTimeValue : DEFAULT_MAP_SETTINGS.hexTraversalTimeValue;
-        map.mapSettings.hexTraversalTimeUnit = (typeof map.mapSettings.hexTraversalTimeUnit === 'string' && map.mapSettings.hexTraversalTimeUnit) ? map.mapSettings.hexTraversalTimeUnit : DEFAULT_MAP_SETTINGS.hexTraversalTimeUnit;
-        map.mapSettings.zoomLevel = (typeof map.mapSettings.zoomLevel === 'number' && !isNaN(map.mapSettings.zoomLevel)) ? map.mapSettings.zoomLevel : DEFAULT_MAP_SETTINGS.zoomLevel;
+        map.mapSettings.hexSizeValue =
+          typeof map.mapSettings.hexSizeValue === "number" &&
+          !isNaN(map.mapSettings.hexSizeValue)
+            ? map.mapSettings.hexSizeValue
+            : DEFAULT_MAP_SETTINGS.hexSizeValue;
+        map.mapSettings.hexSizeUnit =
+          typeof map.mapSettings.hexSizeUnit === "string" &&
+          map.mapSettings.hexSizeUnit
+            ? map.mapSettings.hexSizeUnit
+            : DEFAULT_MAP_SETTINGS.hexSizeUnit;
+        map.mapSettings.hexTraversalTimeValue =
+          typeof map.mapSettings.hexTraversalTimeValue === "number" &&
+          !isNaN(map.mapSettings.hexTraversalTimeValue)
+            ? map.mapSettings.hexTraversalTimeValue
+            : DEFAULT_MAP_SETTINGS.hexTraversalTimeValue;
+        map.mapSettings.hexTraversalTimeUnit =
+          typeof map.mapSettings.hexTraversalTimeUnit === "string" &&
+          map.mapSettings.hexTraversalTimeUnit
+            ? map.mapSettings.hexTraversalTimeUnit
+            : DEFAULT_MAP_SETTINGS.hexTraversalTimeUnit;
+        map.mapSettings.zoomLevel =
+          typeof map.mapSettings.zoomLevel === "number" &&
+          !isNaN(map.mapSettings.zoomLevel)
+            ? map.mapSettings.zoomLevel
+            : DEFAULT_MAP_SETTINGS.zoomLevel;
       }
     }
   }
@@ -54,7 +83,11 @@ async function getModuleData() {
 async function saveModuleData(data) {
   try {
     const dataToSave = data && typeof data === "object" ? data : { maps: {} };
-    await game.settings.set(MODULE_ID, SETTING_MAP_DATA, JSON.stringify(dataToSave));
+    await game.settings.set(
+      MODULE_ID,
+      SETTING_MAP_DATA,
+      JSON.stringify(dataToSave)
+    );
     return true;
   } catch (e) {
     ui.notifications.error(`CRITICAL: Failed to save ${MODULE_ID} data.`);
@@ -63,130 +96,390 @@ async function saveModuleData(data) {
 }
 
 function broadcastToAllIframes(messageType, messagePayload) {
-    Object.values(ui.windows).forEach((appWindow) => {
-        if (appWindow.id === "hexmap-app" && appWindow.element?.length && appWindow instanceof HexMapApplication) {
-            const iframeInstance = appWindow.element.find("#hexmap-iframe")[0];
-            if (iframeInstance && iframeInstance.contentWindow) {
-                iframeInstance.contentWindow.postMessage({ type: messageType, payload: messagePayload, moduleId: MODULE_ID }, "*");
-            }
-        }
-    });
+  Object.values(ui.windows).forEach((appWindow) => {
+    if (
+      appWindow.id === "hexmap-app" &&
+      appWindow.element?.length &&
+      appWindow instanceof HexMapApplication
+    ) {
+      const iframeInstance = appWindow.element.find("#hexmap-iframe")[0];
+      if (iframeInstance && iframeInstance.contentWindow) {
+        iframeInstance.contentWindow.postMessage(
+          { type: messageType, payload: messagePayload, moduleId: MODULE_ID },
+          "*"
+        );
+      }
+    }
+  });
 }
 
 Hooks.once("ready", () => {
-    if (game.socket) {
-        game.socket.on(AHME_SOCKET_NAME, (data) => {
-            if (!data || !data.ahmeEvent || !data.payload || !game.user || data.senderId === game.user.id) return;
+  if (game.socket) {
+    game.socket.on(AHME_SOCKET_NAME, (data) => {
+      if (
+        !data ||
+        !data.ahmeEvent ||
+        !data.payload ||
+        !game.user ||
+        data.senderId === game.user.id
+      )
+        return;
 
-            if (data.ahmeEvent === "ahme_force_player_map_refresh" && !game.user.isGM) {
-                Object.values(ui.windows).forEach((appWindow) => {
-                    if (appWindow.id === "hexmap-app" && appWindow.element?.length && appWindow instanceof HexMapApplication) {
-                        const iframeInstance = appWindow.element.find("#hexmap-iframe")[0];
-                        if (iframeInstance && iframeInstance.contentWindow) {
-                            iframeInstance.contentWindow.postMessage({ type: "forceMapReload", payload: { mapId: data.payload.mapId }, moduleId: MODULE_ID }, "*");
-                        }
-                    }
-                });
+      if (
+        data.ahmeEvent === "ahme_force_player_map_refresh" &&
+        !game.user.isGM
+      ) {
+        Object.values(ui.windows).forEach((appWindow) => {
+          if (
+            appWindow.id === "hexmap-app" &&
+            appWindow.element?.length &&
+            appWindow instanceof HexMapApplication
+          ) {
+            const iframeInstance = appWindow.element.find("#hexmap-iframe")[0];
+            if (iframeInstance && iframeInstance.contentWindow) {
+              iframeInstance.contentWindow.postMessage(
+                {
+                  type: "forceMapReload",
+                  payload: { mapId: data.payload.mapId },
+                  moduleId: MODULE_ID,
+                },
+                "*"
+              );
             }
+          }
         });
-    }
+      }
+    });
+  }
 });
 
 class HexMapApplication extends Application {
-  constructor(options = {}) { super(options); this.initialPayloadForIframe = null; }
-  static get defaultOptions() { const screenWidth = window.screen.availWidth || window.innerWidth; const screenHeight = window.screen.availHeight || window.innerHeight; return foundry.utils.mergeObject(super.defaultOptions, { id: "hexmap-app", title: "Advanced Hex Map Editor", template: `modules/${MODULE_ID}/templates/hexmap-app.html`, width: Math.min(1800, screenWidth * 0.95), height: Math.min(1000, screenHeight * 0.90), resizable: true, popOut: true, classes: ["hexmap-application-window", "advanced-hex-map-dialog"], }); }
-  async getData(options) { const appTemplateData = await super.getData(options); const isGM = game.user?.isGM || false; let currentUserId = game.user?.id || "unknown_user_bridge"; appTemplateData.iframeSrc = `modules/${MODULE_ID}/app/index.html?isGM=${isGM}&moduleId=${MODULE_ID}&userId=${currentUserId}`; const completeModuleData = await getModuleData(); const activeGmMapIdSetting = game.settings.get( MODULE_ID, SETTING_ACTIVE_GM_MAP_ID ); this.initialPayloadForIframe = { mapList: Object.entries(completeModuleData.maps || {}).map( ([id, mapInfo]) => ({ id: id, name: mapInfo.name || "Unnamed Map", }) ), activeGmMapId: activeGmMapIdSetting || null, }; return appTemplateData; }
+  constructor(options = {}) {
+    super(options);
+    this.initialPayloadForIframe = null;
+  }
+  static get defaultOptions() {
+    const screenWidth = window.screen.availWidth || window.innerWidth;
+    const screenHeight = window.screen.availHeight || window.innerHeight;
+    return foundry.utils.mergeObject(super.defaultOptions, {
+      id: "hexmap-app",
+      title: "Advanced Hex Map Editor",
+      template: `modules/${MODULE_ID}/templates/hexmap-app.html`,
+      width: Math.min(1800, screenWidth * 0.95),
+      height: Math.min(1000, screenHeight * 0.9),
+      resizable: true,
+      popOut: true,
+      classes: ["hexmap-application-window", "advanced-hex-map-dialog"],
+    });
+  }
+  async getData(options) {
+    const appTemplateData = await super.getData(options);
+    const isGM = game.user?.isGM || false;
+    let currentUserId = game.user?.id || "unknown_user_bridge";
+    appTemplateData.iframeSrc = `modules/${MODULE_ID}/app/index.html?isGM=${isGM}&moduleId=${MODULE_ID}&userId=${currentUserId}`;
+    const completeModuleData = await getModuleData();
+    const activeGmMapIdSetting = game.settings.get(
+      MODULE_ID,
+      SETTING_ACTIVE_GM_MAP_ID
+    );
+    this.initialPayloadForIframe = {
+      mapList: Object.entries(completeModuleData.maps || {}).map(
+        ([id, mapInfo]) => ({ id: id, name: mapInfo.name || "Unnamed Map" })
+      ),
+      activeGmMapId: activeGmMapIdSetting || null,
+    };
+    return appTemplateData;
+  }
 
   activateListeners(html) {
     super.activateListeners(html);
     const iframe = html.find("#hexmap-iframe")[0];
-    if (!iframe) { return; }
+    if (!iframe) {
+      return;
+    }
 
     const messageHandler = async (event) => {
-      if (!event.data || typeof event.data !== "object" || event.data.moduleId !== MODULE_ID) return;
+      if (
+        !event.data ||
+        typeof event.data !== "object" ||
+        event.data.moduleId !== MODULE_ID
+      )
+        return;
       const { type, payload } = event.data;
-      if (type === undefined) { return; }
+      if (type === undefined) {
+        return;
+      }
 
       let moduleData;
       switch (type) {
         case "jsAppReady":
           if (iframe.contentWindow && this.initialPayloadForIframe) {
-            iframe.contentWindow.postMessage( { type: "initialData", payload: this.initialPayloadForIframe, moduleId: MODULE_ID, }, "*" );
+            iframe.contentWindow.postMessage(
+              {
+                type: "initialData",
+                payload: this.initialPayloadForIframe,
+                moduleId: MODULE_ID,
+              },
+              "*"
+            );
           }
           break;
         case "requestMapLoad":
-          if (!payload || !payload.mapId) { if (iframe.contentWindow) iframe.contentWindow.postMessage({ type: "mapLoadFailed", payload: { error: "Missing mapId" }, moduleId: MODULE_ID, },"*"); return; }
+          if (!payload || !payload.mapId) {
+            if (iframe.contentWindow)
+              iframe.contentWindow.postMessage(
+                {
+                  type: "mapLoadFailed",
+                  payload: { error: "Missing mapId" },
+                  moduleId: MODULE_ID,
+                },
+                "*"
+              );
+            return;
+          }
           moduleData = await getModuleData();
           const mapToLoad = moduleData.maps[payload.mapId];
           if (mapToLoad && iframe.contentWindow) {
-            if (!mapToLoad.exploration) mapToLoad.exploration = { discoveredHexIds: [] };
-            if (mapToLoad.partyMarkerPosition === undefined) mapToLoad.partyMarkerPosition = null;
+            if (!mapToLoad.exploration)
+              mapToLoad.exploration = { discoveredHexIds: [] };
+            if (mapToLoad.partyMarkerPosition === undefined)
+              mapToLoad.partyMarkerPosition = null;
             if (!Array.isArray(mapToLoad.eventLog)) mapToLoad.eventLog = [];
-            if (!mapToLoad.mapSettings || typeof mapToLoad.mapSettings.zoomLevel !== 'number' || isNaN(mapToLoad.mapSettings.zoomLevel)) {
-                mapToLoad.mapSettings = { ...DEFAULT_MAP_SETTINGS, ...(mapToLoad.mapSettings || {}) };
-                mapToLoad.mapSettings.zoomLevel = mapToLoad.mapSettings.zoomLevel || DEFAULT_MAP_SETTINGS.zoomLevel;
+            if (
+              !mapToLoad.mapSettings ||
+              typeof mapToLoad.mapSettings.zoomLevel !== "number" ||
+              isNaN(mapToLoad.mapSettings.zoomLevel)
+            ) {
+              mapToLoad.mapSettings = {
+                ...DEFAULT_MAP_SETTINGS,
+                ...(mapToLoad.mapSettings || {}),
+              };
+              mapToLoad.mapSettings.zoomLevel =
+                mapToLoad.mapSettings.zoomLevel ||
+                DEFAULT_MAP_SETTINGS.zoomLevel;
             }
-            iframe.contentWindow.postMessage( { type: "mapDataLoaded", payload: { mapId: payload.mapId, name: mapToLoad.name, gridSettings: mapToLoad.gridSettings, hexes: mapToLoad.hexes, exploration: mapToLoad.exploration, partyMarkerPosition: mapToLoad.partyMarkerPosition, eventLog: mapToLoad.eventLog, mapSettings: mapToLoad.mapSettings }, moduleId: MODULE_ID, }, "*" );
-          } else { if (iframe.contentWindow) iframe.contentWindow.postMessage({ type: "mapLoadFailed", payload: { mapId: payload.mapId, error: "Map not found" }, moduleId: MODULE_ID, },"*"); }
+            iframe.contentWindow.postMessage(
+              {
+                type: "mapDataLoaded",
+                payload: {
+                  mapId: payload.mapId,
+                  name: mapToLoad.name,
+                  gridSettings: mapToLoad.gridSettings,
+                  hexes: mapToLoad.hexes,
+                  exploration: mapToLoad.exploration,
+                  partyMarkerPosition: mapToLoad.partyMarkerPosition,
+                  eventLog: mapToLoad.eventLog,
+                  mapSettings: mapToLoad.mapSettings,
+                },
+                moduleId: MODULE_ID,
+              },
+              "*"
+            );
+          } else {
+            if (iframe.contentWindow)
+              iframe.contentWindow.postMessage(
+                {
+                  type: "mapLoadFailed",
+                  payload: { mapId: payload.mapId, error: "Map not found" },
+                  moduleId: MODULE_ID,
+                },
+                "*"
+              );
+          }
           break;
 
         case "saveMapData":
-          if (!game.user?.isGM) { ui.notifications.warn("Only GMs can save map data."); return; }
+          if (!game.user?.isGM) {
+            ui.notifications.warn("Only GMs can save map data.");
+            return;
+          }
           let validationError = null;
           if (!payload) validationError = "Payload missing.";
-          else if (!payload.mapName || typeof payload.mapName !== 'string' || !payload.mapName.trim()) validationError = "Map name missing or invalid.";
-          else if (!payload.mapData || !payload.mapData.gridSettings || !Array.isArray(payload.mapData.hexes)) validationError = "Map data structure invalid.";
-          else if (!payload.explorationData || !Array.isArray(payload.explorationData.discoveredHexIds)) validationError = "Exploration data invalid.";
-          else if (payload.partyMarkerPosition === undefined) validationError = "Party marker position missing.";
-          else if (payload.eventLog === undefined || !Array.isArray(payload.eventLog)) validationError = "Event log invalid.";
-          else if (!payload.mapSettings || typeof payload.mapSettings.hexSizeValue !== 'number' || typeof payload.mapSettings.hexSizeUnit !== 'string' || typeof payload.mapSettings.hexTraversalTimeValue !== 'number' || typeof payload.mapSettings.hexTraversalTimeUnit !== 'string' || typeof payload.mapSettings.zoomLevel !== 'number') { validationError = "Map settings invalid."; }
+          else if (
+            !payload.mapName ||
+            typeof payload.mapName !== "string" ||
+            !payload.mapName.trim()
+          )
+            validationError = "Map name missing or invalid.";
+          else if (
+            !payload.mapData ||
+            !payload.mapData.gridSettings ||
+            !Array.isArray(payload.mapData.hexes)
+          )
+            validationError = "Map data structure invalid.";
+          else if (
+            !payload.explorationData ||
+            !Array.isArray(payload.explorationData.discoveredHexIds)
+          )
+            validationError = "Exploration data invalid.";
+          else if (payload.partyMarkerPosition === undefined)
+            validationError = "Party marker position missing.";
+          else if (
+            payload.eventLog === undefined ||
+            !Array.isArray(payload.eventLog)
+          )
+            validationError = "Event log invalid.";
+          else if (
+            !payload.mapSettings ||
+            typeof payload.mapSettings.hexSizeValue !== "number" ||
+            typeof payload.mapSettings.hexSizeUnit !== "string" ||
+            typeof payload.mapSettings.hexTraversalTimeValue !== "number" ||
+            typeof payload.mapSettings.hexTraversalTimeUnit !== "string" ||
+            typeof payload.mapSettings.zoomLevel !== "number"
+          ) {
+            validationError = "Map settings invalid.";
+          }
 
-          if (validationError) { ui.notifications.error(`AHME Save Error: ${validationError}`); if (iframe.contentWindow) iframe.contentWindow.postMessage( { type: "mapSaveFailed", payload: { mapId: payload?.mapId, error: `Invalid save data: ${validationError}` }, moduleId: MODULE_ID, }, "*"); return; }
+          if (validationError) {
+            ui.notifications.error(`AHME Save Error: ${validationError}`);
+            if (iframe.contentWindow)
+              iframe.contentWindow.postMessage(
+                {
+                  type: "mapSaveFailed",
+                  payload: {
+                    mapId: payload?.mapId,
+                    error: `Invalid save data: ${validationError}`,
+                  },
+                  moduleId: MODULE_ID,
+                },
+                "*"
+              );
+            return;
+          }
 
           moduleData = await getModuleData();
           const originalMapIdFromPayload = payload.mapId;
           const mapIdToSave = originalMapIdFromPayload || generateUUID();
 
-          moduleData.maps[mapIdToSave] = { name: payload.mapName.trim(), gridSettings: payload.mapData.gridSettings, hexes: payload.mapData.hexes, exploration: { discoveredHexIds: payload.explorationData.discoveredHexIds, }, partyMarkerPosition: payload.partyMarkerPosition, eventLog: payload.eventLog || [], mapSettings: payload.mapSettings, lastUpdated: Date.now(), };
+          moduleData.maps[mapIdToSave] = {
+            name: payload.mapName.trim(),
+            gridSettings: payload.mapData.gridSettings,
+            hexes: payload.mapData.hexes,
+            exploration: {
+              discoveredHexIds: payload.explorationData.discoveredHexIds,
+            },
+            partyMarkerPosition: payload.partyMarkerPosition,
+            eventLog: payload.eventLog || [],
+            mapSettings: payload.mapSettings,
+            lastUpdated: Date.now(),
+          };
 
           const savedSuccessfully = await saveModuleData(moduleData);
 
           if (savedSuccessfully) {
-              if (!payload.isAutoSave) { ui.notifications.info(`Map '${moduleData.maps[mapIdToSave].name}' saved.`); }
-              const currentActiveGmMapId = game.settings.get(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID);
-              let activeMapIdSettingChangedByThisSaveAction = false;
+            if (!payload.isAutoSave) {
+              ui.notifications.info(
+                `Map '${moduleData.maps[mapIdToSave].name}' saved.`
+              );
+            }
+            const currentActiveGmMapId = game.settings.get(
+              MODULE_ID,
+              SETTING_ACTIVE_GM_MAP_ID
+            );
+            let activeMapIdSettingChangedByThisSaveAction = false;
 
-              if (game.user.isGM && currentActiveGmMapId !== mapIdToSave && !payload.isAutoSave) {
-                  await game.settings.set(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID, mapIdToSave);
-                  activeMapIdSettingChangedByThisSaveAction = true;
+            if (
+              game.user.isGM &&
+              currentActiveGmMapId !== mapIdToSave &&
+              !payload.isAutoSave
+            ) {
+              await game.settings.set(
+                MODULE_ID,
+                SETTING_ACTIVE_GM_MAP_ID,
+                mapIdToSave
+              );
+              activeMapIdSettingChangedByThisSaveAction = true;
+            }
+
+            if (currentActiveGmMapId === mapIdToSave) {
+              if (game.user.isGM && game.socket) {
+                try {
+                  game.socket.emit(AHME_SOCKET_NAME, {
+                    ahmeEvent: "ahme_force_player_map_refresh",
+                    payload: { mapId: mapIdToSave },
+                    senderId: game.user.id,
+                  });
+                } catch (socketError) {
+                  console.error(
+                    "AHME_BRIDGE: Error emitting socket event:",
+                    socketError
+                  );
+                }
               }
 
-              if (currentActiveGmMapId === mapIdToSave) {
-                  if (game.user.isGM && game.socket) {
-                      try {
-                          game.socket.emit(AHME_SOCKET_NAME, { ahmeEvent: "ahme_force_player_map_refresh", payload: { mapId: mapIdToSave }, senderId: game.user.id });
-                      } catch (socketError) { console.error("AHME_BRIDGE: Error emitting socket event:", socketError); }
-                  }
-
-                  if (!activeMapIdSettingChangedByThisSaveAction) {
-                      await game.settings.set(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID, null);
-                      await game.settings.set(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID, mapIdToSave);
-                  }
+              if (!activeMapIdSettingChangedByThisSaveAction) {
+                await game.settings.set(
+                  MODULE_ID,
+                  SETTING_ACTIVE_GM_MAP_ID,
+                  null
+                );
+                await game.settings.set(
+                  MODULE_ID,
+                  SETTING_ACTIVE_GM_MAP_ID,
+                  mapIdToSave
+                );
               }
+            }
 
-              if (iframe.contentWindow) {
-                  const localPartyDataPayload = { mapId: mapIdToSave, partyMarkerPosition: moduleData.maps[mapIdToSave].partyMarkerPosition, discoveredHexIds: moduleData.maps[mapIdToSave].exploration.discoveredHexIds, eventLog: moduleData.maps[mapIdToSave].eventLog };
-                  iframe.contentWindow.postMessage({ type: "partyDataUpdated", payload: localPartyDataPayload, moduleId: MODULE_ID }, "*");
-                  if (!activeMapIdSettingChangedByThisSaveAction) {
-                      const mapListForThisGM = Object.entries(moduleData.maps).map(([id_entry, mapInfo]) => ({ id: id_entry, name: mapInfo.name }));
-                      iframe.contentWindow.postMessage({ type: 'mapListUpdated', payload: { mapList: mapListForThisGM, savedMapId: mapIdToSave, newActiveGmMapId: currentActiveGmMapId }, moduleId: MODULE_ID }, '*');
-                  }
+            if (iframe.contentWindow) {
+              const localPartyDataPayload = {
+                mapId: mapIdToSave,
+                partyMarkerPosition:
+                  moduleData.maps[mapIdToSave].partyMarkerPosition,
+                discoveredHexIds:
+                  moduleData.maps[mapIdToSave].exploration.discoveredHexIds,
+                eventLog: moduleData.maps[mapIdToSave].eventLog,
+              };
+              iframe.contentWindow.postMessage(
+                {
+                  type: "partyDataUpdated",
+                  payload: localPartyDataPayload,
+                  moduleId: MODULE_ID,
+                },
+                "*"
+              );
+              if (!activeMapIdSettingChangedByThisSaveAction) {
+                const mapListForThisGM = Object.entries(moduleData.maps).map(
+                  ([id_entry, mapInfo]) => ({
+                    id: id_entry,
+                    name: mapInfo.name,
+                  })
+                );
+                iframe.contentWindow.postMessage(
+                  {
+                    type: "mapListUpdated",
+                    payload: {
+                      mapList: mapListForThisGM,
+                      savedMapId: mapIdToSave,
+                      newActiveGmMapId: currentActiveGmMapId,
+                    },
+                    moduleId: MODULE_ID,
+                  },
+                  "*"
+                );
               }
-          } else { if (iframe.contentWindow) iframe.contentWindow.postMessage({ type: "mapSaveFailed", payload: { mapId: payload.mapId || mapIdToSave, error: "Failed to write to Foundry." }, moduleId: MODULE_ID }, "*"); }
+            }
+          } else {
+            if (iframe.contentWindow)
+              iframe.contentWindow.postMessage(
+                {
+                  type: "mapSaveFailed",
+                  payload: {
+                    mapId: payload.mapId || mapIdToSave,
+                    error: "Failed to write to Foundry.",
+                  },
+                  moduleId: MODULE_ID,
+                },
+                "*"
+              );
+          }
           break;
 
         case "deleteMap":
-          if (!game.user?.isGM) { ui.notifications.warn("Only GMs can delete maps."); return; }
+          if (!game.user?.isGM) {
+            ui.notifications.warn("Only GMs can delete maps.");
+            return;
+          }
           if (!payload || !payload.mapId) return;
           moduleData = await getModuleData();
           const mapIdToDelete = payload.mapId;
@@ -195,192 +488,649 @@ class HexMapApplication extends Application {
             delete moduleData.maps[mapIdToDelete];
             if (await saveModuleData(moduleData)) {
               ui.notifications.info(`Map '${mapNameToDelete}' deleted.`);
-              if (game.settings.get(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID) === mapIdToDelete) {
-                await game.settings.set(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID, null);
+              if (
+                game.settings.get(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID) ===
+                mapIdToDelete
+              ) {
+                await game.settings.set(
+                  MODULE_ID,
+                  SETTING_ACTIVE_GM_MAP_ID,
+                  null
+                );
               } else {
-                 const mapListUpdatePayload = { mapList: Object.entries(moduleData.maps).map( ([id, mapInfo]) => ({ id, name: mapInfo.name }) ), deletedMapId: mapIdToDelete, newActiveGmMapId: game.settings.get(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID) };
-                 broadcastToAllIframes("mapListUpdated", mapListUpdatePayload);
+                const mapListUpdatePayload = {
+                  mapList: Object.entries(moduleData.maps).map(
+                    ([id, mapInfo]) => ({ id, name: mapInfo.name })
+                  ),
+                  deletedMapId: mapIdToDelete,
+                  newActiveGmMapId: game.settings.get(
+                    MODULE_ID,
+                    SETTING_ACTIVE_GM_MAP_ID
+                  ),
+                };
+                broadcastToAllIframes("mapListUpdated", mapListUpdatePayload);
               }
             }
-          } else { ui.notifications.warn(`Map ID '${mapIdToDelete}' not found for deletion.`); }
+          } else {
+            ui.notifications.warn(
+              `Map ID '${mapIdToDelete}' not found for deletion.`
+            );
+          }
           break;
 
         case "requestFormInput":
-          if (!game.user?.isGM) { if (iframe.contentWindow) iframe.contentWindow.postMessage( { type: "formInputResponse", payload: { error: "Permission denied", cancelled: true }, moduleId: MODULE_ID, }, "*" ); return; }
-          if (!payload || !Array.isArray(payload.fields) || payload.fields.length === 0) { if (iframe.contentWindow) iframe.contentWindow.postMessage( { type: "formInputResponse", payload: { error: "Bridge: Invalid request fields", cancelled: true }, moduleId: MODULE_ID, }, "*" ); return; }
-          let formContent = '<form autocomplete="off" class="dialog-form-flex">'; payload.fields.forEach(field => { formContent += `<div class="form-group"><label for="${field.name}">${field.label || field.name}:</label><div class="form-fields">`; if (field.type === 'select' && Array.isArray(field.options)) { formContent += `<select name="${field.name}" id="${field.name}">`; field.options.forEach(opt => { formContent += `<option value="${opt.value}" ${String(opt.value) === String(field.default) ? 'selected' : ''}>${opt.label}</option>`; }); formContent += `</select>`; } else if (field.type === 'number') { formContent += `<input type="number" name="${field.name}" id="${field.name}" value="${field.default || ''}" ${field.min !== undefined ? `min="${field.min}"` : ''} ${field.max !== undefined ? `max="${field.max}"` : ''} ${field.step !== undefined ? `step="${field.step}"` : ''} />`; } else { formContent += `<input type="text" name="${field.name}" id="${field.name}" value="${String(field.default || '')}" />`; } formContent += `</div></div>`; }); formContent += '</form>';
-          new Dialog({ title: payload.title || "Input Required", content: formContent, buttons: { ok: { icon: '<i class="fas fa-check"></i>', label: "OK", callback: (htmlEl) => { const formData = {}; payload.fields.forEach(field => { const inputElement = htmlEl.find(`[name="${field.name}"]`); if (inputElement.length) { formData[field.name] = inputElement.val(); if (field.type === 'number') { const parsedVal = parseFloat(inputElement.val()); formData[field.name] = isNaN(parsedVal) ? (typeof field.default === 'number' ? field.default : 0) : parsedVal; } } }); if (iframe.contentWindow) iframe.contentWindow.postMessage( { type: "formInputResponse", payload: { ...formData, cancelled: false }, moduleId: MODULE_ID }, "*"); } }, cancel: { icon: '<i class="fas fa-times"></i>', label: "Cancel", callback: () => { if (iframe.contentWindow) iframe.contentWindow.postMessage( { type: "formInputResponse", payload: { cancelled: true }, moduleId: MODULE_ID }, "*"); } } }, default: "ok", render: (htmlEl) => { if (payload.fields.length > 0) { setTimeout(() => htmlEl.find(`[name="${payload.fields[0].name}"]`).focus(), 50); } }, }, {width: payload.dialogWidth || 450} ).render(true);
+          if (!game.user?.isGM) {
+            if (iframe.contentWindow)
+              iframe.contentWindow.postMessage(
+                {
+                  type: "formInputResponse",
+                  payload: { error: "Permission denied", cancelled: true },
+                  moduleId: MODULE_ID,
+                },
+                "*"
+              );
+            return;
+          }
+          if (
+            !payload ||
+            !Array.isArray(payload.fields) ||
+            payload.fields.length === 0
+          ) {
+            if (iframe.contentWindow)
+              iframe.contentWindow.postMessage(
+                {
+                  type: "formInputResponse",
+                  payload: {
+                    error: "Bridge: Invalid request fields",
+                    cancelled: true,
+                  },
+                  moduleId: MODULE_ID,
+                },
+                "*"
+              );
+            return;
+          }
+          let formContent =
+            '<form autocomplete="off" class="dialog-form-flex">';
+          payload.fields.forEach((field) => {
+            formContent += `<div class="form-group"><label for="${
+              field.name
+            }">${field.label || field.name}:</label><div class="form-fields">`;
+            if (field.type === "select" && Array.isArray(field.options)) {
+              formContent += `<select name="${field.name}" id="${field.name}">`;
+              field.options.forEach((opt) => {
+                formContent += `<option value="${opt.value}" ${
+                  String(opt.value) === String(field.default) ? "selected" : ""
+                }>${opt.label}</option>`;
+              });
+              formContent += `</select>`;
+            } else if (field.type === "number") {
+              formContent += `<input type="number" name="${field.name}" id="${
+                field.name
+              }" value="${field.default || ""}" ${
+                field.min !== undefined ? `min="${field.min}"` : ""
+              } ${field.max !== undefined ? `max="${field.max}"` : ""} ${
+                field.step !== undefined ? `step="${field.step}"` : ""
+              } />`;
+            } else {
+              formContent += `<input type="text" name="${field.name}" id="${
+                field.name
+              }" value="${String(field.default || "")}" />`;
+            }
+            formContent += `</div></div>`;
+          });
+          formContent += "</form>";
+          new Dialog(
+            {
+              title: payload.title || "Input Required",
+              content: formContent,
+              buttons: {
+                ok: {
+                  icon: '<i class="fas fa-check"></i>',
+                  label: "OK",
+                  callback: (htmlEl) => {
+                    const formData = {};
+                    payload.fields.forEach((field) => {
+                      const inputElement = htmlEl.find(
+                        `[name="${field.name}"]`
+                      );
+                      if (inputElement.length) {
+                        formData[field.name] = inputElement.val();
+                        if (field.type === "number") {
+                          const parsedVal = parseFloat(inputElement.val());
+                          formData[field.name] = isNaN(parsedVal)
+                            ? typeof field.default === "number"
+                              ? field.default
+                              : 0
+                            : parsedVal;
+                        }
+                      }
+                    });
+                    if (iframe.contentWindow)
+                      iframe.contentWindow.postMessage(
+                        {
+                          type: "formInputResponse",
+                          payload: { ...formData, cancelled: false },
+                          moduleId: MODULE_ID,
+                        },
+                        "*"
+                      );
+                  },
+                },
+                cancel: {
+                  icon: '<i class="fas fa-times"></i>',
+                  label: "Cancel",
+                  callback: () => {
+                    if (iframe.contentWindow)
+                      iframe.contentWindow.postMessage(
+                        {
+                          type: "formInputResponse",
+                          payload: { cancelled: true },
+                          moduleId: MODULE_ID,
+                        },
+                        "*"
+                      );
+                  },
+                },
+              },
+              default: "ok",
+              render: (htmlEl) => {
+                if (payload.fields.length > 0) {
+                  setTimeout(
+                    () =>
+                      htmlEl.find(`[name="${payload.fields[0].name}"]`).focus(),
+                    50
+                  );
+                }
+              },
+            },
+            { width: payload.dialogWidth || 450 }
+          ).render(true);
           break;
 
         case "gmSetActiveMap":
           if (!game.user?.isGM) return;
-          const newActiveMapIdFromIframe = payload && (typeof payload.mapId === "string" || payload.mapId === null) ? payload.mapId : null;
-          if (game.settings.get(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID) !== newActiveMapIdFromIframe) {
-            await game.settings.set(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID, newActiveMapIdFromIframe);
+          const newActiveMapIdFromIframe =
+            payload &&
+            (typeof payload.mapId === "string" || payload.mapId === null)
+              ? payload.mapId
+              : null;
+          if (
+            game.settings.get(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID) !==
+            newActiveMapIdFromIframe
+          ) {
+            await game.settings.set(
+              MODULE_ID,
+              SETTING_ACTIVE_GM_MAP_ID,
+              newActiveMapIdFromIframe
+            );
           }
           break;
 
         case "requestFeatureDetailsInput":
-          if (!game.user?.isGM) { if (iframe.contentWindow) iframe.contentWindow.postMessage({ type: "featureDetailsInputResponse", payload: { error: "Permission denied", cancelled: true }, moduleId: MODULE_ID },"*"); return; }
-          if (!payload || !payload.hexId || !payload.featureType) { if (iframe.contentWindow) iframe.contentWindow.postMessage({ type: "featureDetailsInputResponse", payload: { error: "Invalid request", cancelled: true }, moduleId: MODULE_ID },"*"); return; }
-          const isLandmarkDialogBridge = payload.featureType === "landmark"; const isSecretDialogBridge = payload.featureType === "secret"; let dialogFieldsArray = [];
-          dialogFieldsArray.push({ name: "featureName", label: isLandmarkDialogBridge ? "Landmark Name:" : isSecretDialogBridge ? "Secret Note/Name (GM Only):" : "Feature Name:", type: "text", default: payload.currentName || "" });
-          if (isLandmarkDialogBridge) { const landmarkIcons = [ { char: "★", name: "Star" }, { char: "⚐", name: "Flag" }, { char: "⌖", name: "Target" }, { char: "📍", name: "Pin" }, { char: "⚜", name: "Fleur-de-lis" }, { char: "⛺", name: "Camp" }, { char: "⚔", name: "Battle" }, { char: "☠", name: "Danger" }, { char: "🏠", name: "House" }, { char: "🏰", name: "Castle" }, { char: "⚓", name: "Anchor" }, { char: "🌲", name: "Tree" }, { char: "⛰️", name: "Mountain" }, { char: "💧", name: "Water Drop" }, { char: "🔥", name: "Fire" } ]; dialogFieldsArray.push({ name: "featureIcon", label: "Icon:", type: "select", default: payload.currentIcon || "★", options: landmarkIcons.map(icon => ({ value: icon.char, label: `${icon.char} (${icon.name})` })) }); }
-          if ((isLandmarkDialogBridge || isSecretDialogBridge) && payload.availableIconColors && Array.isArray(payload.availableIconColors)) { dialogFieldsArray.push({ name: "featureIconColor", label: "Icon Color:", type: "select", default: payload.currentIconColor || (payload.availableIconColors.length > 0 ? payload.availableIconColors[0].class : DEFAULT_LANDMARK_ICON_COLOR_CLASS_BRIDGE), options: payload.availableIconColors.map(c => ({ value: c.class, label: c.name })) }); }
-          const featureDialogDisplayPayload = { title: `Set ${isLandmarkDialogBridge ? "Landmark" : isSecretDialogBridge ? "Secret" : "Feature"} Details for Hex ${payload.hexId}`, fields: dialogFieldsArray, dialogWidth: 450 }; const originalFeatureRequestFromApp = { ...payload };
-          new Dialog({ title: featureDialogDisplayPayload.title, content: (() => { let c = '<form autocomplete="off" class="dialog-form-flex">'; featureDialogDisplayPayload.fields.forEach(field => { c += `<div class="form-group"><label for="${field.name}">${field.label || field.name}:</label><div class="form-fields">`; if (field.type === 'select' && Array.isArray(field.options)) { c += `<select name="${field.name}" id="${field.name}">`; field.options.forEach(opt => { c += `<option value="${opt.value}" ${String(opt.value) === String(field.default) ? 'selected' : ''}>${opt.label}</option>`; }); c += `</select>`; } else { c += `<input type="text" name="${field.name}" id="${field.name}" value="${String(field.default || '')}" />`; } c += `</div></div>`; }); c += '</form>'; return c; })(), buttons: { ok: { icon: '<i class="fas fa-check"></i>', label: "Set Details", callback: (htmlElCb) => { const formData = {}; featureDialogDisplayPayload.fields.forEach(field => { const inputElement = htmlElCb.find(`[name="${field.name}"]`); formData[field.name] = inputElement.length ? inputElement.val() : null; }); if (iframe.contentWindow) iframe.contentWindow.postMessage({ type: "featureDetailsInputResponse", payload: { ...originalFeatureRequestFromApp, ...formData, cancelled: false }, moduleId: MODULE_ID }, "*"); } }, cancel: { icon: '<i class="fas fa-times"></i>', label: "Cancel", callback: () => { if (iframe.contentWindow) iframe.contentWindow.postMessage({ type: "featureDetailsInputResponse", payload: { ...originalFeatureRequestFromApp, cancelled: true }, moduleId: MODULE_ID }, "*"); } } }, default: "ok", render: (htmlElToRender) => { if (featureDialogDisplayPayload.fields.length > 0) { setTimeout(() => htmlElToRender.find(`[name="${featureDialogDisplayPayload.fields[0].name}"]`).focus(), 50); } }, }, { width: featureDialogDisplayPayload.dialogWidth }).render(true);
+          if (!game.user?.isGM) {
+            if (iframe.contentWindow)
+              iframe.contentWindow.postMessage(
+                {
+                  type: "featureDetailsInputResponse",
+                  payload: { error: "Permission denied", cancelled: true },
+                  moduleId: MODULE_ID,
+                },
+                "*"
+              );
+            return;
+          }
+          if (!payload || !payload.hexId || !payload.featureType) {
+            if (iframe.contentWindow)
+              iframe.contentWindow.postMessage(
+                {
+                  type: "featureDetailsInputResponse",
+                  payload: { error: "Invalid request", cancelled: true },
+                  moduleId: MODULE_ID,
+                },
+                "*"
+              );
+            return;
+          }
+          const isLandmarkDialogBridge = payload.featureType === "landmark";
+          const isSecretDialogBridge = payload.featureType === "secret";
+          let dialogFieldsArray = [];
+          dialogFieldsArray.push({
+            name: "featureName",
+            label: isLandmarkDialogBridge
+              ? "Landmark Name:"
+              : isSecretDialogBridge
+              ? "Secret Note/Name (GM Only):"
+              : "Feature Name:",
+            type: "text",
+            default: payload.currentName || "",
+          });
+          if (isLandmarkDialogBridge) {
+            const landmarkIcons = [
+              { char: "★", name: "Star" },
+              { char: "⚐", name: "Flag" },
+              { char: "⌖", name: "Target" },
+              { char: "📍", name: "Pin" },
+              { char: "⚜", name: "Fleur-de-lis" },
+              { char: "⛺", name: "Camp" },
+              { char: "⚔", name: "Battle" },
+              { char: "☠", name: "Danger" },
+              { char: "🏠", name: "House" },
+              { char: "🏰", name: "Castle" },
+              { char: "⚓", name: "Anchor" },
+              { char: "🌲", name: "Tree" },
+              { char: "⛰️", name: "Mountain" },
+              { char: "💧", name: "Water Drop" },
+              { char: "🔥", name: "Fire" },
+            ];
+            dialogFieldsArray.push({
+              name: "featureIcon",
+              label: "Icon:",
+              type: "select",
+              default: payload.currentIcon || "★",
+              options: landmarkIcons.map((icon) => ({
+                value: icon.char,
+                label: `${icon.char} (${icon.name})`,
+              })),
+            });
+          }
+          if (
+            (isLandmarkDialogBridge || isSecretDialogBridge) &&
+            payload.availableIconColors &&
+            Array.isArray(payload.availableIconColors)
+          ) {
+            dialogFieldsArray.push({
+              name: "featureIconColor",
+              label: "Icon Color:",
+              type: "select",
+              default:
+                payload.currentIconColor ||
+                (payload.availableIconColors.length > 0
+                  ? payload.availableIconColors[0].class
+                  : DEFAULT_LANDMARK_ICON_COLOR_CLASS_BRIDGE),
+              options: payload.availableIconColors.map((c) => ({
+                value: c.class,
+                label: c.name,
+              })),
+            });
+          }
+          const featureDialogDisplayPayload = {
+            title: `Set ${
+              isLandmarkDialogBridge
+                ? "Landmark"
+                : isSecretDialogBridge
+                ? "Secret"
+                : "Feature"
+            } Details for Hex ${payload.hexId}`,
+            fields: dialogFieldsArray,
+            dialogWidth: 450,
+          };
+          const originalFeatureRequestFromApp = { ...payload };
+          new Dialog(
+            {
+              title: featureDialogDisplayPayload.title,
+              content: (() => {
+                let c = '<form autocomplete="off" class="dialog-form-flex">';
+                featureDialogDisplayPayload.fields.forEach((field) => {
+                  c += `<div class="form-group"><label for="${field.name}">${
+                    field.label || field.name
+                  }:</label><div class="form-fields">`;
+                  if (field.type === "select" && Array.isArray(field.options)) {
+                    c += `<select name="${field.name}" id="${field.name}">`;
+                    field.options.forEach((opt) => {
+                      c += `<option value="${opt.value}" ${
+                        String(opt.value) === String(field.default)
+                          ? "selected"
+                          : ""
+                      }>${opt.label}</option>`;
+                    });
+                    c += `</select>`;
+                  } else {
+                    c += `<input type="text" name="${field.name}" id="${
+                      field.name
+                    }" value="${String(field.default || "")}" />`;
+                  }
+                  c += `</div></div>`;
+                });
+                c += "</form>";
+                return c;
+              })(),
+              buttons: {
+                ok: {
+                  icon: '<i class="fas fa-check"></i>',
+                  label: "Set Details",
+                  callback: (htmlElCb) => {
+                    const formData = {};
+                    featureDialogDisplayPayload.fields.forEach((field) => {
+                      const inputElement = htmlElCb.find(
+                        `[name="${field.name}"]`
+                      );
+                      formData[field.name] = inputElement.length
+                        ? inputElement.val()
+                        : null;
+                    });
+                    if (iframe.contentWindow)
+                      iframe.contentWindow.postMessage(
+                        {
+                          type: "featureDetailsInputResponse",
+                          payload: {
+                            ...originalFeatureRequestFromApp,
+                            ...formData,
+                            cancelled: false,
+                          },
+                          moduleId: MODULE_ID,
+                        },
+                        "*"
+                      );
+                  },
+                },
+                cancel: {
+                  icon: '<i class="fas fa-times"></i>',
+                  label: "Cancel",
+                  callback: () => {
+                    if (iframe.contentWindow)
+                      iframe.contentWindow.postMessage(
+                        {
+                          type: "featureDetailsInputResponse",
+                          payload: {
+                            ...originalFeatureRequestFromApp,
+                            cancelled: true,
+                          },
+                          moduleId: MODULE_ID,
+                        },
+                        "*"
+                      );
+                  },
+                },
+              },
+              default: "ok",
+              render: (htmlElToRender) => {
+                if (featureDialogDisplayPayload.fields.length > 0) {
+                  setTimeout(
+                    () =>
+                      htmlElToRender
+                        .find(
+                          `[name="${featureDialogDisplayPayload.fields[0].name}"]`
+                        )
+                        .focus(),
+                    50
+                  );
+                }
+              },
+            },
+            { width: featureDialogDisplayPayload.dialogWidth }
+          ).render(true);
           break;
 
         case "gmRequestNewHexplorationDay":
           if (!game.user?.isGM) return;
-          await game.settings.set(MODULE_ID, SETTING_HEXPLORATION_TIME_ELAPSED_HOURS, 0);
-          await game.settings.set(MODULE_ID, SETTING_HEXPLORATION_KM_TRAVELED_TODAY, 0);
-          broadcastToAllIframes("hexplorationDataUpdated", { timeElapsedHoursToday: 0, kmTraveledToday: 0 });
-          ChatMessage.create({ speaker: ChatMessage.getSpeaker({ alias: "Hexploration" }), content: "A new day of hexploration begins!" });
+          await game.settings.set(
+            MODULE_ID,
+            SETTING_HEXPLORATION_TIME_ELAPSED_HOURS,
+            0
+          );
+          await game.settings.set(
+            MODULE_ID,
+            SETTING_HEXPLORATION_KM_TRAVELED_TODAY,
+            0
+          );
+          broadcastToAllIframes("hexplorationDataUpdated", {
+            timeElapsedHoursToday: 0,
+            kmTraveledToday: 0,
+          });
+          ChatMessage.create({
+            speaker: ChatMessage.getSpeaker({ alias: "Hexploration" }),
+            content: "A new day of hexploration begins!",
+          });
           break;
 
         case "gmPerformedHexplorationAction":
           if (!game.user?.isGM) return;
-          if (payload && typeof payload.kmCost === 'number' && typeof payload.hoursCost === 'number' && payload.logEntry && typeof payload.logEntry === 'object') {
-            let currentKmTraveled = game.settings.get(MODULE_ID, SETTING_HEXPLORATION_KM_TRAVELED_TODAY) || 0;
-            let currentHoursElapsed = game.settings.get(MODULE_ID, SETTING_HEXPLORATION_TIME_ELAPSED_HOURS) || 0;
+          if (
+            !payload ||
+            typeof payload.kmCost !== "number" ||
+            typeof payload.hoursCost !== "number" ||
+            !payload.logEntry
+          )
+            return;
 
-            let newKmTraveledToday = currentKmTraveled + payload.kmCost;
-            await game.settings.set(MODULE_ID, SETTING_HEXPLORATION_KM_TRAVELED_TODAY, newKmTraveledToday);
+          const currentKm =
+            game.settings.get(
+              MODULE_ID,
+              SETTING_HEXPLORATION_KM_TRAVELED_TODAY
+            ) || 0;
+          const currentHours =
+            game.settings.get(
+              MODULE_ID,
+              SETTING_HEXPLORATION_TIME_ELAPSED_HOURS
+            ) || 0;
 
-            let newTimeElapsedToday = currentHoursElapsed + payload.hoursCost;
-            await game.settings.set(MODULE_ID, SETTING_HEXPLORATION_TIME_ELAPSED_HOURS, newTimeElapsedToday);
+          const newKmTraveledToday = currentKm + payload.kmCost;
+          const newTimeElapsedToday = currentHours + payload.hoursCost;
 
-            const secondsToAdvance = Math.round(payload.hoursCost * 3600);
-            if (game.time?.advance && secondsToAdvance > 0) {
-              try { await game.time.advance(secondsToAdvance); }
-              catch (e) { console.warn("AHME_BRIDGE: Failed to advance game time.", e); }
-            }
+          await game.settings.set(
+            MODULE_ID,
+            SETTING_HEXPLORATION_KM_TRAVELED_TODAY,
+            newKmTraveledToday
+          );
+          await game.settings.set(
+            MODULE_ID,
+            SETTING_HEXPLORATION_TIME_ELAPSED_HOURS,
+            newTimeElapsedToday
+          );
 
-            const log = payload.logEntry;
-            let directionIsExploring = false;
-            let directionString = "";
-
-            if (typeof log.direction === 'string') {
-                directionIsExploring = log.direction.includes('exploring');
-                directionString = log.direction;
-            } else {
-                directionString = (log.direction !== undefined && log.direction !== null) ? String(log.direction) : "moved";
-                console.warn(`AHME_BRIDGE: log.direction was not a string or was missing in gmPerformedHexplorationAction. Payload:`, payload);
-            }
-
-            let chatMessageContent = `<b>Travel Log:</b> Party ${directionIsExploring ? 'explored at' : directionString + ' to'} hex ${log.to} (<i>${log.targetTerrain || 'Unknown Terrain'}</i>).<br>`;
-
-            if (!directionIsExploring && typeof log.direction === 'string') {
-                chatMessageContent += `Distance: ${log.distanceValue} ${log.distanceUnit || 'units'}. `;
-            }
-            chatMessageContent += `Base time: ${parseFloat(log.baseTimeValue).toFixed(1)} ${log.baseTimeUnit || 'units'}.<br>`;
-            let adjustmentsDetail = "";
-            const terrainTimeEffect = (log.terrainModifiedTime || log.baseTimeValue) - log.baseTimeValue;
-
-            if (Math.abs(terrainTimeEffect) > 0.01) {
-                 const terrainEffectVal = parseFloat(terrainTimeEffect).toFixed(1);
-                if (terrainTimeEffect < 0) { adjustmentsDetail += `Terrain bonus (${log.targetTerrain || 'terrain'}): <span style="color: green;">-${Math.abs(terrainEffectVal)} ${log.baseTimeUnit || 'units'}</span>. `; }
-                else { adjustmentsDetail += `Terrain penalty (${log.targetTerrain || 'terrain'}): <span style="color: red;">+${terrainEffectVal} ${log.baseTimeUnit || 'units'}</span>. `; }
-            }
-            if (log.elevationPenalty > 0.01) {
-                const elevChangeFormatted = `${log.elevationChange > 0 ? '+' : ''}${log.elevationChange}m`;
-                adjustmentsDetail += `Elevation penalty (${elevChangeFormatted}): <span style="color: red;">+${parseFloat(log.elevationPenalty).toFixed(1)} ${log.baseTimeUnit || 'units'}</span>. `;
-            }
-            if (adjustmentsDetail) { chatMessageContent += `Adjustments: ${adjustmentsDetail.trim()}<br>`; }
-            chatMessageContent += `Total time for this leg: <b>${parseFloat(log.totalTimeValue).toFixed(1)} ${log.totalTimeUnit || 'units'}</b>.<br>`;
-            chatMessageContent += `<i>Day totals: ${newTimeElapsedToday.toFixed(1)}h, ${newKmTraveledToday.toFixed(1)}km.</i>`;
-            if(log.encounterStatus && log.encounterStatus !== "No significant event on entering hex." && log.encounterStatus !== "No significant event while exploring current hex.") {
-               chatMessageContent += `<br><i>${log.encounterStatus}</i>`;
-            }
-
+          const secondsToAdvance = Math.round(payload.hoursCost * 3600);
+          if (game.time?.advance && secondsToAdvance > 0) {
             try {
-                ChatMessage.create({ speaker: ChatMessage.getSpeaker({ alias: "Hexploration Log" }), content: chatMessageContent });
-            } catch (chatError) {
-                console.error("AHME_BRIDGE: Error creating Hexploration Log chat message:", chatError);
+              await game.time.advance(secondsToAdvance);
+            } catch (e) {
+              console.warn("AHME_BRIDGE: Failed to advance game time.", e);
             }
-
-            const updatedHexplorationDataForUI = {
-                timeElapsedHoursToday: newTimeElapsedToday,
-                kmTraveledToday: newKmTraveledToday
-            };
-            broadcastToAllIframes("hexplorationDataUpdated", updatedHexplorationDataForUI);
           }
+
+          const log = payload.logEntry;
+          const isExploring = log.type === "exploration_current";
+          let chatMessageContent = `<b>Travel Log:</b> Party ${
+            log.directionText || "moved"
+          } to hex ${log.toHexId} (<i>${
+            log.terrainNameAtDestination || "Unknown Terrain"
+          }</i>).<br>`;
+
+          if (!isExploring)
+            chatMessageContent += `Distance: ${log.distanceValue.toFixed(1)} ${
+              log.distanceUnit || "units"
+            }. `;
+
+          const timeBreakdown = log.timeBreakdown || {};
+          let adjustments = [];
+          if (Math.abs(timeBreakdown.terrainModifier) > 0.01)
+            adjustments.push(
+              `Terrain ${
+                timeBreakdown.terrainModifier > 0 ? "+" : ""
+              }${timeBreakdown.terrainModifier.toFixed(1)}`
+            );
+          if (Math.abs(timeBreakdown.activityModifier) > 0.01)
+            adjustments.push(
+              `Activity ${
+                timeBreakdown.activityModifier > 0 ? "+" : ""
+              }${timeBreakdown.activityModifier.toFixed(1)}`
+            );
+          if (
+            timeBreakdown.weatherModifier &&
+            Math.abs(timeBreakdown.weatherModifier) > 0.01
+          )
+            adjustments.push(
+              `Weather ${
+                timeBreakdown.weatherModifier > 0 ? "+" : ""
+              }${timeBreakdown.weatherModifier.toFixed(1)}`
+            );
+          if (timeBreakdown.elevationPenalty > 0.01)
+            adjustments.push(
+              `Elevation +${timeBreakdown.elevationPenalty.toFixed(1)}`
+            );
+
+          chatMessageContent += `Time: <b>${log.totalTimeValue.toFixed(1)} ${
+            log.timeUnit
+          }</b> (Base: ${timeBreakdown.base.toFixed(1)}${
+            adjustments.length ? "; " + adjustments.join(", ") : ""
+          })<br>`;
+
+          if (log.activitiesActive?.length > 0) {
+            const activityNames = log.activitiesActive
+              .map((a) => a.activityName)
+              .join(", ");
+            chatMessageContent += `<i>Active: ${activityNames}</i><br>`;
+          }
+
+          if (log.encounterOnEnter?.triggered) {
+            let status = log.encounterOnEnter.markedByGM
+              ? `Marked as '${log.encounterOnEnter.featureName}' ${log.encounterOnEnter.featureIcon}.`
+              : `Skipped by GM (${
+                  log.encounterOnEnter.reasonSkipped || "No details"
+                }).`;
+            chatMessageContent += `<i>Encounter entering hex: ${status}</i><br>`;
+          }
+
+          if (log.encountersOnDiscover?.length > 0) {
+            log.encountersOnDiscover.forEach((enc) => {
+              if (enc.triggered) {
+                let status = enc.markedByGM
+                  ? `Marked as '${enc.featureName}' ${enc.featureIcon}.`
+                  : `Skipped by GM (${enc.reasonSkipped || "No details"}).`;
+                chatMessageContent += `<i>Discovery at ${enc.hexId}: ${status}</i><br>`;
+              }
+            });
+          }
+
+          chatMessageContent += `<i>Day totals: ${newTimeElapsedToday.toFixed(
+            1
+          )}h, ${newKmTraveledToday.toFixed(1)}km.</i>`;
+
+          ChatMessage.create({
+            speaker: ChatMessage.getSpeaker({ alias: "Hexploration Log" }),
+            content: chatMessageContent,
+          });
+          broadcastToAllIframes("hexplorationDataUpdated", {
+            timeElapsedHoursToday: newTimeElapsedToday,
+            kmTraveledToday: newKmTraveledToday,
+          });
           break;
 
         case "postChatMessage":
-          if (payload && payload.content) { const chatData = { speaker: ChatMessage.getSpeaker({ alias: payload.alias || "Hexploration System" }), content: payload.content }; if (payload.whisper && game.users.some(u => u.isGM)) { chatData.whisper = ChatMessage.getWhisperRecipients("GM"); }
-            try { ChatMessage.create(chatData); } catch (chatError) { console.error("AHME_BRIDGE: Error creating posted chat message:", chatError); }
-          }
-          break;
-
-        case 'gmSyncTravelAnimationToFoundry':
-          // Note: isUserGM check might not be strictly necessary if only GM's iframe can send this,
-          // but good for defense. Assuming game.user.isGM is the check.
-          if (game.user?.isGM && event.data.moduleId === MODULE_ID) {
-            const newAnimationState = payload;
-            // Broadcast this state to ALL client iframes for this module
-            // broadcastToAllIframes is already scoped to MODULE_ID implicitly by its implementation
-            broadcastToAllIframes('ahnSyncTravelAnimation', newAnimationState);
-          }
-          break;
-
-          break;
-
-        case 'ahnSyncTravelAnimation':
-          // All clients (GM and players) will receive this from foundry-bridge
-          if (payload) {
-            const oldIsActive = appState.travelAnimation.isActive;
-            appState.travelAnimation = { ...appState.travelAnimation, ...payload };
-
-            // GM's client already manages its interval.
-            // Player clients rely on these messages for updates.
-            // If the animation is stopping, ensure local interval is cleared (though players won't have one).
-            if (!appState.isGM && !appState.travelAnimation.isActive && oldIsActive) {
-                // If a player client had some local animation logic (it shouldn't for synced animations), clear it.
-                // For now, map-logic's stopTravelAnimation isn't called on player clients by this message.
+          if (payload && payload.content) {
+            const chatData = {
+              speaker: ChatMessage.getSpeaker({
+                alias: payload.alias || "Hexploration System",
+              }),
+              content: payload.content,
+            };
+            if (payload.whisper && game.users.some((u) => u.isGM)) {
+              chatData.whisper = ChatMessage.getWhisperRecipients("GM");
             }
+            try {
+              ChatMessage.create(chatData);
+            } catch (chatError) {
+              console.error(
+                "AHME_BRIDGE: Error creating posted chat message:",
+                chatError
+              );
+            }
+          }
+          break;
 
-            // If the animation just started for a player, they don't start their own interval.
-            // They just render the state received from the GM.
-
-            renderApp({ preserveScroll: true });
+        case "gmSyncTravelAnimationToFoundry":
+          if (game.user?.isGM && event.data.moduleId === MODULE_ID) {
+            broadcastToAllIframes("ahnSyncTravelAnimation", payload);
           }
           break;
 
         default:
-          console.warn(`AHME_BRIDGE: Received unknown message type '${type}' from iframe.`, payload);
+          break;
       }
     };
     this._messageHandler = messageHandler.bind(this);
     window.addEventListener("message", this._messageHandler);
   }
 
-  async close(options) { if (this._messageHandler) { window.removeEventListener("message", this._messageHandler); delete this._messageHandler; } return super.close(options); }
+  async close(options) {
+    if (this._messageHandler) {
+      window.removeEventListener("message", this._messageHandler);
+      delete this._messageHandler;
+    }
+    return super.close(options);
+  }
 }
 
-function toggleHexMapApplication() { const app = Object.values(ui.windows).find(a => a.id === "hexmap-app" && a instanceof HexMapApplication); if (app) app.close(); else new HexMapApplication().render(true); }
+function toggleHexMapApplication() {
+  const app = Object.values(ui.windows).find(
+    (a) => a.id === "hexmap-app" && a instanceof HexMapApplication
+  );
+  if (app) app.close();
+  else new HexMapApplication().render(true);
+}
 
 Hooks.once("init", () => {
-  game.settings.register(MODULE_ID, SETTING_MAP_DATA, { name: "AHME Map Data", scope: "world", config: false, type: String, default: "{}" });
-  game.settings.register(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID, { name: "AHME Active GM Map ID", scope: "world", config: false, type: String, default: null,
+  game.settings.register(MODULE_ID, SETTING_MAP_DATA, {
+    name: "AHME Map Data",
+    scope: "world",
+    config: false,
+    type: String,
+    default: "{}",
+  });
+  game.settings.register(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID, {
+    name: "AHME Active GM Map ID",
+    scope: "world",
+    config: false,
+    type: String,
+    default: null,
     onChange: async (newActiveMapId) => {
-        broadcastToAllIframes("activeMapChanged", { activeGmMapId: newActiveMapId });
-        const currentModuleData = await getModuleData();
-        const mapListPayload = { mapList: Object.entries(currentModuleData.maps || {}).map(([id, mapInfo]) => ({ id, name: mapInfo.name })), newActiveGmMapId: newActiveMapId };
-        broadcastToAllIframes("mapListUpdated", mapListPayload);
+      broadcastToAllIframes("activeMapChanged", {
+        activeGmMapId: newActiveMapId,
+      });
+      const currentModuleData = await getModuleData();
+      const mapListPayload = {
+        mapList: Object.entries(currentModuleData.maps || {}).map(
+          ([id, mapInfo]) => ({ id, name: mapInfo.name })
+        ),
+        newActiveGmMapId: newActiveMapId,
+      };
+      broadcastToAllIframes("mapListUpdated", mapListPayload);
     },
   });
-  game.settings.register(MODULE_ID, SETTING_HEXPLORATION_TIME_ELAPSED_HOURS, { name: "Hexploration: Hours into Day", scope: "world", config: false, type: Number, default: 0 });
-  game.settings.register(MODULE_ID, SETTING_HEXPLORATION_KM_TRAVELED_TODAY, { name: "Hexploration: Km Traveled Today", scope: "world", config: false, type: Number, default: 0 });
-  game.keybindings.register(MODULE_ID, "toggleHexMap", { name: "Toggle Hex Map Editor", hint: "Opens/closes editor.", editable: [{ key: "KeyM", modifiers: [] }], onDown: () => { toggleHexMapApplication(); return true; } });
-  const mod = game.modules.get(MODULE_ID); if (mod) { mod.api = { toggleHexMap: toggleHexMapApplication }; }
+  game.settings.register(MODULE_ID, SETTING_HEXPLORATION_TIME_ELAPSED_HOURS, {
+    name: "Hexploration: Hours into Day",
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 0,
+  });
+  game.settings.register(MODULE_ID, SETTING_HEXPLORATION_KM_TRAVELED_TODAY, {
+    name: "Hexploration: Km Traveled Today",
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 0,
+  });
+  game.keybindings.register(MODULE_ID, "toggleHexMap", {
+    name: "Toggle Hex Map Editor",
+    hint: "Opens/closes editor.",
+    editable: [{ key: "KeyM", modifiers: [] }],
+    onDown: () => {
+      toggleHexMapApplication();
+      return true;
+    },
+  });
+  const mod = game.modules.get(MODULE_ID);
+  if (mod) {
+    mod.api = { toggleHexMap: toggleHexMapApplication };
+  }
 });
 
-Hooks.once('renderDialog', () => {
-    if (!document.getElementById('hexmap-dialog-form-style-global')) {
-        const styleElement = document.createElement('style'); styleElement.id = 'hexmap-dialog-form-style-global';
-        styleElement.textContent = `.dialog-form-flex .form-group { display: flex; align-items: center; margin-bottom: 8px; } .dialog-form-flex .form-group label { flex: 0 0 150px; margin-right: 10px; text-align: right; white-space: nowrap; } .dialog-form-flex .form-fields { flex: 1; } .dialog-form-flex .form-fields input, .dialog-form-flex .form-fields select { width: 100%; box-sizing: border-box; }`;
-        document.head.appendChild(styleElement);
-    }
+Hooks.once("renderDialog", () => {
+  if (!document.getElementById("hexmap-dialog-form-style-global")) {
+    const styleElement = document.createElement("style");
+    styleElement.id = "hexmap-dialog-form-style-global";
+    styleElement.textContent = `.dialog-form-flex .form-group { display: flex; align-items: center; margin-bottom: 8px; } .dialog-form-flex .form-group label { flex: 0 0 150px; margin-right: 10px; text-align: right; white-space: nowrap; } .dialog-form-flex .form-fields { flex: 1; } .dialog-form-flex .form-fields input, .dialog-form-flex .form-fields select { width: 100%; box-sizing: border-box; }`;
+    document.head.appendChild(styleElement);
+  }
 });
