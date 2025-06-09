@@ -97,17 +97,30 @@
   {{/if}}
 
   {{! Player Marker - Rendered last. Accessing HEX_SIZE correctly. }}
+  {{! Player Marker - Rendered last. Accessing HEX_SIZE correctly. }}
   {{#if this.isPlayerPosition}}
-    <circle 
-      cx="{{this.cx}}" 
-      cy="{{this.cy}}" 
-      r="{{mul this.CONST.HEX_SIZE 0.3}}" 
-      fill="magenta" 
-      stroke="cyan" 
-      stroke-width="2" 
-      opacity="1" 
-      class="pointer-events-none" 
-      aria-label="Player Position (Debug Visible)"
-    />
+    {{#if @root.currentMapPartyMarkerImagePath}}
+      <image href="{{@root.currentMapPartyMarkerImagePath}}"
+             x="{{subtract this.cx (mul this.CONST.HEX_SIZE 0.75)}}" {{!-- Centering: x - half_width --}}
+             y="{{subtract this.cy (mul this.CONST.HEX_SIZE 0.75)}}" {{!-- Centering: y - half_height --}}
+             width="{{mul this.CONST.HEX_SIZE 1.5}}"  {{!-- Adjust size as desired --}}
+             height="{{mul this.CONST.HEX_SIZE 1.5}}" {{!-- Adjust size as desired --}}
+             class="pointer-events-none party-marker-image"
+             preserveAspectRatio="xMidYMid meet" {{!-- Ensures image scales nicely --}}
+             aria-label="Party Position"
+      />
+    {{else}} {{!-- Fallback to old circle if no image path --}}
+      <circle 
+        cx="{{this.cx}}" 
+        cy="{{this.cy}}" 
+        r="{{mul this.CONST.HEX_SIZE 0.3}}" 
+        fill="magenta" 
+        stroke="cyan" 
+        stroke-width="2" 
+        opacity="1" 
+        class="pointer-events-none party-marker-default" 
+        aria-label="Player Position (Default)"
+      />
+    {{/if}}
   {{/if}}
 </g>

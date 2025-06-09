@@ -38,6 +38,19 @@ window.addEventListener('message', (event) => {
             }
             break;
 
+case 'partyMarkerImageSelected':
+    console.log("IFRAME APP: Received partyMarkerImageSelected. Payload path:", payload?.path);
+    if (payload) {
+        appState.currentMapPartyMarkerImagePath = (typeof payload.path === 'string' && payload.path.trim() !== "") ? payload.path.trim() : null;
+        console.log("IFRAME APP: appState.currentMapPartyMarkerImagePath set to:", appState.currentMapPartyMarkerImagePath);
+        appState.isCurrentMapDirty = true;
+        renderApp({ preserveScroll: true });
+              const pathInput = document.getElementById("partyMarkerImagePathInput");
+              if(pathInput) pathInput.value = appState.currentMapPartyMarkerImagePath || "";
+          }
+          break;
+
+
         case 'mapDataLoaded':
             if (appState.isStandaloneMode) return; 
             if (payload && payload.mapId && Array.isArray(payload.hexes)) {
@@ -66,12 +79,14 @@ window.addEventListener('message', (event) => {
                     appState.currentMapHexTraversalTimeValue = parseFloat(payload.mapSettings.hexTraversalTimeValue) || CONST.DEFAULT_HEX_TRAVERSAL_TIME_VALUE;
                     appState.currentMapHexTraversalTimeUnit = payload.mapSettings.hexTraversalTimeUnit || CONST.DEFAULT_HEX_TRAVERSAL_TIME_UNIT;
                     appState.zoomLevel = parseFloat(payload.mapSettings.zoomLevel) || 1.0;
+                                    appState.currentMapPartyMarkerImagePath = payload.mapSettings.partyMarkerImagePath || null; // <<< ADDED
                 } else {
                     appState.currentMapHexSizeValue = CONST.DEFAULT_HEX_SIZE_VALUE;
                     appState.currentMapHexSizeUnit = CONST.DEFAULT_HEX_SIZE_UNIT;
                     appState.currentMapHexTraversalTimeValue = CONST.DEFAULT_HEX_TRAVERSAL_TIME_VALUE;
                     appState.currentMapHexTraversalTimeUnit = CONST.DEFAULT_HEX_TRAVERSAL_TIME_UNIT;
                     appState.zoomLevel = 1.0;
+                                    appState.currentMapPartyMarkerImagePath = null; // <<< ADDED DEFAULT
                 }
 
                 MapManagement.loadGlobalExplorationForMap(payload);
