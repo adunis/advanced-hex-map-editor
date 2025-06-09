@@ -51,47 +51,70 @@ function tiraDaTabellaPesata(tabella) {
 }
 
 
-/**
- * Posts a message to the Foundry VTT chat log via the bridge.
- * @param {string} content HTML content for the chat message.
- * @param {boolean} isGMWhisper If true, whispers the message to GMs.
- * @param {string} alias The alias to use for the chat message speaker.
- */
-export function postHexplorationChatMessage(content, isGMWhisper = false, alias = "Hexploration Event") {
-   if (window.parent && APP_MODULE_ID_HEXPLORATION) {
-       window.parent.postMessage({
-           type: 'postChatMessage',
-           payload: { content, whisper: isGMWhisper, alias },
-           moduleId: APP_MODULE_ID_HEXPLORATION
-       }, '*');
-   } else { // Fallback for standalone or testing
-       const mode = isGMWhisper ? "GM Whisper" : "Public";
-       console.log(`%cHEXPLORATION CHAT (${mode} - Alias: ${alias}):\n%c${content.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '')}`, 
-                   "color: blue; font-weight: bold;", "color: black;");
-   }
+function getUnitLabelByKeyLocal(key, unitType) {
+    let unitsArray;
+    if (unitType === 'distance') { unitsArray = CONST.DISTANCE_UNITS; }
+    else if (unitType === 'time') { unitsArray = CONST.TIME_UNITS; }
+    else { return key; }
+    const unit = unitsArray.find(u => u.key === key);
+    return unit ? (unit.label.toLowerCase() === key.toLowerCase() || unit.label.length <= 3 ? unit.label : unit.label.toLowerCase()) : key;
+}
+
+
+// NEW or MODIFIED: Calculate and update current travel speed text
+export function calculateAndUpdateCurrentTravelSpeed() {
+    if (!appState.mapInitialized) {
+        appState.currentTravelSpeedText = "N/A (Map not loaded)";
+        return;
+    }
+
+    let baseTimePerHex = appState.currentMapHexTraversalTimeValue;
+    let finalTimeMultiplier = 1.0;
+    let activeActivityNames = [];
+    let primaryActivityName = ""; // For display if multiple are just penalties
+
+    // Base terrain effect (optional for general display, could be complex)
+    // For now, let's assume base travel refers to ideal conditions unless modified by activities
+    // If you want it to reflect current hex terrain:
+    // if (appState.partyMarkerPosition) {
+    //     const currentHex = appState.hexDataMap.get(appState.partyMarkerPosition.id);
+    //     if (currentHex) {
+    //         const terrainConf = CONST.TERRAIN_TYPES_CONFIG[currentHex.terrain] || CONST.TERRAIN_TYPES_CONFIG[CONST.DEFAULT_TERRAIN_TYPE];
+    //         finalTimeMultiplier *= terrainConf.speedMultiplier;
+    //         primaryActivityName = terrainConf.name; // Or some indicator
+    //     }
+    // }
+
+    if (appState.activePartyActivities.size > 0) {
+        appState.activePartyActivities.forEach((characterName, activityId) => {
+            const activityConf = CONST.PARTY_ACTIVITIES[activityId];
+            if (activityConf) {
+                let factorToUse = activityConf.movementPenaltyFactor;
+                // Terrain modifiers for activities are complex for a single "current speed" display.
+                // We will use the base penalty factor. This is applied during actual travel calculation.
+                finalTimeMultiplier *= factorToUse;
+                activeActivityNames.push(activityConf.name);
+            }
+        });
+    }
+
+    const effectiveTimePerHex = baseTimePerHex * finalTimeMultiplier;
+    let speedText = `${effectiveTimePerHex.toFixed(2)} ${getUnitLabelByKeyLocal(appState.currentMapHexTraversalTimeUnit, "time")} / hex`;
+    
+    if (activeActivityNames.length > 0) {
+        speedText += ` (${activeActivityNames.join('/')})`;
+    } else if (primaryActivityName) { // If we had a base terrain name
+        // speedText += ` (${primaryActivityName})`;
+    }
+
+    appState.currentTravelSpeedText = speedText;
 }
 
 // --- CORE HEXPLORATION ACTIONS (Exported) ---
 
+
 /**
  * GM action to signal the start of a new hexploration day.
- * This messages the bridge, which then resets relevant game settings.
- */
-export function startNewHexplorationDay() {
-    if (!appState.isGM) {
-        console.warn("HEXPLORATION: Non-GM tried to start a new hexploration day.");
-        return;
-    }
-    console.log("HEXPLORATION: GM requesting new hexploration day from bridge.");
-    if (window.parent && APP_MODULE_ID_HEXPLORATION) {
-        window.parent.postMessage({
-            type: 'gmRequestNewHexplorationDay', 
-            moduleId: APP_MODULE_ID_HEXPLORATION
-        }, '*');
-    }
-    // The bridge will then send 'hexplorationDataUpdated' back to all clients (including this one),
-    // which app.js will catch and use to call updateLocalHexplorationDisplayValues.
-}
 
 /**
  * General random encounter check based on time passed or number of activities.
@@ -130,21 +153,154 @@ export async function checkGenericRandomEncounters(numberOfChecks, contextTerrai
     // For now, it just posts chat messages.
 }
 
-/**
- * Updates local appState with hexploration data (time/km traveled today) received from the bridge.
- * This is called by app.js when it receives the 'hexplorationDataUpdated' message.
- * @param {object} data - Payload from 'hexplorationDataUpdated'. Expected: { timeElapsedHoursToday, kmTraveledToday }
- */
+
+
+export function calculateEffectivePartySpeed() {
+    if (!appState.mapInitialized) { // Simplified condition
+        // If map not initialized, display N/A, but keep underlying calculation values at defaults
+        appState.currentTravelSpeedText = "N/A (Map not loaded or initializing)";
+        appState.finalEffectiveTimePerHex = appState.currentMapHexTraversalTimeValue || CONST.DEFAULT_HEX_TRAVERSAL_TIME_VALUE;
+        appState.calculatedSlowestIndividualTimeFactor = 1.0;
+        appState.calculatedSlowestIndividualActivityName = "None";
+        appState.calculatedCombinedGroupTimeFactor = 1.0;
+        // It's fine if activeIndividualActivitiesList/activeGroupActivitiesList are empty here,
+        // as activePartyActivities would also be empty or freshly loaded by mapDataLoaded.
+        appState.activeIndividualActivitiesList = [];
+        appState.activeGroupActivitiesList = [];
+        return;
+    }
+
+     if (!appState.mapInitialized && !appState.currentMapName) { // If truly no map context
+        appState.currentTravelSpeedText = "N/A";
+        // Set other defaults as in resetActiveMapState for these fields
+        appState.finalEffectiveTimePerHex = CONST.DEFAULT_HEX_TRAVERSAL_TIME_VALUE;
+        appState.calculatedSlowestIndividualTimeFactor = 1.0;
+        appState.calculatedSlowestIndividualActivityName = "None";
+        appState.calculatedCombinedGroupTimeFactor = 1.0;
+        appState.activeIndividualActivitiesList = [];
+        appState.activeGroupActivitiesList = [];
+        return;
+    }
+
+
+    const baseTimePerHex = appState.currentMapHexTraversalTimeValue || CONST.DEFAULT_HEX_TRAVERSAL_TIME_VALUE;
+    let slowestIndividualFactor = 1.0;
+    let slowestIndividualActivityName = "None";
+    let combinedGroupFactor = 1.0;
+
+    const currentActiveIndividualActivities = [];
+    const currentActiveGroupActivities = [];
+
+    if (appState.activePartyActivities.size > 0) {
+        appState.activePartyActivities.forEach((characterName, activityId) => {
+            const activityConf = CONST.PARTY_ACTIVITIES[activityId];
+            // Ensure movementPenaltyFactor is treated as timeFactor
+            const activityTimeFactor = activityConf?.movementPenaltyFactor ?? activityConf?.timeFactor; 
+
+            if (activityConf && typeof activityTimeFactor === 'number') {
+                if (activityConf.isGroupActivity) {
+                    combinedGroupFactor *= activityTimeFactor;
+                    currentActiveGroupActivities.push({
+                        id: activityId,
+                        name: activityConf.name,
+                        timeFactor: activityTimeFactor,
+                        icon: activityConf.icon
+                    });
+                } else { // Individual activity
+                    if (activityTimeFactor > slowestIndividualFactor) {
+                        slowestIndividualFactor = activityTimeFactor;
+                        slowestIndividualActivityName = activityConf.name;
+                    }
+                    currentActiveIndividualActivities.push({
+                        id: activityId,
+                        name: activityConf.name,
+                        characterName: characterName,
+                        timeFactor: activityTimeFactor,
+                        icon: activityConf.icon
+                    });
+                }
+            }
+        });
+    }
+
+    appState.calculatedSlowestIndividualTimeFactor = slowestIndividualFactor;
+    appState.calculatedSlowestIndividualActivityName = slowestIndividualActivityName;
+    appState.calculatedCombinedGroupTimeFactor = combinedGroupFactor;
+    appState.activeIndividualActivitiesList = currentActiveIndividualActivities;
+    appState.activeGroupActivitiesList = currentActiveGroupActivities;
+
+    // This is the base time per hex modified ONLY by activities.
+    // Terrain, weather, elevation will be applied on top of this during actual movement.
+    appState.finalEffectiveTimePerHex = baseTimePerHex * slowestIndividualFactor * combinedGroupFactor;
+
+    // Update the display text
+    let speedSummaryParts = [];
+    if (slowestIndividualFactor !== 1.0 && slowestIndividualActivityName !== "None") {
+        speedSummaryParts.push(`${slowestIndividualActivityName}`);
+    }
+    currentActiveGroupActivities.forEach(act => {
+        // Only list group activities that have a non-neutral effect or if it's the only type of modifier
+        if (act.timeFactor !== 1.0 || (speedSummaryParts.length === 0 && currentActiveGroupActivities.length ===1 )) {
+             speedSummaryParts.push(act.name);
+        }
+    });
+    
+    const timeUnitLabel = getUnitLabelByKeyLocal(appState.currentMapHexTraversalTimeUnit, "time");
+    // Display the time per hex modified by activities
+    appState.currentTravelSpeedText = `${appState.finalEffectiveTimePerHex.toFixed(2)} ${timeUnitLabel} / hex`;
+    if (speedSummaryParts.length > 0) {
+        appState.currentTravelSpeedText += ` (${speedSummaryParts.join(', ')})`;
+    } else {
+        appState.currentTravelSpeedText += ` (Standard Pace)`;
+    }
+}
+
+export function startNewHexplorationDay() {
+    if (!appState.isGM) {
+        console.warn("HEXPLORATION: Non-GM tried to start a new hexploration day.");
+        return;
+    }
+    console.log("HEXPLORATION: GM requesting new hexploration day.");
+
+    // Reset local counters immediately for responsiveness
+    appState.hexplorationTimeElapsedHoursToday = 0;
+    appState.hexplorationKmTraveledToday = 0;
+
+    if (appState.isStandaloneMode) {
+        appState.currentTimeOfDay = "07:00 AM"; // Set to 7 AM for standalone
+        calculateAndUpdateCurrentTravelSpeed(); // Recalculate speed
+        renderApp(); // Update UI directly
+        postHexplorationChatMessage("A new day of hexploration begins!", false, "Hexploration");
+    } else {
+        // Foundry Mode: Send message to bridge
+        // The bridge will determine if PF2e is active or use generic time advancement
+        window.parent.postMessage({
+            type: 'ahnTriggerNewDayProcedure', // New generic message type for bridge
+            moduleId: APP_MODULE_ID_HEXPLORATION 
+        }, '*');
+        // The bridge will handle time advancement and then broadcast 'hexplorationDataUpdated'
+        // which will update appState.currentTimeOfDay and re-confirm km/time.
+        // We call calculateAndUpdateCurrentTravelSpeed here for local responsiveness,
+        // it will be called again when hexplorationDataUpdated arrives.
+        calculateAndUpdateCurrentTravelSpeed();
+        renderApp(); // Render local changes immediately
+    }
+}
+
+
+
 export function updateLocalHexplorationDisplayValues(data) {
     if (data) {
-        // console.log("HEXPLORATION_LOGIC: Updating local display values with data:", data);
         if (typeof data.timeElapsedHoursToday === 'number') {
             appState.hexplorationTimeElapsedHoursToday = data.timeElapsedHoursToday;
         }
         if (typeof data.kmTraveledToday === 'number') {
             appState.hexplorationKmTraveledToday = data.kmTraveledToday;
         }
-        // renderApp() is handled by app.js after this function returns.
+        if (typeof data.currentTimeOfDay === 'string') { 
+            appState.currentTimeOfDay = data.currentTimeOfDay;
+        }
+        calculateEffectivePartySpeed(); // Recalculate speed as context might have changed
     } else {
         console.warn("HEXPLORATION_LOGIC: updateLocalHexplorationDisplayValues called with no data.");
     }

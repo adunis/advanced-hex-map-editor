@@ -1000,33 +1000,495 @@ export const MAX_ACTIVE_WEATHER_SYSTEMS = 5;
 export const AUTO_TERRAIN_IGNORE_TYPES = Object.values(TerrainType);
 
 
+const TerrainGroup = {
+  // Ground - Open
+  OPEN_FLAT_GROUND: 'OPEN_FLAT_GROUND', // Plains, beaches, steppes, dry salt flats
+  OPEN_ROUGH_GROUND: 'OPEN_ROUGH_GROUND', // Grassy hills, rocky deserts, badlands, ruins
+  OPEN_OBSTRUCTED_GROUND: 'OPEN_OBSTRUCTED_GROUND', // Tallgrass prairie, light scrub
+
+  // Ground - Forested
+  FOREST_SPARSE_GROUND: 'FOREST_SPARSE_GROUND', // Birch, savanna woodland, light ruins
+  FOREST_MODERATE_GROUND: 'FOREST_MODERATE_GROUND', // Oak forest, typical pine forest
+  FOREST_DENSE_GROUND: 'FOREST_DENSE_GROUND', // Rainforest, jungle, dense pine, ironleaf, moonoak, mangrove
+
+  // Ground - Difficult/Hazardous
+  SWAMP_MUDDY_GROUND: 'SWAMP_MUDDY_GROUND', // Swamps, marshes, mires (if not impassable)
+  DESERT_SAND_GROUND: 'DESERT_SAND_GROUND', // Sand dunes, quicksand (if not impassable)
+  MOUNTAIN_SLOPES_GROUND: 'MOUNTAIN_SLOPES_GROUND', // Foothills, lower mountains, alpine tundra, canyons
+  MOUNTAIN_STEEP_GROUND: 'MOUNTAIN_STEEP_GROUND', // Steeper mountain paths, difficult alpine
+  ARCTIC_COLD_GROUND: 'ARCTIC_COLD_GROUND', // Ice flats, glaciers, snowfields
+  VOLCANIC_HAZARD_GROUND: 'VOLCANIC_HAZARD_GROUND', // Obsidian fields, geothermal areas (cooled)
+  UNIQUE_OTHERWORLDLY_GROUND: 'UNIQUE_OTHERWORLDLY_GROUND', // Fey, reality cancer, arcane wastes, fleshlands
+
+  // Subterranean
+  CAVERN_EASY_SUB: 'CAVERN_EASY_SUB', // Compact earth caverns, large natural tunnels
+  CAVERN_DIFFICULT_SUB: 'CAVERN_DIFFICULT_SUB', // Crystal/fungi caves, complex tunnels
+  CAVERN_HAZARDOUS_SUB: 'CAVERN_HAZARDOUS_SUB', // Magma tubes (cooled), unstable areas
+
+  // Aquatic
+  AQUATIC_SHALLOW_OPEN: 'AQUATIC_SHALLOW_OPEN', // Coastal shallows, calm riverbeds
+  AQUATIC_SHALLOW_OBSTRUCTED: 'AQUATIC_SHALLOW_OBSTRUCTED', // Coral reefs, kelp edges
+  AQUATIC_DEEP_OPEN: 'AQUATIC_DEEP_OPEN', // Abyssal floor, open ocean trench
+  AQUATIC_DEEP_HAZARDOUS: 'AQUATIC_DEEP_HAZARDOUS', // Hydrothermal vents
+
+  // Aerial
+  AERIAL_CLEAR_OPEN: 'AERIAL_CLEAR_OPEN', // Clear sky, high altitude over flat terrain
+  AERIAL_OBSTRUCTED_LOW: 'AERIAL_OBSTRUCTED_LOW', // Flying near/through forest canopy, around tall structures/ruins
+  AERIAL_HAZARDOUS_CONDITIONS: 'AERIAL_HAZARDOUS_CONDITIONS', // Turbulent air, storms, mist, geothermal updrafts
+  AERIAL_HIGH_ALTITUDE_MOUNTAIN: 'AERIAL_HIGH_ALTITUDE_MOUNTAIN', // Flying over/around high peaks
+  AERIAL_UNIQUE_PHENOMENA: 'AERIAL_UNIQUE_PHENOMENA', // Floating islands, ley lines, aerial vortex (if not impassable)
+
+  // Impassable Categories (for convenience, though individual terrains also have isImpassable)
+  IMPASSABLE_SOLID_BARRIER: 'IMPASSABLE_SOLID_BARRIER', // Sheer walls, adamantine
+  IMPASSABLE_DEEP_LIQUID_HAZARD: 'IMPASSABLE_DEEP_LIQUID_HAZARD', // Lava river, tar pits
+  IMPASSABLE_AERIAL_VOID: 'IMPASSABLE_AERIAL_VOID', // True aerial vortexes that are instant death
+
+  UNKNOWN_DEFAULT: 'UNKNOWN_DEFAULT' // Fallback
+};
+
+function generateExpandedTerrainPenalties(
+  mountGroupPenalties,
+  terrainToGroupMap, // e.g., { [TerrainType.ROLLING_PLAINS]: TerrainGroup.OPEN_FLAT_GROUND, ... }
+  allTerrainConfigs // e.g., TERRAIN_TYPES_CONFIG
+) {
+  const expandedPenalties = {};
+  const {
+    travelMode, // 'ground', 'aerial', 'aquatic', 'subterranean'
+    basePenalty, // Base time factor on ideal terrain for this mount (e.g., 1.0 for walking, 0.6 for horse)
+    groupMultipliers, // { [TerrainGroup.SOME_GROUP]: 1.5, ... } - these multiply the basePenalty
+    defaultMultiplier, // Default multiplier for groups not explicitly listed for this mount
+    impassableOverride // Value for impassable terrain (e.g., 999)
+  } = mountGroupPenalties;
+
+  for (const terrainId in allTerrainConfigs) {
+    if (!allTerrainConfigs.hasOwnProperty(terrainId)) continue;
+
+    const terrainConfigData = allTerrainConfigs[terrainId];
+    const terrainGroup = terrainToGroupMap[terrainId] || TerrainGroup.UNKNOWN_DEFAULT;
+    let finalPenaltyValue = impassableOverride;
+
+    // Determine if inherently impassable by the terrain's own flag or by mode mismatch
+    let isTerrainImpassableForThisMode = terrainConfigData.isImpassable; // Base impassability
+
+    if (travelMode === 'ground' && (terrainGroup.startsWith('AQUATIC_') || terrainGroup.startsWith('AERIAL_') || terrainGroup === TerrainGroup.IMPASSABLE_DEEP_LIQUID_HAZARD)) {
+      isTerrainImpassableForThisMode = true;
+    } else if (travelMode === 'aerial' && (terrainGroup.startsWith('AQUATIC_') || terrainGroup.startsWith('CAVERN_') || terrainGroup === TerrainGroup.IMPASSABLE_AERIAL_VOID)) {
+      // Exception: Giant open-to-sky caverns might be flyable, handle with specific group.
+      isTerrainImpassableForThisMode = true;
+    } else if (travelMode === 'aquatic' && (!terrainGroup.startsWith('AQUATIC_'))) {
+      isTerrainImpassableForThisMode = true;
+    } else if (travelMode === 'subterranean' && (!terrainGroup.startsWith('CAVERN_') && !terrainGroup.startsWith('OPEN_') /* for surfacing */)) {
+         isTerrainImpassableForThisMode = true;
+    }
+    // Add more sophisticated checks if needed, e.g., isImpassableForAerial flags on terrainConfigData
+
+    if (isTerrainImpassableForThisMode) {
+      finalPenaltyValue = impassableOverride;
+    } else {
+      let specificMultiplier = groupMultipliers[terrainGroup];
+
+      if (specificMultiplier === undefined) {
+        // Special handling for aerial mounts flying OVER ground terrain not explicitly covered by an AERIAL_OBSTRUCTED_LOW type group for that ground type
+        if (travelMode === 'aerial' && (terrainGroup.endsWith('_GROUND') || terrainGroup.endsWith('_SUB'))) {
+            specificMultiplier = groupMultipliers[TerrainGroup.AERIAL_CLEAR_OPEN] !== undefined ? groupMultipliers[TerrainGroup.AERIAL_CLEAR_OPEN] : 1.0; // Default to clear flying over it
+            // Example: if flying over a volcano, and AERIAL_HAZARDOUS_CONDITIONS has a multiplier, apply it
+            if (terrainGroup === TerrainGroup.VOLCANIC_HAZARD_GROUND && groupMultipliers[TerrainGroup.AERIAL_HAZARDOUS_CONDITIONS]) {
+                 specificMultiplier *= groupMultipliers[TerrainGroup.AERIAL_HAZARDOUS_CONDITIONS];
+            }
+        } else {
+           specificMultiplier = defaultMultiplier;
+        }
+      }
+
+      if (specificMultiplier === impassableOverride) {
+        finalPenaltyValue = impassableOverride;
+      } else {
+        finalPenaltyValue = basePenalty * specificMultiplier;
+      }
+    }
+    expandedPenalties[terrainId] = parseFloat(finalPenaltyValue.toFixed(2));
+  }
+  return expandedPenalties;
+}
+
+
+const MIXED_GROUND_MOUNTS_GROUP_PENALTIES = {
+  travelMode: 'ground',
+  basePenalty: 0.7, // Sits between a fast horse/wolf and a slower, sturdier mount like a Kodo.
+  groupMultipliers: {
+    [TerrainGroup.OPEN_FLAT_GROUND]: 1.0,          // Total: 0.7
+    [TerrainGroup.OPEN_ROUGH_GROUND]: 1.4,          // Total: ~0.98 (handles it okay)
+    [TerrainGroup.OPEN_OBSTRUCTED_GROUND]: 1.3,   // Total: ~0.91
+    [TerrainGroup.FOREST_SPARSE_GROUND]: 1.8,          // Total: ~1.26
+    [TerrainGroup.FOREST_MODERATE_GROUND]: 3.0,          // Total: 2.1
+    [TerrainGroup.FOREST_DENSE_GROUND]: 5.0,          // Total: 3.5 (slow, but not impossible if some mounts can manage)
+    [TerrainGroup.SWAMP_MUDDY_GROUND]: 7.0,          // Total: 4.9 (difficult, some might get stuck)
+    [TerrainGroup.DESERT_SAND_GROUND]: 3.5,          // Total: ~2.45
+    [TerrainGroup.MOUNTAIN_SLOPES_GROUND]: 2.5,          // Total: 1.75
+    [TerrainGroup.MOUNTAIN_STEEP_GROUND]: 6.0,          // Total: 4.2 (very hard, relies on sure-footed types)
+    [TerrainGroup.ARCTIC_COLD_GROUND]: 3.5,          // Total: ~2.45
+    [TerrainGroup.VOLCANIC_HAZARD_GROUND]: 5.0,      // Total: 3.5
+    [TerrainGroup.UNIQUE_OTHERWORLDLY_GROUND]: 4.0,   // Total: 2.8
+    [TerrainGroup.CAVERN_EASY_SUB]: 999, // Generally, mixed ground mounts aren't for caving
+    [TerrainGroup.IMPASSABLE_SOLID_BARRIER]: 999,
+    [TerrainGroup.IMPASSABLE_DEEP_LIQUID_HAZARD]: 999,
+  },
+  defaultMultiplier: 4.0, // For unlisted ground terrain groups
+  impassableOverride: 999
+};
+
+const MIXED_FLYING_MOUNTS_GROUP_PENALTIES = {
+  travelMode: 'aerial',
+  basePenalty: 0.32, // Average of typical flying mounts.
+  groupMultipliers: {
+    [TerrainGroup.AERIAL_CLEAR_OPEN]: 1.0,            // Total: 0.32
+    [TerrainGroup.AERIAL_OBSTRUCTED_LOW]: 2.0,      // Total: 0.64 (some flyers better than others here)
+    [TerrainGroup.AERIAL_HAZARDOUS_CONDITIONS]: 3.0,  // Total: ~0.96 (average resilience to weather)
+    [TerrainGroup.AERIAL_HIGH_ALTITUDE_MOUNTAIN]: 1.8, // Total: ~0.58
+    [TerrainGroup.AERIAL_UNIQUE_PHENOMENA]: 2.5,     // Total: 0.8
+    [TerrainGroup.IMPASSABLE_AERIAL_VOID]: 999,
+    // Flying over ground terrain:
+    [TerrainGroup.FOREST_DENSE_GROUND]: 2.0, // (Implies AERIAL_OBSTRUCTED_LOW for some in the group)
+    [TerrainGroup.MOUNTAIN_STEEP_GROUND]: 1.5, // (Average turbulence/effort)
+    [TerrainGroup.CLOUD_MIST_FOREST]: 3.5, // (Average difficulty with severe visibility/weather)
+  },
+  defaultMultiplier: 1.5, // Flying over generic ground or in generic air for the mix
+  impassableOverride: 999
+};
+
+const RIDING_HORSE_GROUP_PENALTIES = {
+  travelMode: 'ground', // Helps the generator function
+  // Base penalty (time factor relative to standard walking) on ideal terrain for this mount
+  basePenalty: 0.6, // e.g., on OPEN_FLAT_GROUND
+  groupMultipliers: { // Multipliers on its own basePenalty, or absolute if preferred
+    [TerrainGroup.OPEN_FLAT_GROUND]: 1.0, // Factor of 0.6 * 1.0 = 0.6
+    [TerrainGroup.OPEN_ROUGH_GROUND]: 1.7, // Factor of 0.6 * 1.7 = ~1.0
+    [TerrainGroup.OPEN_OBSTRUCTED_GROUND]: 1.5,
+    [TerrainGroup.FOREST_SPARSE_GROUND]: 2.5,
+    [TerrainGroup.FOREST_MODERATE_GROUND]: 3.0,
+    [TerrainGroup.FOREST_DENSE_GROUND]: 6.0,
+    [TerrainGroup.SWAMP_MUDDY_GROUND]: 7.0,
+    [TerrainGroup.DESERT_SAND_GROUND]: 3.5,
+    [TerrainGroup.MOUNTAIN_SLOPES_GROUND]: 2.5,
+    [TerrainGroup.MOUNTAIN_STEEP_GROUND]: 8.0,
+    [TerrainGroup.ARCTIC_COLD_GROUND]: 4.0,
+    [TerrainGroup.VOLCANIC_HAZARD_GROUND]: 5.0,
+    [TerrainGroup.UNIQUE_OTHERWORLDLY_GROUND]: 5.0, // General high penalty
+    // Impassable by default for non-ground types
+    [TerrainGroup.CAVERN_EASY_SUB]: 999,
+    [TerrainGroup.AQUATIC_SHALLOW_OPEN]: 999,
+    [TerrainGroup.AERIAL_CLEAR_OPEN]: 999,
+    [TerrainGroup.IMPASSABLE_SOLID_BARRIER]: 999,
+    [TerrainGroup.IMPASSABLE_DEEP_LIQUID_HAZARD]: 999,
+  },
+  defaultMultiplier: 4.0, // For ground terrains not explicitly listed
+  impassableOverride: 999
+};
+
+const STURDY_CART_WAGON_GROUP_PENALTIES = {
+  travelMode: 'ground',
+  basePenalty: 0.8, // On a good road (conceptual, map to OPEN_FLAT_GROUND or similar)
+  groupMultipliers: {
+    [TerrainGroup.OPEN_FLAT_GROUND]: 1.2, // Slightly worse than just horse on plains
+    [TerrainGroup.OPEN_ROUGH_GROUND]: 3.0,
+    [TerrainGroup.OPEN_OBSTRUCTED_GROUND]: 2.5,
+    [TerrainGroup.FOREST_SPARSE_GROUND]: 5.0, // Needs clear paths
+    [TerrainGroup.FOREST_MODERATE_GROUND]: 8.0,
+    [TerrainGroup.FOREST_DENSE_GROUND]: 999, // Usually impassable
+    [TerrainGroup.SWAMP_MUDDY_GROUND]: 999,
+    [TerrainGroup.DESERT_SAND_GROUND]: 999,
+    [TerrainGroup.MOUNTAIN_SLOPES_GROUND]: 6.0,
+    [TerrainGroup.MOUNTAIN_STEEP_GROUND]: 999,
+    [TerrainGroup.ARCTIC_COLD_GROUND]: 7.0, // If sled possible, else higher
+    // ... other categories
+  },
+  defaultMultiplier: 8.0,
+  impassableOverride: 999
+};
+
+const WALKING_ON_FOOT_GROUP_PENALTIES = {
+  travelMode: 'ground',
+  basePenalty: 1.0, // Baseline speed
+  groupMultipliers: {
+    [TerrainGroup.OPEN_FLAT_GROUND]: 1.0,
+    [TerrainGroup.OPEN_ROUGH_GROUND]: 1.5,
+    [TerrainGroup.OPEN_OBSTRUCTED_GROUND]: 1.2,
+    [TerrainGroup.FOREST_SPARSE_GROUND]: 1.3,
+    [TerrainGroup.FOREST_MODERATE_GROUND]: 1.8,
+    [TerrainGroup.FOREST_DENSE_GROUND]: 2.5,
+    [TerrainGroup.SWAMP_MUDDY_GROUND]: 3.0,
+    [TerrainGroup.DESERT_SAND_GROUND]: 2.0, // Deep sand is tiring
+    [TerrainGroup.MOUNTAIN_SLOPES_GROUND]: 2.0,
+    [TerrainGroup.MOUNTAIN_STEEP_GROUND]: 3.5,
+    [TerrainGroup.ARCTIC_COLD_GROUND]: 2.2,
+    [TerrainGroup.VOLCANIC_HAZARD_GROUND]: 2.5,
+    [TerrainGroup.UNIQUE_OTHERWORLDLY_GROUND]: 2.0, // Varies wildly
+    [TerrainGroup.CAVERN_EASY_SUB]: 1.2,
+    [TerrainGroup.CAVERN_DIFFICULT_SUB]: 2.0,
+    [TerrainGroup.CAVERN_HAZARDOUS_SUB]: 3.0,
+    [TerrainGroup.IMPASSABLE_SOLID_BARRIER]: 999,
+    [TerrainGroup.IMPASSABLE_DEEP_LIQUID_HAZARD]: 999,
+  },
+  defaultMultiplier: 2.0,
+  impassableOverride: 999
+};
+
+
+const SWIFT_WOLF_RIDING_GROUP_PENALTIES = { // WoW Inspired
+  travelMode: 'ground',
+  basePenalty: 0.55, // Slightly faster/more agile than a horse on its preferred terrain
+  groupMultipliers: {
+    [TerrainGroup.OPEN_FLAT_GROUND]: 1.0,          // Total: 0.55
+    [TerrainGroup.OPEN_ROUGH_GROUND]: 1.5,          // Total: ~0.83
+    [TerrainGroup.OPEN_OBSTRUCTED_GROUND]: 1.2,   // Total: 0.66
+    [TerrainGroup.FOREST_SPARSE_GROUND]: 1.4,          // Total: ~0.77 (good in light woods)
+    [TerrainGroup.FOREST_MODERATE_GROUND]: 2.5,          // Total: ~1.38
+    [TerrainGroup.FOREST_DENSE_GROUND]: 6.0,          // Total: 3.3
+    [TerrainGroup.MOUNTAIN_SLOPES_GROUND]: 2.0,          // Total: 1.1
+    [TerrainGroup.MOUNTAIN_STEEP_GROUND]: 7.0,          // Total: 3.85 (better than horse but still hard)
+    [TerrainGroup.ARCTIC_COLD_GROUND]: 3.0,          // Total: 1.65 (hardy)
+    [TerrainGroup.SWAMP_MUDDY_GROUND]: 999,
+    [TerrainGroup.DESERT_SAND_GROUND]: 5.0,
+    [TerrainGroup.IMPASSABLE_SOLID_BARRIER]: 999,
+  },
+  defaultMultiplier: 4.0,
+  impassableOverride: 999
+};
+
+const STURDY_KODO_RIDING_GROUP_PENALTIES = { // WoW Inspired
+  travelMode: 'ground',
+  basePenalty: 0.8, // Slower base, but resilient
+  groupMultipliers: {
+    [TerrainGroup.OPEN_FLAT_GROUND]: 1.0,         // Total: 0.8
+    [TerrainGroup.OPEN_ROUGH_GROUND]: 1.1,         // Total: ~0.88 (good here)
+    [TerrainGroup.OPEN_OBSTRUCTED_GROUND]: 1.3,  // Total: ~1.04
+    [TerrainGroup.FOREST_SPARSE_GROUND]: 2.0,         // Total: 1.6
+    [TerrainGroup.FOREST_MODERATE_GROUND]: 4.0,         // Total: 3.2 (can push through some)
+    [TerrainGroup.FOREST_DENSE_GROUND]: 9.0,         // Total: 7.2 (very slow)
+    [TerrainGroup.DESERT_SAND_GROUND]: 1.5,         // Total: 1.2 (good in deserts)
+    [TerrainGroup.SWAMP_MUDDY_GROUND]: 5.0,         // Total: 4.0 (can manage some softer ground)
+    [TerrainGroup.MOUNTAIN_SLOPES_GROUND]: 2.5,         // Total: 2.0
+    [TerrainGroup.ARCTIC_COLD_GROUND]: 3.0,         // Total: 2.4
+    [TerrainGroup.IMPASSABLE_SOLID_BARRIER]: 999,
+  },
+  defaultMultiplier: 5.0,
+  impassableOverride: 999
+};
+
+const MECHANOSTRIDER_RIDING_GROUP_PENALTIES = { // WoW Inspired
+  travelMode: 'ground',
+  basePenalty: 0.5, // Very fast on ideal surfaces
+  groupMultipliers: {
+    [TerrainGroup.OPEN_FLAT_GROUND]: 1.0,        // Total: 0.5 (roads, hardpan desert)
+    [TerrainGroup.SHORTGRASS_STEPPE]: 1.1,       // Total: 0.55
+    [TerrainGroup.SALT_FLATS_DRY]: 0.9,          // Total: 0.45 (excellent!)
+    [TerrainGroup.OPEN_ROUGH_GROUND]: 4.0,        // Total: 2.0 (bad on rocks/rubble)
+    [TerrainGroup.OPEN_OBSTRUCTED_GROUND]: 3.0,  // Total: 1.5
+    [TerrainGroup.FOREST_SPARSE_GROUND]: 5.0,        // Total: 2.5 (gets snagged)
+    [TerrainGroup.FOREST_MODERATE_GROUND]: 999,
+    [TerrainGroup.FOREST_DENSE_GROUND]: 999,
+    [TerrainGroup.SWAMP_MUDDY_GROUND]: 999,      // Prone to malfunction/sinking
+    [TerrainGroup.DESERT_SAND_GROUND]: 6.0,        // Total: 3.0 (clogs gears)
+    [TerrainGroup.MOUNTAIN_SLOPES_GROUND]: 999,   // Cannot handle inclines well
+    [TerrainGroup.ARCTIC_ICE_FLATS]: 2.0,         // Total: 1.0 (if not too uneven)
+    [TerrainGroup.VOLCANIC_HAZARD_GROUND]: 7.0,   // Total: 3.5 (heat, dust)
+    [TerrainGroup.AQUATIC_SHALLOW_OPEN]: 999, // Water bad for mechanics
+    [TerrainGroup.IMPASSABLE_SOLID_BARRIER]: 999,
+  },
+  defaultMultiplier: 6.0,
+  impassableOverride: 999
+};
+
+const WIND_RIDER_FLIGHT_GROUP_PENALTIES = { // Wyvern - WoW Inspired
+  travelMode: 'aerial',
+  basePenalty: 0.35, // Standard aerial mount speed
+  groupMultipliers: {
+    [TerrainGroup.AERIAL_CLEAR_OPEN]: 1.0,            // Total: 0.35
+    [TerrainGroup.AERIAL_OBSTRUCTED_LOW]: 1.7,      // Total: ~0.6 (flying through canopy/ruins)
+    [TerrainGroup.AERIAL_HAZARDOUS_CONDITIONS]: 2.5,  // Total: ~0.88 (storms, strong winds)
+    [TerrainGroup.AERIAL_HIGH_ALTITUDE_MOUNTAIN]: 1.5, // Total: ~0.53 (stronger winds, thinner air)
+    [TerrainGroup.AERIAL_UNIQUE_PHENOMENA]: 2.0,     // Total: 0.7
+    [TerrainGroup.IMPASSABLE_AERIAL_VOID]: 999,
+    // Flying over ground terrain:
+    [TerrainGroup.FOREST_DENSE_GROUND]: 1.7, // (Implies AERIAL_OBSTRUCTED_LOW)
+    [TerrainGroup.MOUNTAIN_STEEP_GROUND]: 1.3, // (Implies some AERIAL_HIGH_ALTITUDE turbulence)
+    [TerrainGroup.CLOUD_MIST_FOREST]: 2.8, // (Visibility + AERIAL_HAZARDOUS_CONDITIONS)
+  },
+  defaultMultiplier: 1.2, // Flying over generic ground or in generic air
+  impassableOverride: 999
+};
+
+const FLYING_MACHINE_FLIGHT_GROUP_PENALTIES = { // WoW Inspired
+  travelMode: 'aerial',
+  basePenalty: 0.3, // Potentially faster in ideal conditions
+  groupMultipliers: {
+    [TerrainGroup.AERIAL_CLEAR_OPEN]: 1.0,            // Total: 0.3
+    [TerrainGroup.AERIAL_OBSTRUCTED_LOW]: 2.5,      // Total: 0.75 (clunky, risk of collision)
+    [TerrainGroup.AERIAL_HAZARDOUS_CONDITIONS]: 4.0,  // Total: 1.2 (very susceptible to weather/turbulence)
+    [TerrainGroup.AERIAL_HIGH_ALTITUDE_MOUNTAIN]: 2.0, // Total: 0.6 (engine performance issues?)
+    [TerrainGroup.AERIAL_UNIQUE_PHENOMENA]: 3.0,     // Total: 0.9 (magical interference)
+    [TerrainGroup.IMPASSABLE_AERIAL_VOID]: 999,
+  },
+  defaultMultiplier: 1.5,
+  impassableOverride: 999
+};
+
+
+export const TERRAIN_TYPE_TO_GROUP_MAP = {
+  [TerrainType.ROLLING_PLAINS]: TerrainGroup.OPEN_FLAT_GROUND,
+  [TerrainType.TALLGRASS_PRAIRIE]: TerrainGroup.OPEN_OBSTRUCTED_GROUND,
+  [TerrainType.SHORTGRASS_STEPPE]: TerrainGroup.OPEN_FLAT_GROUND,
+  [TerrainType.OAK_FOREST]: TerrainGroup.FOREST_MODERATE_GROUND,
+  [TerrainType.PINE_FOREST]: TerrainGroup.FOREST_MODERATE_GROUND, // Could be DENSE based on your vision
+  [TerrainType.BIRCH_FOREST]: TerrainGroup.FOREST_SPARSE_GROUND,
+  [TerrainType.GRASSY_HILLS]: TerrainGroup.OPEN_ROUGH_GROUND,
+  [TerrainType.ROCKY_FOOTHILLS]: TerrainGroup.MOUNTAIN_SLOPES_GROUND,
+  [TerrainType.ALPINE_TUNDRA]: TerrainGroup.ARCTIC_COLD_GROUND, // Also MOUNTAIN_STEEP_GROUND elements
+  [TerrainType.COASTAL_BEACH]: TerrainGroup.OPEN_FLAT_GROUND,
+  [TerrainType.FRESHWATER_SWAMP]: TerrainGroup.SWAMP_MUDDY_GROUND,
+  [TerrainType.REED_MARSH]: TerrainGroup.SWAMP_MUDDY_GROUND,
+  [TerrainType.SAND_DUNES_DESERT]: TerrainGroup.DESERT_SAND_GROUND,
+  [TerrainType.ROCKY_INFERTILE_DESERT]: TerrainGroup.OPEN_ROUGH_GROUND,
+  [TerrainType.ARCTIC_ICE_FLATS]: TerrainGroup.ARCTIC_COLD_GROUND,
+  [TerrainType.SAVANNA_WOODLAND]: TerrainGroup.FOREST_SPARSE_GROUND,
+  [TerrainType.RAINFOREST_JUNGLE]: TerrainGroup.FOREST_DENSE_GROUND,
+  [TerrainType.MANGROVE_COAST]: TerrainGroup.FOREST_DENSE_GROUND, // Also SWAMP_MUDDY elements
+  [TerrainType.CLOUD_MIST_FOREST]: TerrainGroup.FOREST_DENSE_GROUND, // Also AERIAL_HAZARDOUS_CONDITIONS for flight
+  [TerrainType.GLACIAL_FJORDS]: TerrainGroup.MOUNTAIN_STEEP_GROUND, // For land portions, AQUATIC_DEEP_OPEN for water
+  [TerrainType.SALT_FLATS_DRY]: TerrainGroup.OPEN_FLAT_GROUND,
+  [TerrainType.CRIMSON_CANYON_LANDS]: TerrainGroup.MOUNTAIN_SLOPES_GROUND,
+  [TerrainType.GEOTHERMAL_SPRINGS]: TerrainGroup.VOLCANIC_HAZARD_GROUND,
+  [TerrainType.ANCIENT_OVERGROWN_RUINS]: TerrainGroup.OPEN_ROUGH_GROUND, // Can lean FOREST_SPARSE if heavily wooded
+  [TerrainType.METEORITE_IMPACT_CRATER]: TerrainGroup.OPEN_ROUGH_GROUND,
+  [TerrainType.SHALLOW_QUICKSAND_PIT]: TerrainGroup.SWAMP_MUDDY_GROUND, // Or DESERT_SAND_GROUND if dry quicksand
+  [TerrainType.SINKING_TAR_PITS]: TerrainGroup.IMPASSABLE_DEEP_LIQUID_HAZARD,
+  [TerrainType.DEEP_MIRE]: TerrainGroup.SWAMP_MUDDY_GROUND, // Potentially IMPASSABLE
+  [TerrainType.IRONLEAF_FOREST]: TerrainGroup.FOREST_DENSE_GROUND, // Metal leaves could make it rougher
+  [TerrainType.MOONOAK_FOREST]: TerrainGroup.FOREST_DENSE_GROUND, // Magical elements might fit UNIQUE_OTHERWORLDLY
+  [TerrainType.PETRIFIED_STONE_FOREST]: TerrainGroup.OPEN_ROUGH_GROUND, // Like very difficult rocky terrain
+  [TerrainType.BIOLUMINESCENT_GROVE]: TerrainGroup.FOREST_SPARSE_GROUND, // Or UNIQUE_OTHERWORLDLY or CAVERN_DIFFICULT_SUB if underground
+  [TerrainType.SNOW_CAPPED_MOUNTAIN]: TerrainGroup.MOUNTAIN_STEEP_GROUND, // Upper parts are ARCTIC_COLD
+  [TerrainType.OBSIDIAN_LAVA_FLOW_FIELD]: TerrainGroup.VOLCANIC_HAZARD_GROUND, // Sharp, difficult
+  [TerrainType.COMPACT_EARTH_CAVERN]: TerrainGroup.CAVERN_EASY_SUB,
+  [TerrainType.NATURAL_CAVE_TUNNEL]: TerrainGroup.CAVERN_EASY_SUB,
+  [TerrainType.SUBTERRANEAN_RIVER_BED]: TerrainGroup.CAVERN_DIFFICULT_SUB, // Water hazard, uneven floor
+  [TerrainType.LUMINOUS_CRYSTAL_CAVERNS]: TerrainGroup.CAVERN_DIFFICULT_SUB,
+  [TerrainType.UNDERGROUND_FUNGI_FOREST]: TerrainGroup.CAVERN_DIFFICULT_SUB, // Obstructed, potentially unique
+  [TerrainType.GLOWWORM_LIT_CAVE]: TerrainGroup.CAVERN_EASY_SUB,
+  [TerrainType.COOLING_MAGMA_TUBE]: TerrainGroup.CAVERN_HAZARDOUS_SUB, // Unstable, hot spots
+  [TerrainType.SHEER_GRANITE_WALL]: TerrainGroup.IMPASSABLE_SOLID_BARRIER,
+  [TerrainType.BASALT_COLUMN_BARRIER]: TerrainGroup.IMPASSABLE_SOLID_BARRIER,
+  [TerrainType.QUARTZ_CRYSTAL_SPINES]: TerrainGroup.IMPASSABLE_SOLID_BARRIER, // Or OPEN_ROUGH_GROUND if they can be navigated around
+  [TerrainType.LIMESTONE_FLOWSTONE_WALL]: TerrainGroup.IMPASSABLE_SOLID_BARRIER,
+  [TerrainType.SOLID_OBSIDIAN_WALL]: TerrainGroup.IMPASSABLE_SOLID_BARRIER,
+  [TerrainType.MARBLE_STRATA_WALL]: TerrainGroup.IMPASSABLE_SOLID_BARRIER,
+  [TerrainType.COMPACTED_CLAY_DEPOSIT]: TerrainGroup.IMPASSABLE_SOLID_BARRIER, // If a large, unyielding mass
+  [TerrainType.ADAMANTINE_ORE_VEIN]: TerrainGroup.IMPASSABLE_SOLID_BARRIER,
+  [TerrainType.DEEP_SUBTERRANEAN_CHASM]: TerrainGroup.IMPASSABLE_SOLID_BARRIER, // For ground travel; AERIAL_UNIQUE for flight
+  [TerrainType.VOLCANIC_LAVA_RIVER]: TerrainGroup.IMPASSABLE_DEEP_LIQUID_HAZARD,
+  [TerrainType.COASTAL_SHALLOWS]: TerrainGroup.AQUATIC_SHALLOW_OPEN,
+  [TerrainType.VIBRANT_CORAL_REEF]: TerrainGroup.AQUATIC_SHALLOW_OBSTRUCTED,
+  [TerrainType.DENSE_KELP_FOREST]: TerrainGroup.AQUATIC_DEEP_OBSTRUCTED, // Can also be shallow
+  [TerrainType.ABYSSAL_OCEAN_FLOOR]: TerrainGroup.AQUATIC_DEEP_OPEN,
+  [TerrainType.HYDROTHERMAL_VENT_FIELD]: TerrainGroup.AQUATIC_DEEP_HAZARDOUS,
+  [TerrainType.OCEANIC_TRENCH]: TerrainGroup.AQUATIC_DEEP_OPEN, // Walls could be AQUATIC_DEEP_OBSTRUCTED
+  [TerrainType.CLEAR_SKY]: TerrainGroup.AERIAL_CLEAR_OPEN,
+  [TerrainType.TURBULENT_AIR_CURRENTS]: TerrainGroup.AERIAL_HAZARDOUS_CONDITIONS,
+  [TerrainType.FLOATING_EARTHMOTE_CLUSTER]: TerrainGroup.AERIAL_UNIQUE_PHENOMENA, // Landing on them is OPEN_ROUGH/FOREST etc.
+  [TerrainType.CELESTIAL_SKY_ISLAND]: TerrainGroup.AERIAL_UNIQUE_PHENOMENA, // Surface like ground terrain
+  [TerrainType.ETERNAL_BATTLEFIELD_PLAINS]: TerrainGroup.OPEN_ROUGH_GROUND, // Debris, uneven
+  [TerrainType.ARCANE_RADIATION_WASTES]: TerrainGroup.UNIQUE_OTHERWORLDLY_GROUND,
+  [TerrainType.NON_EUCLIDEAN_RUINS]: TerrainGroup.UNIQUE_OTHERWORLDLY_GROUND,
+  [TerrainType.FLESHCRAFTING_LABORATORY]: TerrainGroup.UNIQUE_OTHERWORLDLY_GROUND, // Or OPEN_ROUGH_GROUND if just a building
+  [TerrainType.RUINED_NECROPOLIS]: TerrainGroup.OPEN_ROUGH_GROUND,
+  [TerrainType.REALITY_CANCER_FLESHLANDS]: TerrainGroup.UNIQUE_OTHERWORLDLY_GROUND,
+  [TerrainType.FEY_EMOTION_LANDSCAPE]: TerrainGroup.UNIQUE_OTHERWORLDLY_GROUND,
+  [TerrainType.AERIAL_VORTEX]: TerrainGroup.IMPASSABLE_AERIAL_VOID,
+  [TerrainType.FLOATING_MOUNTAIN_BARRIER]: TerrainGroup.IMPASSABLE_AERIAL_VOID, // Or AERIAL_HIGH_ALTITUDE if navigable around
+  [TerrainType.SPECTRAL_RAIN_ZONE]: TerrainGroup.UNIQUE_OTHERWORLDLY_GROUND, // Or OPEN_OBSTRUCTED_GROUND
+  [TerrainType.ECHO_STORM_FIELD]: TerrainGroup.UNIQUE_OTHERWORLDLY_GROUND, // Also AERIAL_HAZARDOUS_CONDITIONS
+  [TerrainType.ETERNAL_WEEPING_HILLS]: TerrainGroup.OPEN_ROUGH_GROUND, // Could be SWAMPY
+  [TerrainType.VOID_QUARTZ_VEINS]: TerrainGroup.UNIQUE_OTHERWORLDLY_GROUND, // Or OPEN_ROUGH if just rocky
+  [TerrainType.FLOATING_RUIN_FIELD]: TerrainGroup.AERIAL_UNIQUE_PHENOMENA, // Surface like OPEN_ROUGH
+  [TerrainType.UNSTABLE_LEY_LINE_CONFLUX]: TerrainGroup.UNIQUE_OTHERWORLDLY_GROUND, // Also AERIAL_HAZARDOUS_CONDITIONS
+  [TerrainType.CRIMSON_WIDOWS_VEIL_FIELD]: TerrainGroup.FOREST_DENSE_GROUND, // Or UNIQUE_OTHERWORLDLY
+  [TerrainType.MARROW_CAP_GROVE]: TerrainGroup.FOREST_SPARSE_GROUND, // Or UNIQUE_OTHERWORLDLY
+  [TerrainType.ASHEN_BONE_PLAINS]: TerrainGroup.OPEN_FLAT_GROUND, // Potentially OPEN_ROUGH if bones are large
+  [TerrainType.HARMONIC_CRYSTAL_PILLARS]: TerrainGroup.OPEN_ROUGH_GROUND, // Or UNIQUE_OTHERWORLDLY. AERIAL_OBSTRUCTED for flight.
+  [TerrainType.TELLURIC_FLUX_ZONE]: TerrainGroup.UNIQUE_OTHERWORLDLY_GROUND,
+  [TerrainType.LIVING_MIST_SEA]: TerrainGroup.UNIQUE_OTHERWORLDLY_GROUND, // Also AERIAL_HAZARDOUS_CONDITIONS
+  [TerrainType.ECHO_BAZAAR]: TerrainGroup.OPEN_ROUGH_GROUND, // Assuming structures, could be UNIQUE
+  [TerrainType.FROZEN_SOUL_GLACIER]: TerrainGroup.ARCTIC_COLD_GROUND, // Or UNIQUE_OTHERWORLDLY
+  [TerrainType.WHITE_BLOOD_SNOWFIELD]: TerrainGroup.ARCTIC_COLD_GROUND, // Or UNIQUE_OTHERWORLDLY
+  [TerrainType.KRAKEN_BONE_TRENCH]: TerrainGroup.AQUATIC_DEEP_OBSTRUCTED,
+  [TerrainType.WHISPERING_JELLYFISH_SWARM]: TerrainGroup.AQUATIC_SHALLOW_OBSTRUCTED, // Or DEEP
+  [TerrainType.OBSIDIAN_ZIGGURAT_RUINS]: TerrainGroup.OPEN_ROUGH_GROUND, // Or UNIQUE_OTHERWORLDLY
+  [TerrainType.BLOODVINE_JUNGLE]: TerrainGroup.FOREST_DENSE_GROUND, // Potentially UNIQUE_OTHERWORLDLY
+  [TerrainType.SILVERDEW_SPRING]: TerrainGroup.OPEN_FLAT_GROUND, // Or UNIQUE_OTHERWORLDLY
+  [TerrainType.FLESHFORGED_DEMON_CITADEL]: TerrainGroup.UNIQUE_OTHERWORLDLY_GROUND, // Or OPEN_ROUGH_GROUND
+  [TerrainType.VOID_FUNGUS_CAVERNS]: TerrainGroup.CAVERN_DIFFICULT_SUB, // Or UNIQUE_OTHERWORLDLY_GROUND if surface-like
+  // Add a default for safety, though ideally all are mapped:
+  // UNKNOWN_DEFAULT: TerrainGroup.OPEN_ROUGH_GROUND // This would be handled by the generator function if a terrainId isn't in this map.
+};
+
 export const PARTY_ACTIVITIES = {
+  // --- Non-Mount Specific Travel Activities ---
   avoid_notice: {
     id: 'avoid_notice',
     name: 'Avoid Notice',
     icon: '🤫',
-    description: 'Attempt Stealth (Perception DC) while traveling at half speed. On encounter start, use Stealth for initiative and detection.',
-    movementPenaltyFactor: 2.0,
+    description: 'Attempt Stealth (Perception DC). Modifies current travel mode speed by a factor of 2.0 (half speed). On encounter start, use Stealth for initiative and detection.',
+    movementPenaltyFactor: 2.0, // This is a multiplier on the current travel mode's effective time
     isGroupActivity: false,
     traits: ['Exploration'],
     source: 'Player Core pg. 438'
+  },
+  careful_traverse: {
+    id: 'careful_traverse',
+    name: 'Careful Traverse',
+    icon: '⛰️',
+    description: 'When moving slowly (such as due to encumbrance or hazardous terrain), you concentrate on secure footing. Does not inherently slow you further than current conditions but grants +1 circumstance bonus to saves vs. prone and relevant skill checks for balance/treacherous surfaces.',
+    movementPenaltyFactor: 1.0, // No additional penalty beyond what the terrain/mode imposes
+    isGroupActivity: false,
+    traits: ['Exploration', 'Move'],
+    source: 'Custom Rule (Encumbrance Adaptation)'
+  },
+  cover_tracks: {
+    id: 'cover_tracks',
+    name: 'Cover Tracks',
+    icon: '🚫',
+    description: 'Use Survival to obscure tracks. Modifies current travel mode speed by a factor of 2.0 (half speed).',
+    movementPenaltyFactor: 2.0,
+    isGroupActivity: false, // Can be, but one person usually does it
+    traits: ['Exploration', 'Move'],
+    source: 'Player Core pg. 263'
   },
   defend: {
     id: 'defend',
     name: 'Defend',
     icon: '🛡️',
-    description: 'Move at half speed with shield raised. Gain Raise a Shield benefits before first turn in combat.',
+    description: 'Move with shield raised. Modifies current travel mode speed by a factor of 2.0 (half speed). Gain Raise a Shield benefits before first turn in combat.',
     movementPenaltyFactor: 2.0,
     isGroupActivity: false,
     traits: ['Exploration'],
     source: 'Player Core pg. 438'
   },
+  detailed_survey: {
+    id: 'detailed_survey',
+    name: 'Detailed Survey',
+    icon: '🧐',
+    description: 'Meticulously observe surroundings. Modifies current travel mode speed by a factor of 2.0 (half speed). GM makes secret checks for advantageous positions, routes, hazards, resources.',
+    movementPenaltyFactor: 2.0,
+    isGroupActivity: false,
+    traits: ['Exploration', 'Concentrate', 'Secret', 'Move'],
+    source: 'Custom Rule (Environmental Focus)'
+  },
   detect_magic: {
     id: 'detect_magic',
     name: 'Detect Magic',
     icon: '✨',
-    description: 'Cast detect magic at intervals. Half speed or slower. Specific speeds for thoroughness.',
-    movementPenaltyFactor: 2.0,
+    description: 'Cast detect magic at intervals. Modifies current travel mode speed by a factor of 2.0 (half speed) or slower for thoroughness.',
+    movementPenaltyFactor: 2.0, // Can be set higher by GM for more thoroughness
     isGroupActivity: false,
     traits: ['Concentrate', 'Exploration'],
     source: 'Player Core pg. 438'
@@ -1035,37 +1497,37 @@ export const PARTY_ACTIVITIES = {
     id: 'follow_expert',
     name: 'Follow the Expert',
     icon: '👣',
-    description: 'Match ally\'s skill check (e.g., Climb, Avoid Notice). Add level to skill, gain circumstance bonus from ally.',
-    movementPenaltyFactor: 1.0,
+    description: 'Match an ally\'s skill check (e.g., Climb, Avoid Notice) while traveling. Does not inherently modify speed beyond the expert\'s activity.',
+    movementPenaltyFactor: 1.0, // Relies on the expert's speed/activity
     isGroupActivity: false,
     traits: ['Auditory', 'Concentrate', 'Exploration', 'Visual'],
-    source: 'Player Core pg. 438'
-  },
-  hustle: {
-    id: 'hustle',
-    name: 'Hustle',
-    icon: '💨',
-    description: 'Move at double travel speed for Con mod × 10 minutes (min 10 min). Group uses lowest Con.',
-    movementPenaltyFactor: 0.5,
-    isGroupActivity: false,
-    traits: ['Exploration', 'Move'],
     source: 'Player Core pg. 438'
   },
   investigate: {
     id: 'investigate',
     name: 'Investigate',
     icon: '🔍',
-    description: 'Seek info with Recall Knowledge (secret) at half speed.',
+    description: 'Seek info with Recall Knowledge (secret). Modifies current travel mode speed by a factor of 2.0 (half speed).',
     movementPenaltyFactor: 2.0,
     isGroupActivity: false,
     traits: ['Concentrate', 'Exploration'],
     source: 'Player Core pg. 439'
   },
+  manage_burdens: {
+    id: 'manage_burdens',
+    name: 'Manage Burdens',
+    icon: '🎒',
+    description: 'Focus on keeping gear secure and balanced when heavily laden. Does not inherently slow you further than current conditions. May prevent item dropping/damage or reduce DC for exhaustion checks (GM discretion).',
+    movementPenaltyFactor: 1.0,
+    isGroupActivity: false,
+    traits: ['Exploration', 'Manipulate'],
+    source: 'Custom Rule (Encumbrance Adaptation)'
+  },
   repeat_spell: {
     id: 'repeat_spell',
     name: 'Repeat a Spell',
     icon: '🔁',
-    description: 'Repeatedly cast a 2-action or less spell (usually cantrip) at half speed.',
+    description: 'Repeatedly cast a 2-action or less spell (usually cantrip). Modifies current travel mode speed by a factor of 2.0 (half speed).',
     movementPenaltyFactor: 2.0,
     isGroupActivity: false,
     traits: ['Concentrate', 'Exploration'],
@@ -1075,7 +1537,7 @@ export const PARTY_ACTIVITIES = {
     id: 'scout',
     name: 'Scout',
     icon: '👁️‍🗨️',
-    description: 'Scout ahead/behind at half speed. Party gains +1 initiative next encounter.',
+    description: 'Scout ahead/behind. Modifies current travel mode speed by a factor of 2.0 (half speed). Party gains +1 initiative next encounter.',
     movementPenaltyFactor: 2.0,
     isGroupActivity: false,
     traits: ['Concentrate', 'Exploration'],
@@ -1085,44 +1547,171 @@ export const PARTY_ACTIVITIES = {
     id: 'search',
     name: 'Search',
     icon: '🧐',
-    description: 'Meticulously Seek for hidden things. Half speed usually; slower for thoroughness. GM makes free secret Seek.',
-    movementPenaltyFactor: 2.0,
+    description: 'Meticulously Seek for hidden things. Modifies current travel mode speed by a factor of 2.0 (half speed) or slower. GM makes free secret Seek.',
+    movementPenaltyFactor: 2.0, // Can be higher for more thoroughness
     isGroupActivity: false,
     traits: ['Concentrate', 'Exploration'],
     source: 'Player Core pg. 439'
   },
-  mounted_travel: {
-    id: 'mounted_travel',
-    name: 'Mounted Travel',
-    icon: '🐎',
-    description: 'The entire party travels on horseback or similar mounts, increasing base travel speed.',
-    movementPenaltyFactor: 0.75,
+  sense_direction: {
+    id: 'sense_direction',
+    name: 'Sense Direction',
+    icon: '🗺️',
+    description: 'Use Survival to get a sense of location or cardinal directions. Minimal time, does not significantly impact travel speed unless lost (then takes up to 10 min).',
+    movementPenaltyFactor: 1.0, // Assume efficient use, or minimal pause
+    isGroupActivity: false,
+    traits: ['Concentrate', 'Exploration', 'Secret'],
+    source: 'Player Core pg. 264'
+  },
+  squeeze: {
+    id: 'squeeze',
+    name: 'Squeeze',
+    icon: '🤏',
+    description: 'Use Acrobatics to squeeze through tight spaces. Modifies current travel mode speed by a factor of 3.0 (one-third speed).',
+    movementPenaltyFactor: 3.0,
+    isGroupActivity: false,
+    traits: ['Exploration', 'Move'],
+    source: 'Player Core pg. 242'
+  },
+  track: {
+    id: 'track',
+    name: 'Track',
+    icon: '👀',
+    description: 'Use Survival to follow tracks. Modifies current travel mode speed by a factor of 2.0 (half speed), or slower for difficult tracks.',
+    movementPenaltyFactor: 2.0, // Can be higher for difficult tracks
+    isGroupActivity: false,
+    traits: ['Concentrate', 'Exploration', 'Move'],
+    source: 'Player Core pg. 264'
+  },
+  
+  coordinated_pace_group: { // Renamed to avoid conflict if there's an individual one
+    id: 'coordinated_pace_group',
+    name: 'Coordinated Pace (Group)',
+    icon: '⚖️',
+    description: 'The party focuses on a unified rhythm, especially useful if encumbered or in difficult conditions. Party travels at the slowest member\'s effective speed. Grants +1 circumstance bonus to Fortitude saves against fatigue from environmental conditions or prolonged Hustling.',
+    movementPenaltyFactor: 1.0, // Relies on group's slowest member's speed
     isGroupActivity: true,
-    traits: ['Move'],
-    source: 'Game Master Intuition'
+    traits: ['Exploration'],
+    source: 'Custom Rule (Group Coordination)'
+  },
+  hustle_group: { // Renamed for clarity
+    id: 'hustle_group',
+    name: 'Hustle (Group)',
+    icon: '💨',
+    description: 'Move at double travel speed (current travel mode time factor is halved) for Con mod × 10 minutes (min 10 min). Group uses lowest Con. This activity\'s factor is applied to the current travel mode\'s effective time factor.',
+    movementPenaltyFactor: 0.5, // Multiplier on the current travel mode's effective time
+    isGroupActivity: true,
+    traits: ['Exploration', 'Move'],
+    source: 'Player Core pg. 438'
   },
   stealthy_group_approach: {
     id: 'stealthy_group_approach',
-    name: 'Group Stealth',
-    icon: '🤫👥',
-    description: 'The entire party attempts to move stealthily together, typically at a reduced speed.',
+    name: 'Stealth (Group)',
+    icon: '🤫',
+    description: 'The entire party attempts to move stealthily. Modifies current travel mode speed by a factor of 2.0 (half speed).',
     movementPenaltyFactor: 2.0,
     isGroupActivity: true,
-    traits: ['Exploration', 'Secret'],
+    traits: ['Exploration', 'Secret', 'Move'],
     source: 'Game Master Intuition'
   },
-  wheeled_vehicle: {
-    id: 'wheeled_vehicle',
-    name: 'Wheeled Vehicle',
-    icon: '🛒',
-    description: 'Travel by wheeled vehicle (e.g., cart, wagon). Offers faster travel on roads but is hindered by rough terrain.',
-    movementPenaltyFactor: 1.2,
+  walking_on_foot: {
+    id: 'walking_on_foot',
+    name: 'Walking (On Foot)',
+    icon: '🚶',
+    description: 'Standard bipedal movement. Performance based on terrain. Base time factor on ideal plains is 1.0. Specific terrain time factors apply.',
     isGroupActivity: true,
-    terrainModifiers: [
-        { terrains: [TerrainType.COBBLESTONE_ROAD], movementPenaltyFactor: 0.5 },
-        { terrains: Object.values(TerrainType).filter(t => t !== TerrainType.COBBLESTONE_ROAD), movementPenaltyFactor: 2.5 }
-    ],
-    traits: ['Move'],
-    source: 'Custom Rule'
-  }
+    traits: ['Move', 'Exploration'],
+    source: 'Core Rule',
+    terrainPenaltyFactors: generateExpandedTerrainPenalties(WALKING_ON_FOOT_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
+  },
+  riding_horse: {
+    id: 'riding_horse',
+    name: 'Riding Horse (Group)',
+    icon: '🐎',
+    description: 'Travel with common riding horses. Faster than walking on open ground. Base time factor on ideal plains is ~0.6. Specific terrain time factors apply.',
+    isGroupActivity: true,
+    traits: ['Move', 'Exploration'],
+    source: 'Custom Rule (Expanded Travel)',
+    terrainPenaltyFactors: generateExpandedTerrainPenalties(RIDING_HORSE_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
+  },
+  sturdy_cart_wagon: {
+    id: 'sturdy_cart_wagon',
+    name: 'Cart/Wagon (Group)',
+    icon: '🛒',
+    description: 'Animal-drawn cart/wagon. Best on roads. Base time factor on good roads/flat terrain is ~0.8-1.0. Heavily impacted by rough terrain. Specific terrain time factors apply.',
+    isGroupActivity: true,
+    traits: ['Move', 'Exploration', 'Vehicle'],
+    source: 'Custom Rule (Expanded Travel)',
+    terrainPenaltyFactors: generateExpandedTerrainPenalties(STURDY_CART_WAGON_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
+  },
+  swift_beast_riding: {
+    id: 'swift_wolf_riding',
+    name: 'Swift Beast Riding (Group)',
+    icon: '🐺',
+    description: 'Ride a large, swift beast. Excellent on plains and in sparse forests. Base time factor on ideal plains is ~0.55. Specific terrain time factors apply.',
+    isGroupActivity: true,
+    traits: ['Move', 'Exploration'],
+    source: 'Custom Rule (WoW Inspired)',
+    terrainPenaltyFactors: generateExpandedTerrainPenalties(SWIFT_WOLF_RIDING_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
+  },
+  sturdy_kodo_riding: {
+    id: 'sturdy_kodo_riding',
+    name: 'Sturdy Beast Riding (Group)',
+    icon: '🦏',
+    description: 'Ride a massive, resilient beast. Slower but handles rough terrain and deserts well. Base time factor on ideal plains is ~0.8. Specific terrain time factors apply.',
+    isGroupActivity: true,
+    traits: ['Move', 'Exploration', 'Beast of Burden'],
+    source: 'Custom Rule (WoW Inspired)',
+    terrainPenaltyFactors: generateExpandedTerrainPenalties(STURDY_KODO_RIDING_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
+  },
+  land_machine_piloting: {
+    id: 'land_machine_piloting',
+    name: 'Land Machine Piloting (Group)',
+    icon: '🤖',
+    description: 'Gnomish mechanical bird-like walker. Very fast on flat, hard surfaces. Struggles with natural or uneven terrain and water. Base time factor on ideal roads is ~0.5. Specific terrain time factors apply.',
+    isGroupActivity: true,
+    traits: ['Move', 'Exploration', 'Vehicle', 'Mechanical'],
+    source: 'Custom Rule (WoW Inspired)',
+    terrainPenaltyFactors: generateExpandedTerrainPenalties(MECHANOSTRIDER_RIDING_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
+  },
+  wind_rider_flight: {
+    id: 'wind_rider_flight',
+    name: 'Flying Beast Riding (Group)',
+    icon: '🦅',
+    description: 'WoW Inspired: Fly mounted on a Wyvern. Versatile aerial travel. Base time factor in clear skies is ~0.35. Affected by aerial conditions and canopy. Specific terrain time factors apply.',
+    isGroupActivity: true,
+    traits: ['Move', 'Exploration', 'Aerial'],
+    source: 'Custom Rule (WoW Inspired)',
+    terrainPenaltyFactors: generateExpandedTerrainPenalties(WIND_RIDER_FLIGHT_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
+  },
+  flying_machine_flight: {
+    id: 'flying_machine_flight',
+    name: 'Flying Machine (Group)',
+    icon: '🚁',
+    description: 'WoW Inspired: A Gnomish or Goblin contraption for flight. Fast in clear air but susceptible to turbulence and damage. Base time factor in ideal air is ~0.3. Specific terrain time factors apply.',
+    isGroupActivity: true,
+    traits: ['Move', 'Exploration', 'Aerial', 'Vehicle', 'Mechanical'],
+    source: 'Custom Rule (WoW Inspired)',
+    terrainPenaltyFactors: generateExpandedTerrainPenalties(FLYING_MACHINE_FLIGHT_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
+  },
+  mixed_ground_mounts: {
+    id: 'mixed_ground_mounts',
+    name: 'Mixed Ground Mounts (Group)',
+    icon: '🐴🐺', // Example icons
+    description: 'The party travels using a variety of ground mounts. Performance is averaged, offering versatility without specialization. Base time factor on ideal plains is ~0.7. Specific terrain time factors apply.',
+    isGroupActivity: true,
+    traits: ['Move', 'Exploration'],
+    source: 'Custom Rule (Mixed Group)',
+    terrainPenaltyFactors: generateExpandedTerrainPenalties(MIXED_GROUND_MOUNTS_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
+  },
+  mixed_flying_mounts: {
+    id: 'mixed_flying_mounts',
+    name: 'Mixed Flying Mounts (Group)',
+    icon: '🦅🐉', 
+    description: 'The party travels using a variety of flying mounts. Aerial performance is averaged. Base time factor in clear skies is ~0.32. Specific terrain time factors apply.',
+    isGroupActivity: true,
+    traits: ['Move', 'Exploration', 'Aerial'],
+    source: 'Custom Rule (Mixed Group)',
+    terrainPenaltyFactors: generateExpandedTerrainPenalties(MIXED_FLYING_MOUNTS_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
+  },
 };

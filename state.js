@@ -1,3 +1,4 @@
+// app/state.js
 import * as CONST from './constants.js';
 
 export const appState = {
@@ -6,14 +7,26 @@ export const appState = {
   isStandaloneMode: !new URLSearchParams(window.location.search).get('moduleId'),
   appMode: null,
   viewMode: CONST.DEFAULT_VIEW_MODE,
+  
+  // Hexploration Status
   hexplorationTimeElapsedHoursToday: 0,
   hexplorationKmTraveledToday: 0,
+  currentTimeOfDay: "N/A", 
+  currentTravelSpeedText: "N/A (Calculating...)", 
+
+  // New properties for detailed speed calculation
+  calculatedSlowestIndividualTimeFactor: 1.0,
+  calculatedSlowestIndividualActivityName: "None",
+  calculatedCombinedGroupTimeFactor: 1.0,
+  activeIndividualActivitiesList: [], 
+  activeGroupActivitiesList: [], 
+  finalEffectiveTimePerHex: 0, // This will be base hex time * activity factors only
 
   currentMapHexSizeValue: CONST.DEFAULT_HEX_SIZE_VALUE,
   currentMapHexSizeUnit: CONST.DEFAULT_HEX_SIZE_UNIT,
   currentMapHexTraversalTimeValue: CONST.DEFAULT_HEX_TRAVERSAL_TIME_VALUE,
   currentMapHexTraversalTimeUnit: CONST.DEFAULT_HEX_TRAVERSAL_TIME_UNIT,
-    currentMapPartyMarkerImagePath: null, // <<< NEW PROPERTY
+  currentMapPartyMarkerImagePath: null, 
 
   isWaitingForFeatureDetails: false,
   featureDetailsCallback: null,
@@ -86,9 +99,9 @@ export const appState = {
   weatherConditions: [
     { id: 'sunny', name: 'Sunny', icon: '☀️', effects: { travelSpeed: 1, visibility: 1 } },
     { id: 'cloudy', name: 'Cloudy', icon: '☁️', effects: { travelSpeed: 1, visibility: 0.8 } },
-    { id: 'rainy', name: 'Rainy', icon: '🌧️', effects: { travelSpeed: 0.8, visibility: 0.6 } },
-    { id: 'stormy', name: 'Stormy', icon: '⛈️', effects: { travelSpeed: 0.5, visibility: 0.2 } },
-    { id: 'foggy', name: 'Foggy', icon: '🌫️', effects: { travelSpeed: 0.9, visibility: 0.4 } },
+    { id: 'rainy', name: 'Rainy', icon: '🌧️', effects: { travelSpeed: 0.8, visibility: 0.6 } }, // Note: PF2e this is usually x2 time
+    { id: 'stormy', name: 'Stormy', icon: '⛈️', effects: { travelSpeed: 0.5, visibility: 0.2 } }, // Note: PF2e this is usually x4 time
+    { id: 'foggy', name: 'Foggy', icon: '🌫️', effects: { travelSpeed: 0.9, visibility: 0.4 } }, // Note: PF2e this is usually x1.5 or x2 time
   ],
   weatherGrid: {},
   weatherSettings: { sunny: 70, cloudy: 15, rainy: 10, foggy: 5, stormy: 1 },
@@ -110,7 +123,7 @@ export function resetActiveMapState() {
     appState.lastMovementInfo = null;
     appState.isWaitingForFeatureDetails = false;
 
-        appState.currentMapPartyMarkerImagePath = null; // <<< RESET NEW PROPERTY
+    appState.currentMapPartyMarkerImagePath = null; 
     appState.currentMapEventLog = [];
     appState.mapInitialized = false; appState.isCurrentMapDirty = false;
     appState.featureDetailsCallback = null;
@@ -154,6 +167,20 @@ export function resetActiveMapState() {
     appState.elevationBrushCustomStep = CONST.DEFAULT_CUSTOM_ELEVATION_STEP;
     appState.elevationBrushSetValue = CONST.DEFAULT_SET_ELEVATION_VALUE;
     appState.autoTerrainChangeOnElevation = CONST.AUTO_TERRAIN_CHANGE_ENABLED_DEFAULT;
+    
+    // Reset Hexploration Status specific fields
+    appState.hexplorationTimeElapsedHoursToday = 0;
+    appState.hexplorationKmTraveledToday = 0;
+    appState.currentTimeOfDay = "N/A";
+    appState.currentTravelSpeedText = "N/A";
+
+    // Reset new speed calculation fields
+    appState.calculatedSlowestIndividualTimeFactor = 1.0;
+    appState.calculatedSlowestIndividualActivityName = "None";
+    appState.calculatedCombinedGroupTimeFactor = 1.0;
+    appState.activeIndividualActivitiesList = [];
+    appState.activeGroupActivitiesList = [];
+    appState.finalEffectiveTimePerHex = CONST.DEFAULT_HEX_TRAVERSAL_TIME_VALUE;
 
 
     if (!appState.currentMapName || appState.isStandaloneMode) {

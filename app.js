@@ -4,32 +4,70 @@ import { compileTemplates, renderApp } from './ui.js';
 import * as MapLogic from './map-logic.js';
 import * as MapManagement from './map-management.js';
 import * as HexplorationLogic from './hexploration-logic.js';
-import * as AnimationLogic from './animation-logic.js'; // Added import
+import * as AnimationLogic from './animation-logic.js';
 
 const APP_MODULE_ID = new URLSearchParams(window.location.search).get('moduleId');
 appState.isStandaloneMode = !APP_MODULE_ID; 
+
+console.log(`%cAHME IFRAME (isGM: ${new URLSearchParams(window.location.search).get('isGM') === 'true'}, User: ${new URLSearchParams(window.location.search).get('userId')}): app.js loaded. APP_MODULE_ID: ${APP_MODULE_ID}, Standalone: ${appState.isStandaloneMode}`, "color: orange; font-weight:bold;");
 
 window.addEventListener('message', (event) => {
     const { type, payload, moduleId: msgModuleId } = event.data || {};
 
     if (!type || (!appState.isStandaloneMode && msgModuleId !== APP_MODULE_ID)) {
+        // console.log(`%cAHME IFRAME (User: ${appState.userId}): Ignoring message due to missing type, or moduleId mismatch (isStandalone: ${appState.isStandaloneMode}, msgModuleId: ${msgModuleId}, APP_MODULE_ID: ${APP_MODULE_ID}). Data:`, "color: gray;", event.data);
         return;
     }
-    if (appState.isStandaloneMode && msgModuleId === APP_MODULE_ID) {
-        return;
-    }
+    // If in iframe mode, and message IS for this module, log it.
+    // If in standalone mode, and message IS for this module (shouldn't happen from parent), also log.
+    // Basically, log if it *might* be relevant or is definitely for us.
+    // console.log(`%cAHME IFRAME (User: ${appState.userId}, isGM: ${appState.isGM}): Received message:`, "color: lightblue;", event.data);
+
 
     switch(type) {
-        case 'initialData':
+      case 'initialData':
+            console.log(`%cAHME IFRAME (User: ${appState.userId}): Case 'initialData'. Payload:`, "color: #FFD700;", payload);
             if (appState.isStandaloneMode) return; 
             if (payload) {
                 appState.mapList = payload.mapList || [];
                 appState.activeGmMapId = payload.activeGmMapId || null;
 
+                // Process initial world-level data
+                if (payload.currentHexplorationStatus) {
+                    appState.hexplorationTimeElapsedHoursToday = payload.currentHexplorationStatus.timeElapsedHoursToday || 0;
+                    appState.hexplorationKmTraveledToday = payload.currentHexplorationStatus.kmTraveledToday || 0;
+                    appState.currentTimeOfDay = payload.currentHexplorationStatus.currentTimeOfDay || "N/A";
+                }
+                if (payload.partyActivitiesData) {
+                    appState.activePartyActivities.clear();
+                    for (const [activityId, characterName] of Object.entries(payload.partyActivitiesData)) {
+                        if (CONST.PARTY_ACTIVITIES[activityId] && typeof characterName === 'string') {
+                            appState.activePartyActivities.set(activityId, characterName);
+                        }
+                    }
+                }
+
                 if (appState.activeGmMapId) {
+                    // handleOpenMap will call resetActiveMapState, then mapDataLoaded will re-apply fresh world data
                     MapManagement.handleOpenMap(appState.activeGmMapId, true);
                 } else {
-                    resetActiveMapState();
+                    // If no map is opened, resetActiveMapState is called, then re-apply world data from initial payload
+                    const tempHexploration = payload.currentHexplorationStatus;
+                    const tempActivities = payload.partyActivitiesData;
+                    resetActiveMapState(); // Clears everything
+                    if (tempHexploration) { // Re-apply
+                        appState.hexplorationTimeElapsedHoursToday = tempHexploration.timeElapsedHoursToday || 0;
+                        appState.hexplorationKmTraveledToday = tempHexploration.kmTraveledToday || 0;
+                        appState.currentTimeOfDay = tempHexploration.currentTimeOfDay || "N/A";
+                    }
+                    if (tempActivities) { // Re-apply
+                         appState.activePartyActivities.clear();
+                         for (const [activityId, characterName] of Object.entries(tempActivities)) {
+                            if (CONST.PARTY_ACTIVITIES[activityId] && typeof characterName === 'string') {
+                                appState.activePartyActivities.set(activityId, characterName);
+                            }
+                        }
+                    }
                     renderApp();
                 }
             } else {
@@ -38,37 +76,45 @@ window.addEventListener('message', (event) => {
             }
             break;
 
-case 'partyMarkerImageSelected':
-    console.log("IFRAME APP: Received partyMarkerImageSelected. Payload path:", payload?.path);
+        case 'hexplorationDataUpdated': // Assuming this is the message type from the bridge
     if (payload) {
-        appState.currentMapPartyMarkerImagePath = (typeof payload.path === 'string' && payload.path.trim() !== "") ? payload.path.trim() : null;
-        console.log("IFRAME APP: appState.currentMapPartyMarkerImagePath set to:", appState.currentMapPartyMarkerImagePath);
-        appState.isCurrentMapDirty = true;
-        renderApp({ preserveScroll: true });
-              const pathInput = document.getElementById("partyMarkerImagePathInput");
-              if(pathInput) pathInput.value = appState.currentMapPartyMarkerImagePath || "";
-          }
-          break;
+        HexplorationLogic.updateLocalHexplorationDisplayValues(payload);
+        renderApp({ preserveScroll: true }); // Or whatever render options are appropriate
+    }
+    break;
+        case 'partyMarkerImageSelected':
+            console.log(`%cAHME IFRAME (User: ${appState.userId}): Received partyMarkerImageSelected. Payload path:`, "color: #98FB98;", payload?.path);
+            if (payload) {
+                appState.currentMapPartyMarkerImagePath = (typeof payload.path === 'string' && payload.path.trim() !== "") ? payload.path.trim() : null;
+                console.log(`%cAHME IFRAME (User: ${appState.userId}): appState.currentMapPartyMarkerImagePath set to:`, "color: #98FB98;", appState.currentMapPartyMarkerImagePath);
+                appState.isCurrentMapDirty = true;
+                renderApp({ preserveScroll: true });
+                const pathInput = document.getElementById("partyMarkerImagePathInput");
+                if(pathInput) pathInput.value = appState.currentMapPartyMarkerImagePath || "";
+            }
+            break;
 
-
-        case 'mapDataLoaded':
+    case 'mapDataLoaded':
+            console.log(`%cAHME IFRAME (User: ${appState.userId}): Case 'mapDataLoaded'. Map ID: ${payload?.mapId}.`, "color: #ADD8E6;");
             if (appState.isStandaloneMode) return; 
             if (payload && payload.mapId && Array.isArray(payload.hexes)) {
-                resetActiveMapState();
+                resetActiveMapState(); // Clears state for the new map
 
+                // Apply fresh world-level data received with the map
+                if (payload.currentHexplorationStatus) {
+                    appState.hexplorationTimeElapsedHoursToday = payload.currentHexplorationStatus.timeElapsedHoursToday || 0;
+                    appState.hexplorationKmTraveledToday = payload.currentHexplorationStatus.kmTraveledToday || 0;
+                    appState.currentTimeOfDay = payload.currentHexplorationStatus.currentTimeOfDay || "N/A";
+                }
+
+                appState.activePartyActivities.clear(); // Clear before loading new ones
                 if (payload.partyActivitiesData && typeof payload.partyActivitiesData === 'object') {
                     for (const [activityId, characterName] of Object.entries(payload.partyActivitiesData)) {
                         if (CONST.PARTY_ACTIVITIES[activityId] && typeof characterName === 'string') {
                             appState.activePartyActivities.set(activityId, characterName);
                         }
                     }
-                } else if (window.parent && APP_MODULE_ID && typeof window.parent.postMessage === 'function') {
-                    window.parent.postMessage({
-                        type: 'ahnGetPartyActivities',
-                        moduleId: APP_MODULE_ID
-                    }, '*');
                 }
-
                 appState.currentMapId = payload.mapId;
                 appState.currentMapName = payload.name || "Unnamed Map";
                 appState.isCurrentMapDirty = false;
@@ -79,14 +125,14 @@ case 'partyMarkerImageSelected':
                     appState.currentMapHexTraversalTimeValue = parseFloat(payload.mapSettings.hexTraversalTimeValue) || CONST.DEFAULT_HEX_TRAVERSAL_TIME_VALUE;
                     appState.currentMapHexTraversalTimeUnit = payload.mapSettings.hexTraversalTimeUnit || CONST.DEFAULT_HEX_TRAVERSAL_TIME_UNIT;
                     appState.zoomLevel = parseFloat(payload.mapSettings.zoomLevel) || 1.0;
-                                    appState.currentMapPartyMarkerImagePath = payload.mapSettings.partyMarkerImagePath || null; // <<< ADDED
+                    appState.currentMapPartyMarkerImagePath = payload.mapSettings.partyMarkerImagePath || null;
                 } else {
                     appState.currentMapHexSizeValue = CONST.DEFAULT_HEX_SIZE_VALUE;
                     appState.currentMapHexSizeUnit = CONST.DEFAULT_HEX_SIZE_UNIT;
                     appState.currentMapHexTraversalTimeValue = CONST.DEFAULT_HEX_TRAVERSAL_TIME_VALUE;
                     appState.currentMapHexTraversalTimeUnit = CONST.DEFAULT_HEX_TRAVERSAL_TIME_UNIT;
                     appState.zoomLevel = 1.0;
-                                    appState.currentMapPartyMarkerImagePath = null; // <<< ADDED DEFAULT
+                    appState.currentMapPartyMarkerImagePath = null; 
                 }
 
                 MapManagement.loadGlobalExplorationForMap(payload);
@@ -128,6 +174,7 @@ case 'partyMarkerImageSelected':
             break;
 
         case 'mapLoadFailed':
+            console.error(`%cAHME IFRAME (User: ${appState.userId}): Case 'mapLoadFailed'. Payload:`, "color: red;", payload);
             if (appState.isStandaloneMode) return;
             alert(`Failed to load map: ${payload?.mapId || 'Unknown ID'} - ${payload?.error || 'Unknown reason'}`);
             if (appState.currentMapId === payload?.mapId || (appState.currentMapName && appState.currentMapName.startsWith("Loading"))) {
@@ -139,6 +186,7 @@ case 'partyMarkerImageSelected':
             break;
 
         case 'mapListUpdated':
+            console.log(`%cAHME IFRAME (User: ${appState.userId}): Case 'mapListUpdated'. Payload:`, "color: #AFEEEE;", payload);
             if (appState.isStandaloneMode) return;
             if (payload && Array.isArray(payload.mapList)) {
                 appState.mapList = payload.mapList;
@@ -165,8 +213,13 @@ case 'partyMarkerImageSelected':
 
                 if (payload.newActiveGmMapId !== undefined && appState.activeGmMapId !== payload.newActiveGmMapId) {
                      appState.activeGmMapId = payload.newActiveGmMapId;
+                     // If this user is a player and the active GM map changed, they might need to load it
+                     if (!appState.isGM && appState.activeGmMapId && appState.currentMapId !== appState.activeGmMapId) {
+                         MapManagement.handleOpenMap(appState.activeGmMapId, true);
+                         needsFullRender = false; // handleOpenMap will render
+                     }
                 }
-
+                
                 if (needsFullRender) {
                     renderApp();
                 }
@@ -174,8 +227,13 @@ case 'partyMarkerImageSelected':
             break;
 
         case 'partyDataUpdated': 
+            // console.log(`%cAHME IFRAME (User: ${appState.userId}): Case 'partyDataUpdated'. Payload mapId: ${payload?.mapId}, currentMapId: ${appState.currentMapId}. Payload:`, "color: #E6E6FA;", payload);
             if (payload && payload.mapId === appState.currentMapId) {
-                if (!appState.isStandaloneMode || (appState.isStandaloneMode && appState.isGM)) {
+                // This message is primarily for GMs to update their own iframe after saving,
+                // or for players if a GM tool directly updated party data without a full map reload.
+                // For players, activeMapChanged or forceMapReload usually handles full data sync.
+                // if (!appState.isStandaloneMode || (appState.isStandaloneMode && appState.isGM)) { // Original condition
+                // Simpler: if it's for the current map, process it.
                     let needsRender = false;
                     let explicitCenteringRequestedThisUpdate = false;
 
@@ -215,28 +273,32 @@ case 'partyMarkerImageSelected':
                         }
                         renderApp({ preserveScroll: !explicitCenteringRequestedThisUpdate });
                     }
-                }
+                // }
             }
             break;
 
         case 'forceMapReload':
+            console.log(`%cAHME IFRAME (User: ${appState.userId}): Case 'forceMapReload'. Payload:`, "color: #FF6347;", payload);
             if (appState.isStandaloneMode) return;
-            if (payload && payload.mapId && !appState.isGM) {
+            if (payload && payload.mapId && !appState.isGM) { // Only non-GMs react to this forced reload
                 if (appState.currentMapId === payload.mapId) {
-                    MapManagement.handleOpenMap(payload.mapId, true);
+                    MapManagement.handleOpenMap(payload.mapId, true); // True to bypass unsaved changes prompt
                 }
             }
             break;
 
         case 'activeMapChanged':
+            console.log(`%cAHME IFRAME (User: ${appState.userId}): Case 'activeMapChanged'. Payload:`, "color: #FF4500;", payload);
             if (appState.isStandaloneMode) return;
             const newActiveGmMapIdFromSetting = payload.activeGmMapId;
             appState.activeGmMapId = newActiveGmMapIdFromSetting;
 
             if (newActiveGmMapIdFromSetting) {
-                if (appState.currentMapId !== newActiveGmMapIdFromSetting || !appState.mapInitialized) {
-                    MapManagement.handleOpenMap(newActiveGmMapIdFromSetting, true);
-                } else if (appState.currentMapId === newActiveGmMapIdFromSetting && appState.mapInitialized) {
+                // If this client is a Player, or a GM whose current map isn't the new active one, load it.
+                if (!appState.isGM || (appState.isGM && (appState.currentMapId !== newActiveGmMapIdFromSetting || !appState.mapInitialized))) {
+                    MapManagement.handleOpenMap(newActiveGmMapIdFromSetting, true); // true to bypass unsaved changes prompt
+                } else if (appState.isGM && appState.currentMapId === newActiveGmMapIdFromSetting && appState.mapInitialized) {
+                     // GM is already on the active map, just re-render (e.g., if another GM changed something minor)
                      if (appState.appMode === CONST.AppMode.PLAYER && appState.partyMarkerPosition) {
                         MapLogic.requestCenteringOnHex(appState.partyMarkerPosition.id);
                         renderApp();
@@ -244,113 +306,127 @@ case 'partyMarkerImageSelected':
                         renderApp({preserveScroll: true});
                     }
                 }
-            } else {
-                if (appState.currentMapId || appState.mapInitialized) {
-                    resetActiveMapState();
-                    appState.currentMapId = null;
-                    appState.currentMapName = null;
+            } else { // No active GM map
+                if (!appState.isGM) { // Player view should clear if no active map
+                    if (appState.currentMapId || appState.mapInitialized) {
+                        resetActiveMapState();
+                        appState.currentMapId = null;
+                        appState.currentMapName = null;
+                    }
+                    renderApp();
+                } else { // GM view, no active map. Can keep current map open for editing if desired.
+                    renderApp({preserveScroll: true}); // Just re-render to update UI if needed
                 }
-                renderApp();
             }
             break;
 
-        case 'activeMapContentRefreshed':
+        case 'activeMapContentRefreshed': // This is a gentler refresh than forceMapReload
+            console.log(`%cAHME IFRAME (User: ${appState.userId}): Case 'activeMapContentRefreshed'. Payload:`, "color: #FF8C00;", payload);
             if (appState.isStandaloneMode) return;
             if (payload && payload.mapId === appState.currentMapId && !appState.isGM) {
-                MapManagement.handleOpenMap(payload.mapId, true);
+                // Player client: active map content was updated by GM, re-request it.
+                MapManagement.handleOpenMap(payload.mapId, true); // true to bypass unsaved changes prompt
             }
             break;
 
         case 'formInputResponse':
+            console.log(`%cAHME IFRAME (User: ${appState.userId}): Case 'formInputResponse'. Waiting: ${appState.isWaitingForFormInput}. Payload:`, "color: #DAA520;", payload);
             if (appState.isStandaloneMode && payload && payload.cancelled && !appState.isWaitingForFormInput) {
                 renderApp(); 
                 return;
             }
             if (appState.isWaitingForFormInput && typeof appState.formInputCallback === 'function') {
                 appState.formInputCallback(payload);
-            } else {
+            } else { // Callback already handled or not waiting
                 appState.isWaitingForFormInput = false;
                 appState.formInputCallback = null;
+                // Potentially render if it was an unexpected cancellation
+                if (payload && payload.cancelled) renderApp({ preserveScroll: true });
             }
             break;
 
-case 'featureDetailsInputResponse':
-            // Standalone specific quick exit if cancelled and not waiting (avoids unnecessary render)
+        case 'featureDetailsInputResponse':
+            console.log(`%cAHME IFRAME (User: ${appState.userId}): Case 'featureDetailsInputResponse'. Waiting: ${appState.isWaitingForFeatureDetails}. PendingHexId: ${appState.pendingFeaturePlacement?.hexId}. Payload:`, "color: #BDB76B;", payload);
             if (appState.isStandaloneMode && payload && payload.cancelled && !appState.isWaitingForFeatureDetails) {
-                // Potentially do nothing or minimal render if truly not waiting
-                // renderApp(); // Or remove this if it causes issues
                 return;
             }
 
             if (appState.isWaitingForFeatureDetails && typeof appState.featureDetailsCallback === 'function') {
-                // Check if this response is for the currently pending feature placement
                 if (appState.pendingFeaturePlacement && payload && appState.pendingFeaturePlacement.hexId === payload.hexId) {
-                    appState.featureDetailsCallback(payload); // This callback is in encounter-logic.js
-                                                              // It will handle clearing pendingFeaturePlacement and isWaitingForFeatureDetails
+                    appState.featureDetailsCallback(payload); 
                 } else {
-                    // This response is not for the current pending feature or no pending feature matches.
-                    // This could be a stale response or an unexpected situation.
-                    // Resetting state here is a defensive measure.
-                    console.warn("AHME: Received featureDetailsInputResponse that didn't match pending placement or no callback was ready.", payload, appState.pendingFeaturePlacement);
+                    console.warn(`AHME IFRAME (User: ${appState.userId}): Received featureDetailsInputResponse that didn't match pending placement or no callback was ready. Payload:`, payload, "Pending:", appState.pendingFeaturePlacement);
                     appState.isWaitingForFeatureDetails = false;
                     appState.featureDetailsCallback = null;
                     appState.pendingFeaturePlacement = null;
-                    renderApp(); // Re-render to clear any UI waiting for input
+                    renderApp(); 
                 }
             } else if (payload && payload.cancelled) {
-                // If it was cancelled and we somehow weren't "waiting" anymore (e.g., another action interrupted)
-                // still ensure state is clean.
                 appState.isWaitingForFeatureDetails = false;
                 appState.featureDetailsCallback = null;
                 appState.pendingFeaturePlacement = null;
                 renderApp();
             }
-            // If none of the above, it's an unexpected message, do nothing or log.
             break;
 
-        case 'ahnInitialPartyActivities':
-          if (!appState.isStandaloneMode && payload) {
-            appState.activePartyActivities.clear();
-            for (const [activityId, characterName] of Object.entries(payload)) {
-              if (CONST.PARTY_ACTIVITIES[activityId] && typeof characterName === 'string') {
-                appState.activePartyActivities.set(activityId, characterName);
-              }
-            }
-            renderApp({ preserveScroll: true });
-          }
-          break;
+  case 'ahnInitialPartyActivities':
+    console.log(`%cAHME IFRAME (User: ${appState.userId}): Case 'ahnInitialPartyActivities'. Payload:`, "color: #20B2AA;", payload);
+    // This check is good: only process if not in standalone and payload exists
+    if (!appState.isStandaloneMode && payload) { 
+      appState.activePartyActivities.clear(); // Clear existing before applying new ones
+      for (const [activityId, characterName] of Object.entries(payload)) {
+        if (CONST.PARTY_ACTIVITIES[activityId] && typeof characterName === 'string') {
+          appState.activePartyActivities.set(activityId, characterName);
+        }
+      }
+      renderApp({ preserveScroll: true }); // Re-render to show updated activities
+    }
+    break;
 
 case 'ahnSyncTravelAnimation':
-            const wasActive = appState.travelAnimation.isActive;
-            
-            // Update the local appState with the data from the GM
-            // Make sure not to overwrite startTime and duration if the player has already started
-            // and this is just a progress update (though we removed frequent progress updates from GM)
-            // For start/stop, payload will have the definitive state.
-            appState.travelAnimation = { 
-                ...appState.travelAnimation, // Keep existing player-side startTime if already running
-                ...payload 
-            };
+    console.log(`%cAHME IFRAME (User: ${appState.userId}, isGM: ${appState.isGM}): Case 'ahnSyncTravelAnimation'. Payload:`, "color: magenta; font-weight: bold;", JSON.parse(JSON.stringify(payload)));
+    
+    // Update the local appState.travelAnimation with the complete payload from the GM.
+    appState.travelAnimation = { 
+        ...appState.travelAnimation, 
+        ...payload 
+    };
 
-            if (!appState.isGM) { // Only player clients react to start/stop their loops
-                if (payload.isActive && !wasActive) {
-                    // If GM says "start" and it wasn't active, player starts their loop
-                    // Ensure startTime and duration are fresh from GM for the player's loop
-                    appState.travelAnimation.startTime = payload.startTime || Date.now(); // Use GM's start or current if missing
-                    appState.travelAnimation.duration = payload.duration;
-                    AnimationLogic.runPlayerAnimationLoop();
-                } else if (!payload.isActive && wasActive) {
-                    // If GM says "stop" and it was active, player stops their loop
-                    AnimationLogic.stopPlayerAnimationLoop();
+    if (!appState.isGM) { // This logic is specifically for player clients
+        console.log(`%cAHME IFRAME (Player - ${appState.userId}): Processing ahnSyncTravelAnimation. payload.isActive: ${payload.isActive}`, "color: magenta;");
+        
+        if (payload.isActive) { 
+            // If the GM's message indicates the animation should be active:
+            appState.travelAnimation.startTime = payload.startTime || Date.now(); 
+            appState.travelAnimation.duration = payload.duration;                   
+            appState.travelAnimation.markerPosition = payload.markerPosition || 0;
+            
+            // DEFER starting the animation slightly to ensure the current message processing and renderApp completes
+            // This can help if the event loop is congested or if there's an interaction with immediate rendering.
+            setTimeout(() => {
+                console.log(`%cAHME IFRAME (Player - ${appState.userId}): Deferred call to runPlayerAnimationLoop. Current state isActive: ${appState.travelAnimation.isActive}, markerPosition: ${appState.travelAnimation.markerPosition}`, "color: purple; font-weight: bold;");
+                // Double-check if still active, in case a "stop" message arrived very, very quickly and was processed
+                // before this timeout callback.
+                if (appState.travelAnimation.isActive && appState.travelAnimation.markerPosition < 100) { // Check markerPosition too
+                     AnimationLogic.runPlayerAnimationLoop();
+                } else {
+                    console.log(`%cAHME IFRAME (Player - ${appState.userId}): Animation was already stopped or completed before deferred runPlayerAnimationLoop could execute. isActive: ${appState.travelAnimation.isActive}, markerPos: ${appState.travelAnimation.markerPosition}`, "color: purple;");
                 }
-            }
-            
-            // Re-render the UI to show/hide the popup and update marker for all
-            // Player's marker will be driven by its own loop primarily, but this syncs initial/final state
-            renderApp({ preserveScroll: true });
-            break;
+            }, 0); // setTimeout with 0ms defers to the next tick in the event loop
 
+        } else if (!payload.isActive) { 
+            // If the GM's message indicates the animation should NOT be active:
+            console.log(`%cAHME IFRAME (Player - ${appState.userId}): Calling stopPlayerAnimationLoop directly due to !payload.isActive.`, "color: magenta;");
+            AnimationLogic.stopPlayerAnimationLoop();
+        }
+    }
+    
+    // Re-render the UI for all clients (GM and Players)
+    console.log(`%cAHME IFRAME (User: ${appState.userId}, isGM: ${appState.isGM}): Calling renderApp after processing ahnSyncTravelAnimation. Animation active: ${appState.travelAnimation.isActive}`, "color: magenta;");
+    renderApp({ preserveScroll: true });
+    break;
         default:
+            // console.log(`%cAHME IFRAME (User: ${appState.userId}): Unhandled message type '${type}'. Payload:`, "color: orange;", payload);
             break;
     }
 });
@@ -363,13 +439,16 @@ async function start() {
     appState.isGM = appState.isStandaloneMode ? true : (new URLSearchParams(window.location.search).get('isGM') === 'true');
     appState.userId = appState.isStandaloneMode ? 'standalone_gm' : (new URLSearchParams(window.location.search).get('userId') || 'unknown_player_iframe');
     appState.appMode = appState.isGM ? CONST.DEFAULT_APP_MODE : CONST.AppMode.PLAYER;
+    console.log(`%cAHME IFRAME (User: ${appState.userId}): Start function. isGM: ${appState.isGM}, appMode: ${appState.appMode}, standalone: ${appState.isStandaloneMode}`, "color: orange; font-weight:bold;");
+
 
     if (appState.isStandaloneMode) {
-        appState.appMode = CONST.AppMode.PLAYER; // Default standalone to player view for now
+        appState.appMode = CONST.AppMode.PLAYER; 
     }
 
     const templatesReady = await compileTemplates();
     if (!templatesReady) {
+        console.error("AHME IFRAME: Templates failed to compile. Application cannot start.");
         return;
     }
 
@@ -377,21 +456,25 @@ async function start() {
         MapManagement.handleCreateNewMap(true); 
     } else if (window.parent && APP_MODULE_ID && typeof window.parent.postMessage === 'function') {
         try {
+            // console.log(`%cAHME IFRAME (User: ${appState.userId}): Sending 'jsAppReady' to parent.`, "color: #FFD700;");
             window.parent.postMessage({ type: 'jsAppReady', moduleId: APP_MODULE_ID }, '*');
+            // console.log(`%cAHME IFRAME (User: ${appState.userId}): Sending 'ahnGetPartyActivities' to parent.`, "color: #20B2AA;");
             window.parent.postMessage({
                 type: 'ahnGetPartyActivities',
                 moduleId: APP_MODULE_ID
             }, '*');
         } catch (e) {
             alert("AHME: Critical error initializing communication with Foundry. The map editor may not function correctly. Check console (F12).");
+            console.error("AHME IFRAME: Error during initial postMessage to parent:", e);
             resetActiveMapState();
             renderApp();
         }
-    } else { // Fallback if no parent or module ID, assume standalone
+    } else { 
+        console.warn("AHME IFRAME: No parent or module ID, assuming standalone fallback.");
         appState.isStandaloneMode = true; 
-        appState.isGM = true; // Assume GM rights in this fallback standalone
+        appState.isGM = true; 
         appState.userId = 'fallback_standalone_gm';
-        appState.appMode = CONST.AppMode.PLAYER; // Default to player for consistency
+        appState.appMode = CONST.AppMode.PLAYER; 
         MapManagement.handleCreateNewMap(true); 
     }
 }
@@ -404,18 +487,22 @@ if (document.readyState === 'loading') {
 
 export function syncActivitiesToFoundry() {
   if (appState.isStandaloneMode || !window.parent || typeof window.parent.postMessage !== 'function') {
-    return;
+    if (appState.isStandaloneMode) {
+        console.log(`%cAHME IFRAME (Standalone - ${appState.userId}): syncActivitiesToFoundry called. Local change only. Activities:`, "color: orange;", Object.fromEntries(appState.activePartyActivities));
+    }
+    return; 
   }
 
   const activitiesObject = Object.fromEntries(appState.activePartyActivities);
 
   try {
+    console.log(`%cAHME IFRAME (User: ${appState.userId}, isGM: ${appState.isGM}): Syncing activities to Foundry (calling parent.postMessage). Payload:`, "color: #20B2AA; font-weight:bold;", activitiesObject);
     window.parent.postMessage({
-      type: 'ahnUpdatePartyActivities',
+      type: 'ahnUpdatePartyActivities', // Sent by both GM and Player iframes
       payload: activitiesObject,
       moduleId: APP_MODULE_ID
     }, '*');
   } catch (e) {
-    console.error("AHME: Error syncing party activities to Foundry:", e);
+    console.error("AHME IFRAME: Error syncing party activities to Foundry:", e);
   }
 }
