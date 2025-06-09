@@ -11,8 +11,8 @@ const DEFAULT_MAP_SETTINGS = {
   hexSizeUnit: "km",
   hexTraversalTimeValue: 1,
   hexTraversalTimeUnit: "hour",
-  zoomLevel: 1.0, 
-      partyMarkerImagePath: null // <<< ADDED
+  zoomLevel: 1.0,
+  partyMarkerImagePath: null,
 };
 const DEFAULT_LANDMARK_ICON_COLOR_CLASS_BRIDGE = "fill-yellow-200";
 
@@ -75,9 +75,10 @@ async function getModuleData() {
           !isNaN(map.mapSettings.zoomLevel)
             ? map.mapSettings.zoomLevel
             : DEFAULT_MAP_SETTINGS.zoomLevel;
-
-
-                      map.mapSettings.partyMarkerImagePath = (typeof map.mapSettings.partyMarkerImagePath === 'string') ? map.mapSettings.partyMarkerImagePath : DEFAULT_MAP_SETTINGS.partyMarkerImagePath; // <<< ADDED
+        map.mapSettings.partyMarkerImagePath =
+          typeof map.mapSettings.partyMarkerImagePath === "string"
+            ? map.mapSettings.partyMarkerImagePath
+            : DEFAULT_MAP_SETTINGS.partyMarkerImagePath;
       }
     }
   }
@@ -100,6 +101,11 @@ async function saveModuleData(data) {
 }
 
 function broadcastToAllIframes(messageType, messagePayload) {
+  console.log(
+    `%cAHME BRIDGE (User: ${game.user?.id}, isGM: ${game.user?.isGM}): Attempting to broadcast type '${messageType}' to all relevant iframes. Payload:`,
+    "color: #FF8C00;",
+    messagePayload
+  );
   Object.values(ui.windows).forEach((appWindow) => {
     if (
       appWindow.id === "hexmap-app" &&
@@ -107,10 +113,16 @@ function broadcastToAllIframes(messageType, messagePayload) {
       appWindow instanceof HexMapApplication
     ) {
       const iframeInstance = appWindow.element.find("#hexmap-iframe")[0];
+      // console.log(`%cAHME BRIDGE (User: ${game.user?.id}): Found appWindow: ${appWindow.id}. Iframe available: ${!!iframeInstance}, ContentWindow available: ${!!iframeInstance?.contentWindow}`, "color: #FF8C00;");
       if (iframeInstance && iframeInstance.contentWindow) {
         iframeInstance.contentWindow.postMessage(
           { type: messageType, payload: messagePayload, moduleId: MODULE_ID },
           "*"
+        );
+      } else {
+        console.warn(
+          `%cAHME BRIDGE (User: ${game.user?.id}): Could not post message to iframe in window ${appWindow.id}, contentWindow not available.`,
+          "color: #FFA500;"
         );
       }
     }
@@ -120,19 +132,32 @@ function broadcastToAllIframes(messageType, messagePayload) {
 Hooks.once("ready", () => {
   if (game.socket) {
     game.socket.on(AHME_SOCKET_NAME, (data) => {
-      if (
-        !data ||
-        !data.ahmeEvent ||
-        !data.payload ||
-        !game.user ||
-        data.senderId === game.user.id
-      )
-        return;
+      // NO CHECKS YET - LOG EVERYTHING RECEIVED ON THIS SOCKET NAME
+      console.log(
+        `%c!!!! AHME BRIDGE (User: ${game.user?.id}, isGM: ${game.user?.isGM}) - RAW SOCKET DATA RECEIVED !!!! Event: '${data?.ahmeEvent}', Sender: ${data?.senderId}, Payload:`,
+        "background: #222; color: #bada55; font-size: 14px; font-weight: bold;",
+        JSON.parse(JSON.stringify(data?.payload))
+      );
 
+      if (!data || !data.ahmeEvent || !data.payload || !game.user) {
+        console.log(
+          `%cAHME BRIDGE (User: ${game.user?.id}): Socket event ignored (incomplete data or no user). Event:`,
+          "color: gray;",
+          data?.ahmeEvent
+        );
+        return;
+      }
+
+      // Original logic for map refresh
       if (
         data.ahmeEvent === "ahme_force_player_map_refresh" &&
-        !game.user.isGM
+        !game.user.isGM &&
+        data.senderId !== game.user.id
       ) {
+        console.log(
+          `%cAHME BRIDGE (Player - ${game.user?.id}): Processing 'ahme_force_player_map_refresh' from sender ${data.senderId}.`,
+          "color: #4682B4;"
+        );
         Object.values(ui.windows).forEach((appWindow) => {
           if (
             appWindow.id === "hexmap-app" &&
@@ -152,6 +177,57 @@ Hooks.once("ready", () => {
             }
           }
         });
+      }
+
+      // Socket event handler for animation
+      if (data.ahmeEvent === "ahme_sync_travel_animation_socket") {
+        console.log(
+          `%cAHME BRIDGE (User: ${game.user?.id}, isGM: ${game.user?.isGM}): Processing 'ahme_sync_travel_animation_socket' from sender ${data.senderId}. Broadcasting to local iframe(s).`,
+          "color: #9370DB; font-weight: bold;"
+        );
+        // We are now broadcasting regardless of senderId for this test, to see if the player's iframe gets it AT ALL
+        // The iframe itself has logic to only act if !appState.isGM
+        broadcastToAllIframes("ahnSyncTravelAnimation", data.payload);
+      }
+
+      // LISTENER FOR PLAYER REQUESTS TO UPDATE ACTIVITIES
+      if (data.ahmeEvent === "playerRequestsGMToSetPartyActivities") {
+        // This log should appear in the GM's console if the socket message arrives.
+        console.log(
+          `%cAHME BRIDGE (User: ${game.user?.id}, isGM: ${game.user?.isGM}): Received socket event: '${data.ahmeEvent}' from sender ${data.senderId}.`,
+          "color: #FF69B4; font-weight: bold;"
+        );
+
+        if (game.user?.isGM) {
+          // Only GMs should process this request.
+          console.log(
+            `%cAHME BRIDGE (GM - ${game.user.id}): Processing 'playerRequestsGMToSetPartyActivities'. Payload:`,
+            "color: #FF69B4;",
+            JSON.parse(JSON.stringify(data.payload))
+          );
+          if (data.payload) {
+            game.settings
+              .set(MODULE_ID, "partyActivities", data.payload)
+              .then(() => {
+                console.log(
+                  `%cAHME BRIDGE (GM - ${game.user.id}): Party activities updated via player request & saved by GM. The 'onChange' hook for 'partyActivities' will now propagate to all clients.`,
+                  "color: #32CD32; font-weight:bold;"
+                );
+              })
+              .catch((err) => {
+                console.error(
+                  `%cAHME BRIDGE (GM - ${game.user.id}): Error saving party activities from player request:`,
+                  "color: red;",
+                  err
+                );
+              });
+          }
+        } else {
+          console.log(
+            `%cAHME BRIDGE (Player - ${game.user?.id}): Received 'playerRequestsGMToSetPartyActivities' but I am not a GM. Ignoring. Sender: ${data.senderId}`,
+            "color: orange;"
+          );
+        }
       }
     });
   }
@@ -186,38 +262,76 @@ class HexMapApplication extends Application {
       MODULE_ID,
       SETTING_ACTIVE_GM_MAP_ID
     );
+
+
+
+        const hoursToday = game.settings.get(MODULE_ID, SETTING_HEXPLORATION_TIME_ELAPSED_HOURS) || 0;
+    const kmToday = game.settings.get(MODULE_ID, SETTING_HEXPLORATION_KM_TRAVELED_TODAY) || 0;
+    const worldTimeFormatted = game.time && game.time.worldTime ?
+        new Date(game.time.worldTime * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true }) : "N/A";
+    const currentPartyActivities = game.settings.get(MODULE_ID, "partyActivities") || {};
+
     this.initialPayloadForIframe = {
-      mapList: Object.entries(completeModuleData.maps || {}).map(
-        ([id, mapInfo]) => ({ id: id, name: mapInfo.name || "Unnamed Map" })
-      ),
-      activeGmMapId: activeGmMapIdSetting || null,
+        mapList: Object.entries(completeModuleData.maps || {}).map(
+            ([id, mapInfo]) => ({ id: id, name: mapInfo.name || "Unnamed Map" })
+        ),
+        activeGmMapId: activeGmMapIdSetting || null,
+        currentHexplorationStatus: { // Changed from hexplorationData for consistency
+            timeElapsedHoursToday: hoursToday, // Corrected here
+            kmTraveledToday: kmToday,          // Corrected here
+            currentTimeOfDay: worldTimeFormatted,
+        },
+        partyActivitiesData: currentPartyActivities
     };
     return appTemplateData;
-  }
+}
+
 
   activateListeners(html) {
     super.activateListeners(html);
     const iframe = html.find("#hexmap-iframe")[0];
     if (!iframe) {
+      console.error(
+        "AHME BRIDGE: Iframe element not found in HexMapApplication template!"
+      );
       return;
     }
 
     const messageHandler = async (event) => {
-      if (
-        !event.data ||
-        typeof event.data !== "object" ||
-        event.data.moduleId !== MODULE_ID
-      )
-        return;
-      const { type, payload } = event.data;
-      if (type === undefined) {
+      if (!event.data || typeof event.data !== "object") {
+        // console.log("AHME BRIDGE: Ignoring message with no data or not an object.", event.origin);
         return;
       }
+      // Log ALL messages from any iframe for debugging purposes before the moduleId check
+      // console.log(`%cAHME BRIDGE (User: ${game.user?.id}, isGM: ${game.user?.isGM}): Raw message received by bridge listener:`, "color: #ADD8E6;", event.data, "from origin:", event.origin);
+
+      if (event.data.moduleId !== MODULE_ID) {
+        // console.log("AHME BRIDGE: Ignoring message not for this module ID. Received:", event.data.moduleId, "Expected:", MODULE_ID);
+        return;
+      }
+
+      const { type, payload } = event.data;
+      if (type === undefined) {
+        console.warn(
+          "AHME BRIDGE: Received message with undefined type from iframe.",
+          payload
+        );
+        return;
+      }
+      console.log(
+        `%cAHME BRIDGE (User: ${game.user?.id}, isGM: ${game.user?.isGM}): Processing message of type '${type}' from iframe. Payload:`,
+        "color: #90EE90;",
+        payload
+      );
 
       let moduleData;
       switch (type) {
         case "jsAppReady":
           if (iframe.contentWindow && this.initialPayloadForIframe) {
+            console.log(
+              `%cAHME BRIDGE (User: ${game.user?.id}): iframe jsAppReady. Sending initialData.`,
+              "color: #FFD700;"
+            );
             iframe.contentWindow.postMessage(
               {
                 type: "initialData",
@@ -228,112 +342,184 @@ class HexMapApplication extends Application {
             );
           }
           break;
-// foundry-bridge.js
-case "requestFilePickForMarker":
-    if (!game.user?.isGM) { ui.notifications.warn("Only GMs can pick files."); return; }
-    
-    // Store a reference to the FilePicker instance to access its properties in the callback
-    let fpInstance = null; 
+   case "ahnTriggerNewDayProcedure":
+    if (!game.user?.isGM) return;
+    console.log("AHME_BRIDGE: Received ahnTriggerNewDayProcedure from iframe.");
+    const pf2eSystemActive = game.system?.id === "pf2e" && game.pf2e?.actions?.restForTheNight;
+    let timeAdvancedByPF2eRest = false;
 
-    fpInstance = new FilePicker({
-        type: "imagevideo",
-        current: payload.current || "",
-        callback: (pathFromPicker) => {
-            console.log("AHME_BRIDGE: FilePicker returned raw path:", pathFromPicker);
+    if (pf2eSystemActive) {
+        try {
+            let actorsToRest = [];
+            if (canvas.scene) {
+                actorsToRest = canvas.scene.tokens
+                    .filter(token => token.actor && token.actor.type === "character" && token.actor.hasPlayerOwner)
+                    .map(token => token.actor);
+            }
+            if (actorsToRest.length === 0) {
+                actorsToRest = game.actors.filter(actor => actor.type === "character" && actor.hasPlayerOwner);
+            }
+            const uniqueActorsToRest = [...new Set(actorsToRest)].filter(a => a.canUserModify(game.user, "update"));
 
-            let finalPath = pathFromPicker;
+            if (uniqueActorsToRest.length > 0) {
+                console.log("AHME_BRIDGE: Attempting PF2e Rest for the Night with actors:", uniqueActorsToRest.map(a => a.name));
+                
+                // The `restForTheNight` action in PF2e itself handles the 8-hour time advancement.
+                // We don't need to manually advance time here if this is successful.
+                await game.pf2e.actions.restForTheNight({ actors: uniqueActorsToRest });
+                timeAdvancedByPF2eRest = true; // Mark that PF2e handled the time
+                ui.notifications.info("AHME: PF2e Rest for the Night successfully triggered for party members. Time advanced by PF2e system.");
 
-            // Check if the path is already absolute or a full URL
-            if (!pathFromPicker.startsWith('/') && !pathFromPicker.startsWith('http://') && !pathFromPicker.startsWith('https://')) {
-                // If not, it's likely relative to the FilePicker's target.
-                // We need to construct the full path.
-                const currentTarget = fpInstance?.target?.value || ""; // Path within the activeSource
-                const activeSource = fpInstance?.activeSource || "data"; // Default to "data" if somehow missing
+            } else {
+                ui.notifications.warn("AHME: PF2e Rest - No player-owned character actors found to rest. Falling back to manual 8-hour time advance.");
+                // Fallback: If no actors, manually advance 8 hours
+                await game.time.advance(8 * 60 * 60); // 8 hours in seconds
+                ChatMessage.create({
+                    speaker: ChatMessage.getSpeaker({ alias: "System" }),
+                    content: "Time advanced by 8 hours as no specific characters were rested via PF2e system.",
+                });
+            }
+        } catch (e) {
+            console.error("AHME_BRIDGE: Error triggering PF2e rest:", e);
+            ui.notifications.error("AHME: An error occurred during PF2e rest. Falling back to manual 8-hour time advance.");
+            // Fallback: If error during PF2e rest, manually advance 8 hours
+            await game.time.advance(8 * 60 * 60); // 8 hours in seconds
+             ChatMessage.create({
+                speaker: ChatMessage.getSpeaker({ alias: "System" }),
+                content: "Error during PF2e rest. Time advanced by 8 hours as a fallback.",
+            });
+        }
+    } else {
+        // Generic Foundry or other system: Manually advance 8 hours
+        console.log("AHME_BRIDGE: PF2e system not active or rest action not found. Manually advancing time by 8 hours.");
+        if (game.time && game.time.advance) {
+            await game.time.advance(8 * 60 * 60); // 8 hours in seconds
+            ChatMessage.create({
+                speaker: ChatMessage.getSpeaker({ alias: "System" }),
+                content: "Time advanced by 8 hours for a new day.",
+            });
+        } else {
+            ui.notifications.warn("AHME: Game time system not available to advance time.");
+        }
+    }
 
+    // This part runs regardless of how time was advanced (PF2e or manual)
+    // Reset Hexploration daily counters
+    await game.settings.set(MODULE_ID, SETTING_HEXPLORATION_KM_TRAVELED_TODAY, 0);
+    await game.settings.set(MODULE_ID, SETTING_HEXPLORATION_TIME_ELAPSED_HOURS, 0);
+
+    // Get the new world time to send to iframes
+    const worldTimeFormatted = (game.time && typeof game.time.worldTime === 'number') ?
+        new Date(game.time.worldTime * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
+        : "N/A";
+
+    // Broadcast updated Hexploration data to all iframes
+    // The onChange hooks for the settings will also fire, but this ensures
+    // the very latest currentTimeOfDay is bundled with the reset counters.
+    // Broadcast updated Hexploration data to all iframes
+    broadcastToAllIframes("hexplorationDataUpdated", {
+        timeElapsedHoursToday: 0,
+        kmTraveledToday: 0,
+        currentTimeOfDay: worldTimeFormatted,
+        forceCenterOnPartyMarker: true // 
+    });
+
+    ChatMessage.create({
+        speaker: ChatMessage.getSpeaker({ alias: "Hexploration" }),
+        content: `Hexploration: A new day dawns. Current time is now ${worldTimeFormatted}.`,
+    });
+    break;
+
+        case "requestFilePickForMarker":
+          if (!game.user?.isGM) {
+            ui.notifications.warn("Only GMs can pick files.");
+            return;
+          }
+
+          let fpInstance = null;
+          fpInstance = new FilePicker({
+            type: "imagevideo",
+            current: payload.current || "",
+            callback: (pathFromPicker) => {
+              console.log(
+                "AHME_BRIDGE: FilePicker returned raw path:",
+                pathFromPicker
+              );
+              let finalPath = pathFromPicker;
+              if (
+                !pathFromPicker.startsWith("/") &&
+                !pathFromPicker.startsWith("http://") &&
+                !pathFromPicker.startsWith("https://")
+              ) {
+                const currentTarget = fpInstance?.target?.value || "";
+                const activeSource = fpInstance?.activeSource || "data";
                 let basePath = "";
                 if (activeSource === "data") {
-                    basePath = "/"; // Paths from "data" source are usually root relative already if they include folders
-                                  // e.g. worlds/myworld/image.png (FilePicker should return this)
-                                  // However, if currentTarget is something like "my_folder_at_data_root"
-                                  // and pathFromPicker is "image.png", we need to combine.
-                } else if (activeSource === "s3" && fpInstance?.sources?.s3?.[currentTarget]?.bucket) {
-                    // For S3, the pathFromPicker might already be the full key, or relative.
-                    // This can get complex depending on S3 setup.
-                    // For now, assume pathFromPicker from S3 might be okay, or needs specific handling
-                    // if it's just a filename. A robust S3 solution might require more context.
-                    // Let's assume for now if it's S3 and not absolute, it's relative to the bucket's displayPath
-                    // This is a simplification; S3 paths can be tricky.
-                    const s3BucketData = fpInstance.sources.s3[currentTarget];
-                    if (s3BucketData && s3BucketData.displayPath) {
-                        basePath = s3BucketData.displayPath.endsWith('/') ? s3BucketData.displayPath : s3BucketData.displayPath + '/';
-                    }
-                    // Or, if FilePicker for S3 returns full URLs, that's better.
+                  basePath = "/";
+                } else if (
+                  activeSource === "s3" &&
+                  fpInstance?.sources?.s3?.[currentTarget]?.bucket
+                ) {
+                  const s3BucketData = fpInstance.sources.s3[currentTarget];
+                  if (s3BucketData && s3BucketData.displayPath) {
+                    basePath = s3BucketData.displayPath.endsWith("/")
+                      ? s3BucketData.displayPath
+                      : s3BucketData.displayPath + "/";
+                  }
                 }
-                
-                // Construct the path carefully
-                // If currentTarget already contains the filename (FilePicker sometimes does this if `current` was a full path)
-                // and pathFromPicker is just the filename again, we don't want to double it.
                 if (currentTarget.endsWith(pathFromPicker)) {
-                    finalPath = currentTarget;
+                  finalPath = currentTarget;
                 } else {
-                    // Ensure no double slashes if currentTarget ends with / and pathFromPicker starts with / (unlikely here)
-                    let combinedPath = (currentTarget.endsWith('/') ? currentTarget : currentTarget + '/') + pathFromPicker;
-                    // Remove double slashes that might have formed
-                    combinedPath = combinedPath.replace(/\/\//g, '/');
-                    finalPath = combinedPath;
+                  let combinedPath =
+                    (currentTarget.endsWith("/")
+                      ? currentTarget
+                      : currentTarget + "/") + pathFromPicker;
+                  combinedPath = combinedPath.replace(/\/\//g, "/");
+                  finalPath = combinedPath;
                 }
-
-
-                // If the activeSource is 'data', the path should ideally be relative from the true root.
-                // e.g., if currentTarget was "worlds/my-world/assets" and pathFromPicker was "token.png",
-                // finalPath should become "/worlds/my-world/assets/token.png".
-                // The FilePicker.target.value usually includes the source prefix if it's not "data", like "modules/my-module/img".
-                // If activeSource is 'data', fpInstance.target.value is often like "worlds/..."
-                if (activeSource === "data" && !finalPath.startsWith('/')) {
-                     finalPath = "/" + finalPath;
+                if (activeSource === "data" && !finalPath.startsWith("/")) {
+                  finalPath = "/" + finalPath;
                 }
-
-                // If for some reason the above results in something like "//worlds/..."
-                finalPath = finalPath.replace(/^\/\//, '/');
-
-
-                console.log(`AHME_BRIDGE: ActiveSource: ${activeSource}, CurrentTarget: ${currentTarget}, BasePath constructed: ${basePath}`);
+                finalPath = finalPath.replace(/^\/\//, "/");
+                console.log(
+                  `AHME_BRIDGE: ActiveSource: ${activeSource}, CurrentTarget: ${currentTarget}, BasePath constructed: ${basePath}`
+                );
                 console.log("AHME_BRIDGE: Constructed finalPath:", finalPath);
-            }
-
-
-            if (iframe.contentWindow) {
-                iframe.contentWindow.postMessage({
+              }
+              if (iframe.contentWindow) {
+                iframe.contentWindow.postMessage(
+                  {
                     type: "partyMarkerImageSelected",
                     payload: { path: finalPath },
-                    moduleId: MODULE_ID
-                }, "*");
-            }
-        },
-        buttons: [{
-            label: "Clear & Use Default",
-            class: "clear-file",
-            icon: "fas fa-times-circle",
-            action: function(fp) { // fpInstance is the same as fp here
-                if (iframe.contentWindow) {
-                    iframe.contentWindow.postMessage({
+                    moduleId: MODULE_ID,
+                  },
+                  "*"
+                );
+              }
+            },
+            buttons: [
+              {
+                label: "Clear & Use Default",
+                class: "clear-file",
+                icon: "fas fa-times-circle",
+                action: function (fp) {
+                  if (iframe.contentWindow) {
+                    iframe.contentWindow.postMessage(
+                      {
                         type: "partyMarkerImageSelected",
                         payload: { path: null },
-                        moduleId: MODULE_ID
-                    }, "*");
-                }
-                fp.close();
-            }
-        }]
-    });
-    // Store the instance so the callback can access its properties
-    // This is a bit of a workaround for not having `this` directly in the callback
-    // if the callback is an arrow function.
-    // However, `fpInstance` assigned outside and then used by the callback should work.
-    // The `fp` argument to the button action is also the FilePicker instance.
-    
-    fpInstance.browse(payload.current || ""); // Open the FilePicker
-    break;
+                        moduleId: MODULE_ID,
+                      },
+                      "*"
+                    );
+                  }
+                  fp.close();
+                },
+              },
+            ],
+          });
+          fpInstance.browse(payload.current || "");
+          break;
         case "requestMapLoad":
           if (!payload || !payload.mapId) {
             if (iframe.contentWindow)
@@ -368,24 +554,39 @@ case "requestFilePickForMarker":
                 mapToLoad.mapSettings.zoomLevel ||
                 DEFAULT_MAP_SETTINGS.zoomLevel;
             }
-            iframe.contentWindow.postMessage(
-              {
-                type: "mapDataLoaded",
-                payload: {
-                  mapId: payload.mapId,
-                  name: mapToLoad.name,
-                  gridSettings: mapToLoad.gridSettings,
-                  hexes: mapToLoad.hexes,
-                  exploration: mapToLoad.exploration,
-                  partyMarkerPosition: mapToLoad.partyMarkerPosition,
-                  eventLog: mapToLoad.eventLog,
-                  mapSettings: mapToLoad.mapSettings,
+    const hoursToday = game.settings.get(MODULE_ID, SETTING_HEXPLORATION_TIME_ELAPSED_HOURS) || 0;
+    const kmToday = game.settings.get(MODULE_ID, SETTING_HEXPLORATION_KM_TRAVELED_TODAY) || 0;
+    const worldTimeFormatted = game.time && game.time.worldTime ? 
+        new Date(game.time.worldTime * 1000).toLocaleTimeString([], { /* options */ }) : "N/A";
+    const currentPartyActivities = game.settings.get(MODULE_ID, "partyActivities") || {};
+
+    iframe.contentWindow.postMessage(
+        {
+            type: "mapDataLoaded",
+            payload: {
+                // ... existing map specific data (mapId, name, gridSettings, hexes, exploration, etc.)
+                mapId: payload.mapId,
+                name: mapToLoad.name,
+                gridSettings: mapToLoad.gridSettings,
+                hexes: mapToLoad.hexes,
+                exploration: mapToLoad.exploration,
+                partyMarkerPosition: mapToLoad.partyMarkerPosition,
+                eventLog: mapToLoad.eventLog,
+                mapSettings: mapToLoad.mapSettings,
+                
+                // Add current world-level data
+                currentHexplorationStatus: {
+                    timeElapsedHoursToday: hoursToday,
+                    kmTraveledToday: kmToday,
+                    currentTimeOfDay: worldTimeFormatted,
                 },
-                moduleId: MODULE_ID,
-              },
-              "*"
-            );
-          } else {
+                partyActivitiesData: currentPartyActivities, // Ensure this is always sent
+            },
+            moduleId: MODULE_ID,
+        },
+        "*"
+    );
+} else {
             if (iframe.contentWindow)
               iframe.contentWindow.postMessage(
                 {
@@ -435,7 +636,10 @@ case "requestFilePickForMarker":
             typeof payload.mapSettings.hexSizeUnit !== "string" ||
             typeof payload.mapSettings.hexTraversalTimeValue !== "number" ||
             typeof payload.mapSettings.hexTraversalTimeUnit !== "string" ||
-            typeof payload.mapSettings.zoomLevel !== 'number' || typeof payload.mapSettings.partyMarkerImagePath !== 'string' && payload.mapSettings.partyMarkerImagePath !== null){
+            typeof payload.mapSettings.zoomLevel !== "number" ||
+            (typeof payload.mapSettings.partyMarkerImagePath !== "string" &&
+              payload.mapSettings.partyMarkerImagePath !== null)
+          ) {
             validationError = "Map settings invalid.";
           }
 
@@ -503,6 +707,10 @@ case "requestFilePickForMarker":
             if (currentActiveGmMapId === mapIdToSave) {
               if (game.user.isGM && game.socket) {
                 try {
+                  console.log(
+                    `%cAHME BRIDGE (GM - ${game.user?.id}): Emitting ahme_force_player_map_refresh for map ${mapIdToSave}`,
+                    "color: #4682B4;"
+                  );
                   game.socket.emit(AHME_SOCKET_NAME, {
                     ahmeEvent: "ahme_force_player_map_refresh",
                     payload: { mapId: mapIdToSave },
@@ -517,6 +725,8 @@ case "requestFilePickForMarker":
               }
 
               if (!activeMapIdSettingChangedByThisSaveAction) {
+                // This forces a setting change event even if the value is the same,
+                // triggering onChange handlers that broadcast to iframes.
                 await game.settings.set(
                   MODULE_ID,
                   SETTING_ACTIVE_GM_MAP_ID,
@@ -539,6 +749,7 @@ case "requestFilePickForMarker":
                   moduleData.maps[mapIdToSave].exploration.discoveredHexIds,
                 eventLog: moduleData.maps[mapIdToSave].eventLog,
               };
+              // console.log(`%cAHME BRIDGE (GM - ${game.user?.id}): Posting partyDataUpdated to own iframe for map ${mapIdToSave}`, "color: #4682B4;");
               iframe.contentWindow.postMessage(
                 {
                   type: "partyDataUpdated",
@@ -547,6 +758,8 @@ case "requestFilePickForMarker":
                 },
                 "*"
               );
+              // Send mapListUpdated only if the active map wasn't just changed by this save
+              // to avoid redundant updates if the onChange hook for SETTING_ACTIVE_GM_MAP_ID handles it.
               if (!activeMapIdSettingChangedByThisSaveAction) {
                 const mapListForThisGM = Object.entries(moduleData.maps).map(
                   ([id_entry, mapInfo]) => ({
@@ -554,13 +767,14 @@ case "requestFilePickForMarker":
                     name: mapInfo.name,
                   })
                 );
+                // console.log(`%cAHME BRIDGE (GM - ${game.user?.id}): Posting mapListUpdated to own iframe. SavedMapId: ${mapIdToSave}`, "color: #4682B4;");
                 iframe.contentWindow.postMessage(
                   {
                     type: "mapListUpdated",
                     payload: {
                       mapList: mapListForThisGM,
-                      savedMapId: mapIdToSave,
-                      newActiveGmMapId: currentActiveGmMapId,
+                      savedMapId: mapIdToSave, // Inform iframe which map was just saved
+                      newActiveGmMapId: currentActiveGmMapId, // Send current active map ID
                     },
                     moduleId: MODULE_ID,
                   },
@@ -605,14 +819,16 @@ case "requestFilePickForMarker":
                   MODULE_ID,
                   SETTING_ACTIVE_GM_MAP_ID,
                   null
-                );
+                ); // This will trigger its own onChange and broadcast.
               } else {
+                // If the deleted map wasn't active, just update lists.
                 const mapListUpdatePayload = {
                   mapList: Object.entries(moduleData.maps).map(
                     ([id, mapInfo]) => ({ id, name: mapInfo.name })
                   ),
                   deletedMapId: mapIdToDelete,
                   newActiveGmMapId: game.settings.get(
+                    // send current active map
                     MODULE_ID,
                     SETTING_ACTIVE_GM_MAP_ID
                   ),
@@ -766,13 +982,13 @@ case "requestFilePickForMarker":
               : null;
           if (
             game.settings.get(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID) !==
-            newActiveMapIdFromIframe
+            newActiveMapIdFromIframe // Only update if it's different
           ) {
             await game.settings.set(
               MODULE_ID,
               SETTING_ACTIVE_GM_MAP_ID,
               newActiveMapIdFromIframe
-            );
+            ); // This will trigger its own onChange and broadcast
           }
           break;
 
@@ -831,6 +1047,9 @@ case "requestFilePickForMarker":
               { char: "⛰️", name: "Mountain" },
               { char: "💧", name: "Water Drop" },
               { char: "🔥", name: "Fire" },
+              { char: "⚠️", name: "Encounter" },
+              { char: "❔", name: "Question" },
+              { char: "❗", name: "Exclamation" },
             ];
             dialogFieldsArray.push({
               name: "featureIcon",
@@ -970,8 +1189,7 @@ case "requestFilePickForMarker":
             { width: featureDialogDisplayPayload.dialogWidth }
           ).render(true);
           break;
-
-        case "gmRequestNewHexplorationDay":
+        case "gmRequestNewHexplorationDay": // This might now be redundant if ahnTriggerNewDayProcedure is used
           if (!game.user?.isGM) return;
           await game.settings.set(
             MODULE_ID,
@@ -983,145 +1201,26 @@ case "requestFilePickForMarker":
             SETTING_HEXPLORATION_KM_TRAVELED_TODAY,
             0
           );
+          // The onChange handlers for these settings will broadcast "hexplorationDataUpdated"
+          // Make sure those onChange handlers include currentTimeOfDay.
+          // Adding an explicit broadcast of time of day after reset
+          const worldTimeFormattedOnReset = new Date(
+            game.time.worldTime * 1000
+          ).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          });
           broadcastToAllIframes("hexplorationDataUpdated", {
             timeElapsedHoursToday: 0,
             kmTraveledToday: 0,
+            currentTimeOfDay: worldTimeFormattedOnReset,
+                    forceCenterOnPartyMarker: true // 
+ // Send current time of day too
           });
           ChatMessage.create({
             speaker: ChatMessage.getSpeaker({ alias: "Hexploration" }),
-            content: "A new day of hexploration begins!",
-          });
-          break;
-
-        case "gmPerformedHexplorationAction":
-          if (!game.user?.isGM) return;
-          if (
-            !payload ||
-            typeof payload.kmCost !== "number" ||
-            typeof payload.hoursCost !== "number" ||
-            !payload.logEntry
-          )
-            return;
-
-          const currentKm =
-            game.settings.get(
-              MODULE_ID,
-              SETTING_HEXPLORATION_KM_TRAVELED_TODAY
-            ) || 0;
-          const currentHours =
-            game.settings.get(
-              MODULE_ID,
-              SETTING_HEXPLORATION_TIME_ELAPSED_HOURS
-            ) || 0;
-
-          const newKmTraveledToday = currentKm + payload.kmCost;
-          const newTimeElapsedToday = currentHours + payload.hoursCost;
-
-          await game.settings.set(
-            MODULE_ID,
-            SETTING_HEXPLORATION_KM_TRAVELED_TODAY,
-            newKmTraveledToday
-          );
-          await game.settings.set(
-            MODULE_ID,
-            SETTING_HEXPLORATION_TIME_ELAPSED_HOURS,
-            newTimeElapsedToday
-          );
-
-          const secondsToAdvance = Math.round(payload.hoursCost * 3600);
-          if (game.time?.advance && secondsToAdvance > 0) {
-            try {
-              await game.time.advance(secondsToAdvance);
-            } catch (e) {
-              console.warn("AHME_BRIDGE: Failed to advance game time.", e);
-            }
-          }
-
-          const log = payload.logEntry;
-          const isExploring = log.type === "exploration_current";
-          let chatMessageContent = `<b>Travel Log:</b> Party ${
-            log.directionText || "moved"
-          } to hex ${log.toHexId} (<i>${
-            log.terrainNameAtDestination || "Unknown Terrain"
-          }</i>).<br>`;
-
-          if (!isExploring)
-            chatMessageContent += `Distance: ${log.distanceValue.toFixed(1)} ${
-              log.distanceUnit || "units"
-            }. `;
-
-          const timeBreakdown = log.timeBreakdown || {};
-          let adjustments = [];
-          if (Math.abs(timeBreakdown.terrainModifier) > 0.01)
-            adjustments.push(
-              `Terrain ${
-                timeBreakdown.terrainModifier > 0 ? "+" : ""
-              }${timeBreakdown.terrainModifier.toFixed(1)}`
-            );
-          if (Math.abs(timeBreakdown.activityModifier) > 0.01)
-            adjustments.push(
-              `Activity ${
-                timeBreakdown.activityModifier > 0 ? "+" : ""
-              }${timeBreakdown.activityModifier.toFixed(1)}`
-            );
-          if (
-            timeBreakdown.weatherModifier &&
-            Math.abs(timeBreakdown.weatherModifier) > 0.01
-          )
-            adjustments.push(
-              `Weather ${
-                timeBreakdown.weatherModifier > 0 ? "+" : ""
-              }${timeBreakdown.weatherModifier.toFixed(1)}`
-            );
-          if (timeBreakdown.elevationPenalty > 0.01)
-            adjustments.push(
-              `Elevation +${timeBreakdown.elevationPenalty.toFixed(1)}`
-            );
-
-          chatMessageContent += `Time: <b>${log.totalTimeValue.toFixed(1)} ${
-            log.timeUnit
-          }</b> (Base: ${timeBreakdown.base.toFixed(1)}${
-            adjustments.length ? "; " + adjustments.join(", ") : ""
-          })<br>`;
-
-          if (log.activitiesActive?.length > 0) {
-            const activityNames = log.activitiesActive
-              .map((a) => a.activityName)
-              .join(", ");
-            chatMessageContent += `<i>Active: ${activityNames}</i><br>`;
-          }
-
-          if (log.encounterOnEnter?.triggered) {
-            let status = log.encounterOnEnter.markedByGM
-              ? `Marked as '${log.encounterOnEnter.featureName}' ${log.encounterOnEnter.featureIcon}.`
-              : `Skipped by GM (${
-                  log.encounterOnEnter.reasonSkipped || "No details"
-                }).`;
-            chatMessageContent += `<i>Encounter entering hex: ${status}</i><br>`;
-          }
-
-          if (log.encountersOnDiscover?.length > 0) {
-            log.encountersOnDiscover.forEach((enc) => {
-              if (enc.triggered) {
-                let status = enc.markedByGM
-                  ? `Marked as '${enc.featureName}' ${enc.featureIcon}.`
-                  : `Skipped by GM (${enc.reasonSkipped || "No details"}).`;
-                chatMessageContent += `<i>Discovery at ${enc.hexId}: ${status}</i><br>`;
-              }
-            });
-          }
-
-          chatMessageContent += `<i>Day totals: ${newTimeElapsedToday.toFixed(
-            1
-          )}h, ${newKmTraveledToday.toFixed(1)}km.</i>`;
-
-          ChatMessage.create({
-            speaker: ChatMessage.getSpeaker({ alias: "Hexploration Log" }),
-            content: chatMessageContent,
-          });
-          broadcastToAllIframes("hexplorationDataUpdated", {
-            timeElapsedHoursToday: newTimeElapsedToday,
-            kmTraveledToday: newKmTraveledToday,
+            content: "Hexploration Day Counters Reset!", // Simpler message if time isn't advanced here
           });
           break;
 
@@ -1146,14 +1245,360 @@ case "requestFilePickForMarker":
             }
           }
           break;
+        case "gmPerformedHexplorationAction":
+          if (!game.user?.isGM) {
+            ui.notifications.warn(
+              "Only GMs can perform hexploration actions that modify game state."
+            );
+            return;
+          }
+          if (
+            !payload ||
+            typeof payload.kmCost !== "number" ||
+            typeof payload.hoursCost !== "number" ||
+            !payload.logEntry
+          ) {
+            console.error(
+              "AHME_BRIDGE: Invalid payload for gmPerformedHexplorationAction.",
+              payload
+            );
+            ui.notifications.error(
+              "AHME: Hexploration action aborted due to invalid data from iframe."
+            );
+            // Optionally send a failure message back to the iframe
+            if (iframe.contentWindow) {
+              iframe.contentWindow.postMessage(
+                {
+                  type: "hexplorationActionFailed",
+                  payload: { error: "Invalid payload received by bridge." },
+                  moduleId: MODULE_ID,
+                },
+                "*"
+              );
+            }
+            return;
+          }
+
+          const currentKmTodaySetting =
+            game.settings.get(
+              MODULE_ID,
+              SETTING_HEXPLORATION_KM_TRAVELED_TODAY
+            ) || 0;
+          const currentHoursTodaySetting =
+            game.settings.get(
+              MODULE_ID,
+              SETTING_HEXPLORATION_TIME_ELAPSED_HOURS
+            ) || 0;
+
+          const newKmTraveledToday = currentKmTodaySetting + payload.kmCost;
+          const newTimeElapsedToday =
+            currentHoursTodaySetting + payload.hoursCost;
+
+          // Update game settings for daily travel
+          await game.settings.set(
+            MODULE_ID,
+            SETTING_HEXPLORATION_KM_TRAVELED_TODAY,
+            newKmTraveledToday
+          );
+          await game.settings.set(
+            MODULE_ID,
+            SETTING_HEXPLORATION_TIME_ELAPSED_HOURS,
+            newTimeElapsedToday
+          );
+          // The onChange handlers for these settings will broadcast "hexplorationDataUpdated"
+          // which now include currentTimeOfDay.
+
+          // Advance game time
+          const secondsToAdvance = Math.round(payload.hoursCost * 3600);
+          if (game.time?.advance && secondsToAdvance > 0) {
+            try {
+              await game.time.advance(secondsToAdvance);
+              console.log(
+                `AHME_BRIDGE: Advanced game time by ${secondsToAdvance} seconds.`
+              );
+            } catch (e) {
+              console.warn("AHME_BRIDGE: Failed to advance game time.", e);
+              ui.notifications.warn(
+                `AHME: Could not advance game time by ${payload.hoursCost} hours.`
+              );
+            }
+          }
+
+          // Prepare and send chat message
+          const log = payload.logEntry;
+          const isExploringCurrent = log.type === "exploration_current";
+          let chatMessageContent = `<b>Travel Log:</b> `;
+
+          if (isExploringCurrent) {
+            chatMessageContent += `Party explored hex <b>${
+              log.toHexId
+            }</b> (<i>${
+              log.terrainNameAtDestination || "Unknown Terrain"
+            }</i>).<br>`;
+          } else {
+            chatMessageContent += `Party ${
+              log.directionText || "moved"
+            } from <b>${log.fromHexId || "N/A"}</b> to <b>${
+              log.toHexId
+            }</b> (<i>${
+              log.terrainNameAtDestination || "Unknown Terrain"
+            }</i>).<br>`;
+            if (
+              typeof log.distanceValue === "number" &&
+              log.distanceValue > 0
+            ) {
+              chatMessageContent += `Distance: ${log.distanceValue.toFixed(
+                1
+              )} ${log.distanceUnit || "units"}. `;
+            }
+          }
+
+          const timeBreakdown = log.timeBreakdown || {};
+          let adjustments = [];
+          if (
+            timeBreakdown.terrainModifier &&
+            Math.abs(timeBreakdown.terrainModifier) > 0.01
+          )
+            adjustments.push(
+              `Terrain ${
+                timeBreakdown.terrainModifier > 0 ? "+" : ""
+              }${timeBreakdown.terrainModifier.toFixed(1)}`
+            );
+          if (
+            timeBreakdown.activityModifier &&
+            Math.abs(timeBreakdown.activityModifier) > 0.01
+          )
+            adjustments.push(
+              `Activity ${
+                timeBreakdown.activityModifier > 0 ? "+" : ""
+              }${timeBreakdown.activityModifier.toFixed(1)}`
+            );
+          if (
+            timeBreakdown.weatherModifier &&
+            Math.abs(timeBreakdown.weatherModifier) > 0.01 &&
+            log.weatherOnHex
+          ) {
+            adjustments.push(
+              `Weather (${log.weatherOnHex.icon || ""}) ${
+                timeBreakdown.weatherModifier > 0 ? "+" : ""
+              }${timeBreakdown.weatherModifier.toFixed(1)}`
+            );
+          }
+          if (
+            timeBreakdown.elevationPenalty &&
+            timeBreakdown.elevationPenalty > 0.01 &&
+            typeof log.elevationChange === "number"
+          ) {
+            adjustments.push(
+              `Elevation (${log.elevationChange > 0 ? "+" : ""}${
+                log.elevationChange
+              }m): +${timeBreakdown.elevationPenalty.toFixed(1)}`
+            );
+          }
+
+          chatMessageContent += `Time: <b>${log.totalTimeValue.toFixed(1)} ${
+            log.timeUnit
+          }</b>`;
+          if (typeof timeBreakdown.base === "number") {
+            chatMessageContent += ` (Base: ${timeBreakdown.base.toFixed(1)}${
+              adjustments.length ? "; " + adjustments.join(", ") : ""
+            })`;
+          }
+          chatMessageContent += `<br>`;
+
+          if (log.activitiesActive?.length > 0) {
+            const activityNames = log.activitiesActive
+              .map((a) => a.activityName || a.id) // Fallback to id if name missing
+              .join(", ");
+            chatMessageContent += `<i>Active Activities: ${activityNames}</i><br>`;
+          }
+
+          if (log.encounterOnEnter?.triggered) {
+            let status = log.encounterOnEnter.markedByGM
+              ? `Marked as '${log.encounterOnEnter.featureName}' ${log.encounterOnEnter.featureIcon}.`
+              : `Skipped by GM (${
+                  log.encounterOnEnter.reasonSkipped || "No details"
+                }).`;
+            chatMessageContent += `<i style="color: orange;">Encounter entering hex: ${status}</i><br>`;
+          }
+
+          if (log.encountersOnDiscover?.length > 0) {
+            log.encountersOnDiscover.forEach((enc) => {
+              if (enc.triggered) {
+                let status = enc.markedByGM
+                  ? `Marked as '${enc.featureName}' ${enc.featureIcon}.`
+                  : `Skipped by GM (${enc.reasonSkipped || "No details"}).`;
+                chatMessageContent += `<i style="color: orange;">Discovery at ${enc.hexId}: ${status}</i><br>`;
+              }
+            });
+          }
+
+          if (
+            log.newlyDiscoveredHexIds &&
+            log.newlyDiscoveredHexIds.length > 0
+          ) {
+            chatMessageContent += `<i>New Hexes Discovered: ${log.newlyDiscoveredHexIds.join(
+              ", "
+            )}</i><br>`;
+          }
+
+          const worldTimeFormattedAfterAction = new Date(
+            game.time.worldTime * 1000
+          ).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          });
+
+          chatMessageContent += `<i>Day totals: ${newTimeElapsedToday.toFixed(
+            1
+          )}h, ${newKmTraveledToday.toFixed(
+            1
+          )}km. Current time: ${worldTimeFormattedAfterAction}.</i>`;
+
+          ChatMessage.create({
+            speaker: ChatMessage.getSpeaker({ alias: "Hexploration Log" }),
+            content: chatMessageContent,
+            // Consider adding whisper: ChatMessage.getWhisperRecipients("GM") if this log is too verbose for players
+          });
+
+          // Broadcast updated hexploration data.
+          // The onChange handlers for the settings should ideally cover this,
+          // but an explicit broadcast ensures the very latest time of day is sent with the new totals.
+          broadcastToAllIframes("hexplorationDataUpdated", {
+            timeElapsedHoursToday: newTimeElapsedToday,
+            kmTraveledToday: newKmTraveledToday,
+            currentTimeOfDay: worldTimeFormattedAfterAction, 
+                    forceCenterOnPartyMarker: true // 
+// Crucial: send updated time
+          });
+          break;
 
         case "gmSyncTravelAnimationToFoundry":
+          console.log(
+            `%cAHME BRIDGE (User: ${game.user?.id}, isGM: ${game.user?.isGM}): Case "gmSyncTravelAnimationToFoundry". Payload:`,
+            "color: #FFA500;",
+            payload
+          );
+
           if (game.user?.isGM && event.data.moduleId === MODULE_ID) {
+            // 1. Update the GM's own iframe(s) immediately via postMessage
+            // This is still useful so the GM's own view is snappy.
+            console.log(
+              `%cAHME BRIDGE (GM - ${game.user?.id}): Calling broadcastToAllIframes locally for ahnSyncTravelAnimation to update GM's own view.`,
+              "color: #FFA500; font-weight: bold;"
+            );
             broadcastToAllIframes("ahnSyncTravelAnimation", payload);
+
+            // 2. Trigger players by setting the 'animationTrigger' world setting.
+            const triggerData = {
+              timestamp: Date.now(),
+              payload: payload,
+            };
+            console.log(
+              `%cAHME BRIDGE (GM - ${game.user?.id}): Setting 'animationTrigger' to trigger other clients. Data:`,
+              "color: #FF69B4; font-weight: bold;",
+              JSON.parse(JSON.stringify(triggerData))
+            );
+            game.settings.set(MODULE_ID, "animationTrigger", triggerData);
+
+            // The custom socket emit for 'ahme_sync_travel_animation_socket' could be removed here.
+          } else if (!game.user?.isGM) {
+            console.warn(
+              `%cAHME BRIDGE (Player - ${game.user?.id}): Received 'gmSyncTravelAnimationToFoundry' but not GM. Ignoring.`,
+              "color: red;"
+            );
+          }
+          break;
+
+        case "ahnGetPartyActivities": // Message from iframe to bridge
+          console.log(
+            `%cAHME BRIDGE (User: ${game.user?.id}, isGM: ${game.user?.isGM}): Case 'ahnGetPartyActivities'.`,
+            "color: #20B2AA;"
+          );
+          if (iframe.contentWindow) {
+            const currentActivities =
+              game.settings.get(MODULE_ID, "partyActivities") || {};
+            console.log(
+              `%cAHME BRIDGE (User: ${game.user?.id}): Sending 'ahnInitialPartyActivities' to requesting iframe. Payload:`,
+              "color: #20B2AA;",
+              JSON.parse(JSON.stringify(currentActivities))
+            );
+            iframe.contentWindow.postMessage(
+              {
+                type: "ahnInitialPartyActivities",
+                payload: currentActivities,
+                moduleId: MODULE_ID,
+              },
+              "*"
+            );
+          }
+          break;
+
+        case "ahnUpdatePartyActivities": // Message from iframe to its bridge (sent by GM or Player iframe)
+          const initiatorUserId = game.user
+            ? game.user.id
+            : "UNKNOWN_IFRAME_USER";
+          const isInitiatorGM = game.user ? game.user.isGM : false;
+          console.log(
+            `%cAHME BRIDGE (User: ${initiatorUserId}, isGM: ${isInitiatorGM}): Case 'ahnUpdatePartyActivities'. Received from local iframe. Payload:`,
+            "color: #FF6347; font-weight: bold;",
+            JSON.parse(JSON.stringify(payload))
+          );
+
+          if (payload) {
+            if (isInitiatorGM) {
+              // GM directly sets the world setting
+              console.log(
+                `%cAHME BRIDGE (GM - ${initiatorUserId}): Is GM. Attempting to save party activities directly to settings. Payload:`,
+                "color: #FF6347;",
+                JSON.parse(JSON.stringify(payload))
+              );
+              game.settings
+                .set(MODULE_ID, "partyActivities", payload)
+                .then(() => {
+                  console.log(
+                    `%cAHME BRIDGE (GM - ${initiatorUserId}): Party activities successfully set by GM. 'onChange' hook will propagate.`,
+                    "color: #32CD32; font-weight: bold;"
+                  );
+                })
+                .catch((err) => {
+                  console.error(
+                    `%cAHME BRIDGE (GM - ${initiatorUserId}): Error setting party activities:`,
+                    "color: red; font-weight: bold;",
+                    err
+                  );
+                });
+            } else {
+              // Player cannot set world setting directly. Emit socket to GMs.
+              if (game.socket) {
+                console.log(
+                  `%cAHME BRIDGE (Player - ${initiatorUserId}): Is Player. Emitting 'playerRequestsGMToSetPartyActivities' to GMs. Payload:`,
+                  "color: #FF8C00; font-weight:bold;",
+                  JSON.parse(JSON.stringify(payload))
+                );
+                game.socket.emit(AHME_SOCKET_NAME, {
+                  ahmeEvent: "playerRequestsGMToSetPartyActivities",
+                  payload: payload,
+                  senderId: initiatorUserId,
+                });
+              } else {
+                console.warn(
+                  `%cAHME BRIDGE (Player - ${initiatorUserId}): game.socket not available. Cannot send activity update request to GM.`,
+                  "color: orange;"
+                );
+              }
+            }
+          } else {
+            console.warn(
+              `%cAHME BRIDGE (User: ${initiatorUserId}): 'ahnUpdatePartyActivities' received with null/undefined payload. Ignoring.`,
+              "color: orange;"
+            );
           }
           break;
 
         default:
+          // console.warn(`AHME BRIDGE: Unhandled message type '${type}' from iframe. Payload:`, payload);
           break;
       }
     };
@@ -1167,6 +1612,102 @@ case "requestFilePickForMarker":
       delete this._messageHandler;
     }
     return super.close(options);
+  }
+}
+
+// New helper function for advancing time
+async function advanceTimeToTargetFoundry(
+  targetHour,
+  targetMinute,
+  iframeToRespond
+) {
+  if (!game.time || !game.time.advance) {
+    ui.notifications.warn(
+      "AHME: Game time system not available to advance time."
+    );
+    if (iframeToRespond)
+      iframeToRespond.postMessage(
+        { type: "timeAdvanceFailed", moduleId: MODULE_ID },
+        "*"
+      );
+    return;
+  }
+  try {
+    const currentWorldTime = game.time.worldTime;
+    const currentDate = new Date(currentWorldTime * 1000);
+
+    let targetDate = new Date(currentDate);
+    targetDate.setHours(targetHour, targetMinute, 0, 0);
+
+    if (targetDate <= currentDate) {
+      targetDate.setDate(targetDate.getDate() + 1);
+    }
+    targetDate.setHours(targetHour, targetMinute, 0, 0);
+
+    const secondsToAdvance = Math.max(
+      0,
+      Math.floor((targetDate.getTime() - currentDate.getTime()) / 1000)
+    );
+
+    if (secondsToAdvance > 0) {
+      await game.time.advance(secondsToAdvance);
+      ui.notifications.info(
+        `Advanced game time to ${targetDate.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        })} for new Hexploration day.`
+      );
+    } else {
+      ui.notifications.info(
+        `Game time is already at or past target for the new Hexploration day.`
+      );
+    }
+
+    // After time advance, always broadcast updated data including the new time of day
+    const worldTimeFormatted = new Date(
+      game.time.worldTime * 1000
+    ).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    // Reset hexploration day counters in settings
+    await game.settings.set(
+      MODULE_ID,
+      SETTING_HEXPLORATION_KM_TRAVELED_TODAY,
+      0
+    );
+    await game.settings.set(
+      MODULE_ID,
+      SETTING_HEXPLORATION_TIME_ELAPSED_HOURS,
+      0
+    );
+    // The onChange handlers for these settings will broadcast. Let's ensure timeOfDay is included.
+    // To be safe, we can also explicitly broadcast here or ensure onChange includes it.
+    // For now, let's rely on the onChange hooks being updated.
+    // If they don't pick up the time of day, an explicit broadcast here is needed.
+    // Let's add an explicit one here to be certain the iframe gets the ToD with the reset counters.
+    broadcastToAllIframes("hexplorationDataUpdated", {
+      timeElapsedHoursToday: 0,
+      kmTraveledToday: 0,
+      currentTimeOfDay: worldTimeFormatted,
+              forceCenterOnPartyMarker: true // 
+
+    });
+    ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ alias: "Hexploration" }),
+      content: "A new day of hexploration begins!",
+    });
+  } catch (e) {
+    console.error("AHME_BRIDGE: Error advancing game time:", e);
+    ui.notifications.error("AHME: Failed to advance game time for new day.");
+    if (iframeToRespond)
+      iframeToRespond.postMessage(
+        { type: "timeAdvanceFailed", moduleId: MODULE_ID },
+        "*"
+      );
   }
 }
 
@@ -1186,6 +1727,32 @@ Hooks.once("init", () => {
     type: String,
     default: "{}",
   });
+
+  game.settings.register(MODULE_ID, "partyActivities", {
+    name: "Hexploration Party Activities",
+    hint: "Stores the current party activities for Hexploration.",
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {},
+    onChange: (newActivities) => {
+      const currentUserId = game.user ? game.user.id : "UNKNOWN_USER";
+      const isCurrentUserGM = game.user ? game.user.isGM : false;
+      console.log(
+        `%cAHME BRIDGE (User: ${currentUserId}, isGM: ${isCurrentUserGM}) - !!! SETTING 'partyActivities' onChange HOOK FIRED !!! New Activities:`,
+        "background: #FFFF00; color: black; font-size: 14px; font-weight: bold;",
+        JSON.parse(JSON.stringify(newActivities))
+      );
+
+      console.log(
+        `%cAHME BRIDGE (User: ${currentUserId}, isGM: ${isCurrentUserGM}) - Broadcasting 'ahnInitialPartyActivities' from 'partyActivities' onChange hook. Payload:`,
+        "color: #20B2AA; font-weight: bold;",
+        JSON.parse(JSON.stringify(newActivities || {}))
+      );
+      broadcastToAllIframes("ahnInitialPartyActivities", newActivities || {});
+    },
+  });
+
   game.settings.register(MODULE_ID, SETTING_ACTIVE_GM_MAP_ID, {
     name: "AHME Active GM Map ID",
     scope: "world",
@@ -1193,25 +1760,93 @@ Hooks.once("init", () => {
     type: String,
     default: null,
     onChange: async (newActiveMapId) => {
+      console.log(
+        `%cAHME BRIDGE Hook SETTING_ACTIVE_GM_MAP_ID onChange. New Active GM Map ID: ${newActiveMapId}`,
+        "color: orange;"
+      );
       broadcastToAllIframes("activeMapChanged", {
         activeGmMapId: newActiveMapId,
       });
+      // Also update the map list for all iframes when the active map changes,
+      // as this is a good point to ensure lists are synchronized.
       const currentModuleData = await getModuleData();
       const mapListPayload = {
         mapList: Object.entries(currentModuleData.maps || {}).map(
           ([id, mapInfo]) => ({ id, name: mapInfo.name })
         ),
-        newActiveGmMapId: newActiveMapId,
+        newActiveGmMapId: newActiveMapId, // ensure this is part of the payload
       };
       broadcastToAllIframes("mapListUpdated", mapListPayload);
     },
   });
+
+  // At the end of Hooks.once("init", () => { ... game.settings.register(...); ... });
+  // ADD THIS NEW SETTING REGISTRATION
+  game.settings.register(MODULE_ID, "animationTrigger", {
+    name: "AHME Animation Trigger",
+    scope: "world", // Must be world to sync
+    config: false, // Not user-configurable
+    type: Object, // Store a small object like { timestamp: Date.now(), payload: ... }
+    default: {},
+    onChange: (data) => {
+      // This onChange hook will fire on ALL clients (GM and Players)
+      console.log(
+        `%cAHME BRIDGE (User: ${game.user?.id}, isGM: ${game.user?.isGM}) - SETTING 'animationTrigger' onChange. Data:`,
+        "background: #FFD700; color: #000; font-weight: bold;",
+        data
+      );
+      if (data && data.payload && data.timestamp) {
+        // Avoid GM reprocessing its own trigger if it also has an iframe open
+        // And ensure players only process it once (though timestamp helps)
+        // The main goal is for PLAYER clients to react to this.
+        // The GM's iframe will be updated directly by its bridge via postMessage anyway.
+
+        // Let's check if this client has already processed this specific trigger
+        // This is a simple way to avoid re-processing if the setting change somehow fires multiple times rapidly
+        if (game.user._ahme_lastAnimationTriggerProcessed !== data.timestamp) {
+          console.log(
+            `%cAHME BRIDGE (User: ${game.user?.id}, isGM: ${game.user?.isGM}) - Processing 'animationTrigger' setting change. Broadcasting 'ahnSyncTravelAnimation' to local iframe(s). Payload:`,
+            "color: #9370DB; font-weight: bold;",
+            data.payload
+          );
+          broadcastToAllIframes("ahnSyncTravelAnimation", data.payload);
+          game.user._ahme_lastAnimationTriggerProcessed = data.timestamp; // Mark as processed
+        } else {
+          console.log(
+            `%cAHME BRIDGE (User: ${game.user?.id}, isGM: ${game.user?.isGM}) - Already processed 'animationTrigger' for timestamp ${data.timestamp}. Ignoring.`,
+            "color: #DAA520;"
+          );
+        }
+      }
+    },
+  });
+
   game.settings.register(MODULE_ID, SETTING_HEXPLORATION_TIME_ELAPSED_HOURS, {
     name: "Hexploration: Hours into Day",
     scope: "world",
     config: false,
     type: Number,
     default: 0,
+    onChange: (value) => {
+      const worldTimeFormatted = new Date(
+        game.time.worldTime * 1000
+      ).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+      broadcastToAllIframes("hexplorationDataUpdated", {
+        timeElapsedHoursToday: value,
+        kmTraveledToday:
+          game.settings.get(
+            MODULE_ID,
+            SETTING_HEXPLORATION_KM_TRAVELED_TODAY
+          ) || 0,
+        currentTimeOfDay: worldTimeFormatted,
+                forceCenterOnPartyMarker: true // 
+
+      });
+    },
   });
   game.settings.register(MODULE_ID, SETTING_HEXPLORATION_KM_TRAVELED_TODAY, {
     name: "Hexploration: Km Traveled Today",
@@ -1219,7 +1854,46 @@ Hooks.once("init", () => {
     config: false,
     type: Number,
     default: 0,
+    onChange: (value) => {
+      const worldTimeFormatted = new Date(
+        game.time.worldTime * 1000
+      ).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+      broadcastToAllIframes("hexplorationDataUpdated", {
+        timeElapsedHoursToday:
+          game.settings.get(
+            MODULE_ID,
+            SETTING_HEXPLORATION_TIME_ELAPSED_HOURS
+          ) || 0,
+        kmTraveledToday: value,
+        currentTimeOfDay: worldTimeFormatted, 
+                forceCenterOnPartyMarker: true // 
+
+      });
+    },
   });
+  game.settings.register(MODULE_ID, "partyActivities", {
+    name: "Hexploration Party Activities",
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {},
+    onChange: (newActivities) => {
+      // This fires on ALL clients after a GM successfully sets it
+      const currentUserId = game.user ? game.user.id : "UNKNOWN_USER";
+      const isCurrentUserGM = game.user ? game.user.isGM : false;
+      console.log(
+        `%cAHME BRIDGE (User: ${currentUserId}, isGM: ${isCurrentUserGM}) - !!! SETTING 'partyActivities' onChange HOOK FIRED !!! New Activities:`,
+        "background: #FFFF00; color: black; font-size: 14px; font-weight: bold;",
+        JSON.parse(JSON.stringify(newActivities))
+      );
+      broadcastToAllIframes("ahnInitialPartyActivities", newActivities || {});
+    },
+  });
+
   game.keybindings.register(MODULE_ID, "toggleHexMap", {
     name: "Toggle Hex Map Editor",
     hint: "Opens/closes editor.",

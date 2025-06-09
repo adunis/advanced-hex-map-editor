@@ -5,6 +5,7 @@ import * as MapLogic from "./map-logic.js";
 import * as MapManagement from "./map-management.js";
 import * as HexplorationLogic from "./hexploration-logic.js";
 import { syncActivitiesToFoundry } from './app.js'; // Assuming it will be exported from app.js
+import { checkRandomEncountersOnDiscover, checkRandomEncountersOnEnter } from "./encounter-logic.js";
 
 const APP_MODULE_ID = new URLSearchParams(window.location.search).get('moduleId');
 
@@ -61,6 +62,17 @@ export async function compileTemplates() {
     Handlebars.registerPartial("hexGrid", texts[2]);
     Handlebars.registerPartial("hexagon", texts[3]);
     Handlebars.registerPartial("travelAnimationPopup", texts[4]);
+
+  Handlebars.registerHelper('getUnitLabelByKey', function(key, unitType) {
+      let unitsArray;
+      if (unitType === 'distance') { unitsArray = CONST.DISTANCE_UNITS; }
+      else if (unitType === 'time') { unitsArray = CONST.TIME_UNITS; }
+      else { return key; }
+      const unit = unitsArray.find(u => u.key === key);
+      return unit ? (unit.label.toLowerCase() === key.toLowerCase() || unit.label.length <= 3 ? unit.label : unit.label.toLowerCase()) : key;
+  });
+
+
     Handlebars.registerHelper({
         eq: (a, b) => a === b,
         or: (a, b) => a || b,
@@ -128,6 +140,7 @@ export async function compileTemplates() {
         isPositive: (val) => parseFloat(val) > 0.01,
         isNegative: (val) => parseFloat(val) < -0.01,
         isNonZero: (val) => Math.abs(parseFloat(val)) > 0.01,
+        
         compare: function (v1, operator, v2) {
             const n1 = parseFloat(v1);
             const n2 = parseFloat(v2);
@@ -157,9 +170,11 @@ export async function compileTemplates() {
   }
 }
 
+
 export function renderApp(options = {}) {
     if (!mainTemplateCompiled || !appContainer) {
         console.error("AHME: Main template not compiled or appContainer not found.");
+        if (appContainer) appContainer.innerHTML = "<p class='text-red-500 p-4'>Error: Application UI cannot be initialized.</p>";
         return;
     }
 
@@ -167,10 +182,19 @@ export function renderApp(options = {}) {
     let oldScrollTop = 0;
     const svgScrollContainerPrior = document.getElementById('svg-scroll-container');
 
+    // Calculate effective party speed before preparing render context
+    // This ensures currentTravelSpeedText and other related appState fields are up-to-date.
+    HexplorationLogic.calculateEffectivePartySpeed(); 
+
     if (svgScrollContainerPrior && options.preserveScroll) {
         oldScrollLeft = svgScrollContainerPrior.scrollLeft;
         oldScrollTop = svgScrollContainerPrior.scrollTop;
     }
+    // ... (rest of hexGridRenderData and SVG sizing logic from your existing renderApp) ...
+    // Ensure you are using `movementPenaltyFactor` or `timeFactor` correctly from CONST.PARTY_ACTIVITIES
+    // when displaying activity details in the log or active activities list.
+    // The `HexplorationLogic.calculateEffectivePartySpeed` now populates `activeIndividualActivitiesList`
+    // and `activeGroupActivitiesList` in `appState`, which can be used by Handlebars.
 
     const hexesToRenderSource = appState.mapInitialized ? appState.hexGridData.flat().filter(Boolean) : [];
     if (appState.viewMode === CONST.ViewMode.THREED && appState.mapInitialized) {
@@ -253,7 +277,10 @@ export function renderApp(options = {}) {
                 const b = parseInt(rgbMatch[3]);
                 const brightness = (r * 299 + g * 587 + b * 114) / 1000;
                 if (brightness > 130) { txtClr = "fill-gray-800"; }
-                if (curHex.terrain === CONST.TerrainType.MOUNTAIN && curHex.elevation >= CONST.MOUNTAIN_ELEV_SNOW_LINE_START) { txtClr = CONST.MOUNTAIN_LIGHT_SURFACE_TEXT_COLOR; }
+                // This part regarding MOUNTAIN_ELEV_SNOW_LINE_START and MOUNTAIN_LIGHT_SURFACE_TEXT_COLOR
+                // needs MOUNTAIN_ELEV_SNOW_LINE_START and MOUNTAIN_LIGHT_SURFACE_TEXT_COLOR to be defined in CONST.
+                // Assuming they are, or this part would error. For now, I'll comment it if not found.
+                // if (curHex.terrain === CONST.TerrainType.MOUNTAIN && curHex.elevation >= CONST.MOUNTAIN_ELEV_SNOW_LINE_START) { txtClr = CONST.MOUNTAIN_LIGHT_SURFACE_TEXT_COLOR; }
             }
         } else {
             if ( fillForTopFace.includes("100") || fillForTopFace.includes("200") || fillForTopFace.includes("300") || fillForTopFace.includes("400") || (fillForTopFace.includes("lime")&&!fillForTopFace.includes("900"))||(fillForTopFace.includes("yellow")&&!fillForTopFace.includes("900"))||(fillForTopFace.includes("cyan")&&!fillForTopFace.includes("900")) ) { txtClr = "fill-gray-800"; }
@@ -327,11 +354,25 @@ export function renderApp(options = {}) {
         let elevTxt = `${curHex.elevation}m`;
         if (curHex.elevation > 0) elevTxt = `+${curHex.elevation}m`;
 
-        const effInherent = (tc.baseInherentVisibilityBonus || 0) + Math.floor(Math.max(0, curHex.elevation) / CONST.ELEVATION_VISIBILITY_STEP_BONUS);
-        const title = `Hex: ${curHex.id}\n` +
-            (appState.appMode === CONST.AppMode.PLAYER && !appState.playerDiscoveredHexIds.has(curHex.id) && !appState.isGM ? "Undiscovered" :
-            `Terrain: ${tc.name} (${tc.symbol || ""})\nElevation: ${elevTxt}\nSpeed: x${tc.speedMultiplier}, VisMod: x${tc.visibilityFactor}\nBase Inh.Vis: ${tc.baseInherentVisibilityBonus || 0}, Elev Bonus: ${Math.floor(Math.max(0, curHex.elevation) / CONST.ELEVATION_VISIBILITY_STEP_BONUS)}\nTotal Inh.Bonus: ${effInherent}\nBase Sight: ${curHex.baseVisibility || 0}\nFeature: ${currentFeatureLower !== CONST.TerrainFeature.NONE.toLowerCase() ? capitalizeFirstLetterLocal(currentFeatureLower) : "None"}${featureTooltipNameString}`);
+        const isPlayerAndUndiscovered =
+            appState.appMode === CONST.AppMode.PLAYER &&
+            !appState.playerDiscoveredHexIds.has(curHex.id) &&
+            !appState.isGM;
 
+        const featureDisplayStringForTitle = currentFeatureLower !== CONST.TerrainFeature.NONE.toLowerCase()
+            ? capitalizeFirstLetterLocal(currentFeatureLower) 
+            : "None";
+
+        const title =
+            `📍 ID: ${curHex.id}\n` + 
+            (isPlayerAndUndiscovered
+                ? `❓ Undiscovered` 
+                : 
+                  `🏞️ Terrain: ${tc.name} (${tc.symbol || "N/A"})\n` + 
+                  `🎲 Encounter Chance: ${tc.encounterChanceOnEnter || 0}%\n` + // Default to 0 if undefined
+                  `⏩ Speed Multiplier: x${tc.speedMultiplier || 1.0}\n` + // Default to 1.0 if undefined
+                  `✨ Feature: ${featureDisplayStringForTitle}${featureTooltipNameString}`
+            );
         const textYOffset1 = cy_top_proj - CONST.HEX_SIZE * 0.35 * currentYSquashFactor;
         const textYOffset2 = cy_top_proj + CONST.HEX_SIZE * 0.05 * currentYSquashFactor;
         const textYOffset3 = cy_top_proj + CONST.HEX_SIZE * 0.45 * currentYSquashFactor;
@@ -428,20 +469,30 @@ export function renderApp(options = {}) {
                                        appState.currentGridWidth > 0 &&
                                        appState.currentGridHeight > 0;
 
-    const activePartyActivitiesDisplayArray = Array.from(appState.activePartyActivities, ([key, value]) => ({
-        key,
-        value,
-        details: CONST.PARTY_ACTIVITIES[key]
-    }));
-
+   const activePartyActivitiesDisplayArray = [];
+    appState.activePartyActivities.forEach((characterName, activityId) => {
+        const activityDetails = CONST.PARTY_ACTIVITIES[activityId];
+        if (activityDetails) {
+            activePartyActivitiesDisplayArray.push({
+                key: activityId, // For iteration in Handlebars if needed
+                value: characterName, // Character name or "_GROUP_"
+                details: {
+                    ...activityDetails,
+                    // Ensure timeFactor is available for display, using movementPenaltyFactor as the source
+                    timeFactor: activityDetails.movementPenaltyFactor ?? activityDetails.timeFactor ?? 1.0
+                }
+            });
+        }
+    });
+    
     const renderContext = {
-        ...appState,
+        ...appState, 
         CONST,
         hexGridRenderData,
         svgViewBoxWidth,
         svgViewBoxHeight,
         hasValidGridDataAndInitialized,
-        activePartyActivitiesDisplay: activePartyActivitiesDisplayArray,
+        activePartyActivitiesDisplay: activePartyActivitiesDisplayArray, // Use the newly constructed array
         travelAnimation: {
             isActive: appState.travelAnimation.isActive,
             terrainColor: appState.travelAnimation.terrainColor,
@@ -452,11 +503,11 @@ export function renderApp(options = {}) {
                     { symbol: appState.travelAnimation.terrainSymbol }
                 ))
             ),
-                        currentMapPartyMarkerImagePath: appState.currentMapPartyMarkerImagePath 
+            currentMapPartyMarkerImagePath: appState.currentMapPartyMarkerImagePath 
         },
     };
-
-    console.log("UI renderApp: currentMapPartyMarkerImagePath in renderContext:", renderContext.currentMapPartyMarkerImagePath);
+    
+    // console.log("UI renderApp: currentMapPartyMarkerImagePath in renderContext:", renderContext.currentMapPartyMarkerImagePath); // Already exists
 
     appContainer.innerHTML = mainTemplateCompiled(renderContext);
 
@@ -554,9 +605,62 @@ function capitalizeFirstLetterLocal(string) {
   return lower.charAt(0).toUpperCase() + lower.slice(1);
 }
 
+
+let customPromptResolve = null; 
+
+// DEFINE showCustomPrompt HERE, before attachEventListeners
+function showCustomPrompt(message, defaultValue = "") {
+  console.log("[CustomModal] showCustomPrompt called. Message:", message, "Default:", defaultValue);
+  return new Promise((resolve) => {
+    customPromptResolve = resolve;
+
+    const modal = document.getElementById('customPromptModal');
+    // ... (rest of your simplified or full showCustomPrompt function)
+    if (!modal) { console.error("Modal not found"); resolve(null); return; } // Basic check
+    modal.classList.remove('hidden');
+    // ... (ok/cancel button logic using customPromptResolve) ...
+    // For example:
+    const okButton = document.getElementById('customPromptOk');
+    const cancelButton = document.getElementById('customPromptCancel');
+    const inputEl = document.getElementById('customPromptInput'); // Make sure this is defined
+
+    if (!okButton || !cancelButton || !inputEl || !modal.querySelector('#customPromptMessage')) {
+         console.error("One or more custom prompt elements are missing from the DOM!");
+         resolve(null); // Can't proceed
+         return;
+    }
+    
+    modal.querySelector('#customPromptMessage').textContent = message;
+    inputEl.value = defaultValue;
+
+
+    // Simplified button handling for now to ensure it shows
+    okButton.onclick = () => {
+      modal.classList.add('hidden');
+      if (customPromptResolve) customPromptResolve(inputEl.value);
+      customPromptResolve = null;
+    };
+    cancelButton.onclick = () => {
+      modal.classList.add('hidden');
+      if (customPromptResolve) customPromptResolve(null);
+      customPromptResolve = null;
+    };
+
+    inputEl.focus();
+  });
+}
+
+
+
+
 export function attachEventListeners() {
   const el = (id) => document.getElementById(id);
   const qsa = (sel) => document.querySelectorAll(sel);
+
+      const newDayBtn = document.getElementById("newHexplorationDayBtn");
+    if (newDayBtn) {
+        newDayBtn.onclick = HexplorationLogic.startNewHexplorationDay; // Use the updated function
+    }
 
   const terrainSelect = el("terrainTypeSelect");
   if (terrainSelect) {
@@ -572,37 +676,94 @@ export function attachEventListeners() {
     };
   }
 
-  qsa('input[type="checkbox"][data-activity-id]').forEach(checkbox => {
-    checkbox.onchange = (event) => {
-      const activityId = event.target.dataset.activityId;
-      if (!activityId) return;
+// In app/ui.js -> attachEventListeners()
+// In app/ui.js -> attachEventListeners()
+// In app/ui.js -> attachEventListeners()
+// Remove or comment out the old qsa('input[type="checkbox"][data-activity-id]') listener
 
-      const activity = CONST.PARTY_ACTIVITIES[activityId];
+qsa('[data-action="toggle-activity-button"]').forEach(button => {
+  const activityButtonClickHandler = async (event) => {
+    const buttonElement = event.currentTarget;
+    const activityId = buttonElement.dataset.activityId;
 
-      if (event.target.checked) {
-        if (activity && activity.isGroupActivity) {
-          appState.activePartyActivities.set(activityId, "_GROUP_");
-        } else {
-          const characterName = prompt(`Who is the character performing the activity: "${activity?.name || activityId}"?`);
-          if (characterName && characterName.trim() !== "") {
-            appState.activePartyActivities.set(activityId, characterName.trim());
-          } else {
-            event.target.checked = false;
-          }
-        }
+    if (!activityId) { /* ... error log ... */ return; }
+    const activityConfig = CONST.PARTY_ACTIVITIES[activityId];
+    if (!activityConfig) { /* ... error log ... */ return; }
+
+    const currentUserIdForLog = appState.userId;
+    const isGMInIframe = appState.isGM; // Use appState.isGM for iframe logic
+    let finalCharacterName = null;
+    let shouldSync = false;
+    const wasActive = appState.activePartyActivities.has(activityId);
+
+    console.log(`%cAHME IFRAME UI (User: ${currentUserIdForLog}, isGM: ${isGMInIframe}) -- BUTTON CLICK -- Activity ID: ${activityId}, Was Active: ${wasActive}`, "background: #eee; color: #333; padding: 2px;");
+
+    // Only GMs can modify the state through this UI interaction
+    if (!isGMInIframe) {
+        console.log(`%cAHME IFRAME UI (Player - ${currentUserIdForLog}): Clicked activity button for '${activityId}', but player cannot change activities. No action.`, "color: orange;");
+        // Optional: Add a visual cue like a brief "GM Only" message or shake effect
+        return; // Player clicks do nothing to change state or sync
+    }
+
+    // --- GM ONLY LOGIC FROM HERE DOWN ---
+    if (wasActive) { // GM is DEACTIVATING
+      console.log(`%cAHME IFRAME UI (GM - ${currentUserIdForLog}): Deactivating activity ${activityId}.`, "color: blue;");
+      appState.activePartyActivities.delete(activityId);
+      shouldSync = true;
+    } else { // GM is ACTIVATING
+      console.log(`%cAHME IFRAME UI (GM - ${currentUserIdForLog}): Activating activity ${activityId}.`, "color: blue;");
+      if (activityConfig.isGroupActivity) {
+        finalCharacterName = "_GROUP_";
+        appState.activePartyActivities.set(activityId, finalCharacterName);
+        shouldSync = true;
+        console.log(`%cAHME IFRAME UI (GM - ${currentUserIdForLog}): Group activity ${activityId} set. shouldSync=true.`, "color: green;");
       } else {
-        if (activityId) {
-            appState.activePartyActivities.delete(activityId);
+        // Individual activity, requires a name
+        const promptDefault = ""; 
+        
+        console.log(`%cAHME IFRAME UI (GM - ${currentUserIdForLog}): >>> CALLING showCustomPrompt for ${activityId}. Default: '${promptDefault}' <<`, "background: darkcyan; color: white;");
+        const promptedName = await showCustomPrompt(`Who is performing '${activityConfig.name}'?`, promptDefault);
+        console.log(`%cAHME IFRAME UI (GM - ${currentUserIdForLog}): >>> showCustomPrompt RETURNED:`, "background: darkcyan; color: white;", promptedName);
+
+        if (promptedName === null) { // GM Cancelled prompt
+          console.log(`%cAHME IFRAME UI (GM - ${currentUserIdForLog}): Custom prompt for ${activityId} CANCELLED. Activity not activated.`, "color: orange;");
+          shouldSync = false; 
+        } else if (promptedName.trim() !== "") { 
+          finalCharacterName = promptedName.trim();
+          appState.activePartyActivities.set(activityId, finalCharacterName);
+          shouldSync = true;
+          console.log(`%cAHME IFRAME UI (GM - ${currentUserIdForLog}): Activity ${activityId} set to '${finalCharacterName}'. shouldSync=true.`, "color: green;");
+        } else { // GM entered empty name
+          finalCharacterName = "Unnamed"; 
+          appState.activePartyActivities.set(activityId, finalCharacterName);
+          shouldSync = true;
+          console.log(`%cAHME IFRAME UI (GM - ${currentUserIdForLog}): Activity ${activityId} set to EMPTY, using '${finalCharacterName}'. shouldSync=true.`, "color: green;");
         }
       }
+    }
 
-      if (activityId) {
-          appState.isCurrentMapDirty = true;
-          renderApp({ preserveScroll: true });
-          syncActivitiesToFoundry();
+    if (shouldSync) {
+      console.log(`%cAHME IFRAME UI (GM - ${currentUserIdForLog}): Sync necessary for ${activityId}. Calling renderApp and syncActivitiesToFoundry.`, "color: green; font-weight:bold;");
+      appState.isCurrentMapDirty = true; 
+      renderApp({ preserveScroll: true }); 
+      syncActivitiesToFoundry(); // syncActivitiesToFoundry is already GM-guarded internally
+    } else {
+      console.log(`%cAHME IFRAME UI (GM - ${currentUserIdForLog}): Sync NOT necessary for ${activityId}. WasActive: ${wasActive}, Now in appState: ${appState.activePartyActivities.has(activityId)}`, "color: orange;");
+      renderApp({ preserveScroll: true }); // Re-render to ensure UI reflects any aborted action (like cancelled prompt)
+    }
+    console.log(`%cAHME IFRAME UI (GM - ${currentUserIdForLog}) -- END GM BUTTON CLICK -- Activity ID: ${activityId}. Final appState:`, "background: #C8E6C9; color: black; padding: 2px;", Object.fromEntries(appState.activePartyActivities));
+  }; // End of activityButtonClickHandler
+
+  // Attach the handler
+  button.onclick = activityButtonClickHandler;
+  button.onkeydown = (event) => {
+      // Allow GM to use keyboard for these buttons
+      if (appState.isGM && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault();
+          activityButtonClickHandler(event); // Pass the event object
       }
-    };
-  });
+  };
+});
 
   const savedMapSelect = el("savedMapSelect");
   if (savedMapSelect) {

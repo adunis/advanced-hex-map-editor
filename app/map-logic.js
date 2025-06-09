@@ -217,62 +217,69 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
         if (!isExploringCurrentHex && targetHex.id === appState.partyMarkerPosition?.id) return;
         
         const previousHex = appState.partyMarkerPosition;
-        let baseTimeForHex = appState.currentMapHexTraversalTimeValue;
         const targetTerrainConfig = CONST.TERRAIN_TYPES_CONFIG[targetHex.terrain] || CONST.TERRAIN_TYPES_CONFIG[CONST.DEFAULT_TERRAIN_TYPE];
 
-        let terrainTimeMultiplier = targetTerrainConfig.speedMultiplier;
-        let activityTimeMultiplier = 1.0;
-        if (appState.activePartyActivities.size > 0) {
-            const currentTerrainType = targetHex.terrain; 
-            appState.activePartyActivities.forEach((characterName, activityId) => {
-                const activityConf = CONST.PARTY_ACTIVITIES[activityId];
-                if (activityConf) {
-                    let factorToUse = activityConf.movementPenaltyFactor;
-                    if (activityConf.terrainModifiers) {
-                        for (const modifier of activityConf.terrainModifiers) {
-                            if (modifier.terrains?.includes(currentTerrainType)) {
-                                factorToUse = modifier.movementPenaltyFactor;
-                                break;
-                            }
-                        }
-                    }
-                    activityTimeMultiplier *= factorToUse;
-                }
-            });
-        }
+        // Ensure activity-based speed factors are current
+        HexplorationLogic.calculateEffectivePartySpeed(); 
+
+        const originalBaseTimePerHex = appState.currentMapHexTraversalTimeValue;
         
+        // Factor from combined individual and group activities
+        const effectiveActivityMultiplier = (appState.calculatedSlowestIndividualTimeFactor * appState.calculatedCombinedGroupTimeFactor) || 1.0;
+
+        // Time considering only base time and activities
+        const timeAfterActivities = originalBaseTimePerHex * effectiveActivityMultiplier;
+        const activityModifierEffect = timeAfterActivities - originalBaseTimePerHex;
+
+        // Now, apply terrain factor to the activity-modified time
+        const terrainTimeMultiplier = targetTerrainConfig.speedMultiplier || 1.0; // speedMultiplier on terrain is a time multiplier
+        const timeAfterTerrain = timeAfterActivities * terrainTimeMultiplier;
+        const terrainModifierEffect = timeAfterTerrain - timeAfterActivities;
+        
+        // Apply weather factor to the terrain-and-activity-modified time
         let weatherTimeMultiplier = 1.0;
         let weatherOnHexDetails = null;
         if (appState.isWeatherEnabled && appState.weatherGrid?.[targetHex.id]) {
             const weatherId = appState.weatherGrid[targetHex.id];
             const weatherCondition = appState.weatherConditions.find(wc => wc.id === weatherId);
-            if (weatherCondition?.effects?.travelSpeed) {
+            // Assuming weather.effects.travelSpeed is a MULTIPLIER on current time
+            // e.g. 0.8 means 20% faster, 1.2 means 20% slower
+            // If it was an absolute penalty, logic would differ.
+            // Let's clarify: If weather.effects.travelSpeed is 0.8, it means speed is 80% of normal.
+            // If it means time is 0.8 of normal (faster), then it's fine.
+            // If it means speed is 0.8 (slower), then timeFactor is 1/0.8 = 1.25
+            // Given PF2e context, weather usually *increases* time.
+            // So if weather.effects.travelSpeed = 0.8 (like for rain), this implies timeFactor of 1 / 0.8 = 1.25
+            // Let's assume CONST.weatherConditions.effects.travelSpeed is a "speed efficiency" (1.0 = normal, 0.5 = half speed)
+            // So, time multiplier is 1 / weather.effects.travelSpeed (if not 0).
+            if (weatherCondition?.effects?.travelSpeed && weatherCondition.effects.travelSpeed !== 0) {
                 weatherOnHexDetails = { id: weatherCondition.id, name: weatherCondition.name, icon: weatherCondition.icon };
-                weatherTimeMultiplier = weatherCondition.effects.travelSpeed;
+                weatherTimeMultiplier = 1 / weatherCondition.effects.travelSpeed;
+            } else if (weatherCondition?.effects?.travelSpeed === 0) { // Impassable due to weather
+                weatherTimeMultiplier = 999; // Effectively impassable
+                 weatherOnHexDetails = { id: weatherCondition.id, name: weatherCondition.name, icon: weatherCondition.icon };
             }
         }
-
-        const timeAfterTerrain = baseTimeForHex * terrainTimeMultiplier;
-        const terrainModifierEffect = timeAfterTerrain - baseTimeForHex;
-        const timeAfterActivities = timeAfterTerrain * activityTimeMultiplier;
-        const activityModifierEffect = timeAfterActivities - timeAfterTerrain;
-        const timeAfterWeather = timeAfterActivities * weatherTimeMultiplier;
-        const weatherModifierEffect = timeAfterWeather - timeAfterActivities;
+        const timeAfterWeather = timeAfterTerrain * weatherTimeMultiplier;
+        const weatherModifierEffect = timeAfterWeather - timeAfterTerrain;
         
+        // Calculate absolute elevation penalty based on original base time
         let elevationChange = 0;
-        let elevationPenalty = 0;
+        let elevationPenaltyAbsolute = 0;
         if (previousHex && !isExploringCurrentHex) {
             elevationChange = targetHex.elevation - previousHex.elevation;
-            elevationPenalty = (Math.abs(elevationChange) / 100) * CONST.ELEVATION_TIME_PENALTY_FACTOR_PER_100M * baseTimeForHex;
+            elevationPenaltyAbsolute = (Math.abs(elevationChange) / 100) * CONST.ELEVATION_TIME_PENALTY_FACTOR_PER_100M * originalBaseTimePerHex;
         }
         
-        const totalCalculatedTime = timeAfterWeather + elevationPenalty;
-        const finalTimeValue = Math.max(0.1, totalCalculatedTime);
+        const totalCalculatedTime = timeAfterWeather + elevationPenaltyAbsolute;
+        const finalTimeValue = Math.max(0.1, totalCalculatedTime); // Ensure minimum time
+
         const timeUnit = appState.currentMapHexTraversalTimeUnit;
-        let scaleFactorToMs = 1000;
+        let scaleFactorToMs = 1000; // Default for 'second'
         if (timeUnit === 'hour') scaleFactorToMs = 60 * 60 * 1000;
         else if (timeUnit === 'minute') scaleFactorToMs = 60 * 1000;
         else if (timeUnit === 'day') scaleFactorToMs = 24 * 60 * 60 * 1000;
+        // Add other units if necessary
 
         const realWorldTravelMs = finalTimeValue * scaleFactorToMs;
         const animationDurationMs = Math.max(500, Math.min(realWorldTravelMs, 5000));
@@ -298,13 +305,27 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
                 directionText: direction,
                 distanceValue: isExploringCurrentHex ? 0 : appState.currentMapHexSizeValue,
                 distanceUnit: appState.currentMapHexSizeUnit,
-                timeBreakdown: { base: baseTimeForHex, terrainModifier: terrainModifierEffect, activityModifier: activityModifierEffect, weatherModifier: weatherModifierEffect, elevationPenalty: elevationPenalty, totalCalculated: totalCalculatedTime },
-                totalTimeValue: finalTimeValue, timeUnit: appState.currentMapHexTraversalTimeUnit,
+                timeBreakdown: { 
+                    base: originalBaseTimePerHex,
+                    activityModifier: activityModifierEffect, 
+                    terrainModifier: terrainModifierEffect, 
+                    weatherModifier: weatherModifierEffect, 
+                    elevationPenalty: elevationPenaltyAbsolute, 
+                    totalCalculated: finalTimeValue // Log the final effective time
+                },
+                totalTimeValue: finalTimeValue, // This is what's actually used for game time advancement
+                timeUnit: appState.currentMapHexTraversalTimeUnit,
                 terrainAtDestination: targetHex.terrain,
                 terrainNameAtDestination: targetTerrainConfig.name,
                 elevationChange: elevationChange,
                 weatherOnHex: weatherOnHexDetails,
-                activitiesActive: Array.from(appState.activePartyActivities, ([id, charName]) => ({ id, characterName: charName, activityName: CONST.PARTY_ACTIVITIES[id]?.name || id })),
+                activitiesActive: Array.from(appState.activePartyActivities, ([id, charName]) => ({ 
+                    id, 
+                    characterName: charName, 
+                    activityName: CONST.PARTY_ACTIVITIES[id]?.name || id,
+                    // Use movementPenaltyFactor as it's the current name in CONST for timeFactor
+                    timeFactor: CONST.PARTY_ACTIVITIES[id]?.movementPenaltyFactor ?? CONST.PARTY_ACTIVITIES[id]?.timeFactor 
+                })),
                 encounterOnEnter: encounterOnEnterDetails,
                 encountersOnDiscover: encounterOnDiscoverDetails,
                 newlyDiscoveredHexIds: Array.from(newlyDiscoveredHexes)
@@ -314,27 +335,43 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
             appState.currentMapEventLog.unshift(travelLogEntry);
             if (appState.currentMapEventLog.length > 100) appState.currentMapEventLog.pop();
     
-            let hoursCost = finalTimeValue * (timeUnit === 'day' ? 24 : timeUnit === 'minute' ? 1/60 : 1);
+            let hoursCost = finalTimeValue * (timeUnit === 'day' ? 24 : (timeUnit === 'minute' ? (1/60) : (timeUnit === 'second' ? (1/3600) : 1)));
             let kmCost = 0;
             if (!isExploringCurrentHex) {
-                kmCost = appState.currentMapHexSizeValue * (appState.currentMapHexSizeUnit === 'mi' ? 1.60934 : appState.currentMapHexSizeUnit === 'm' ? 0.001 : 1);
+                let distMultiplier = 1;
+                if (appState.currentMapHexSizeUnit === 'mi') distMultiplier = 1.60934;
+                else if (appState.currentMapHexSizeUnit === 'm') distMultiplier = 0.001;
+                else if (appState.currentMapHexSizeUnit === 'ft') distMultiplier = 0.0003048;
+                // Add other distance unit conversions if necessary
+                kmCost = appState.currentMapHexSizeValue * distMultiplier;
             }
             
             if (!appState.isStandaloneMode && window.parent && APP_MODULE_ID) {
                 window.parent.postMessage({ type: 'gmPerformedHexplorationAction', payload: { action: `move to ${targetHex.id}`, kmCost, hoursCost, logEntry: travelLogEntry }, moduleId: APP_MODULE_ID }, '*');
+            } else if (appState.isStandaloneMode) { // Update local counters for standalone
+                appState.hexplorationKmTraveledToday += kmCost;
+                appState.hexplorationTimeElapsedHoursToday += hoursCost;
+                // Simulate time of day advancement (very basic)
+                const currentHours = parseInt(appState.currentTimeOfDay.split(':')[0]);
+                const currentMinutes = parseInt(appState.currentTimeOfDay.split(':')[1].substring(0,2));
+                let totalMinutes = currentHours * 60 + currentMinutes + (hoursCost * 60);
+                let newDayHour = Math.floor(totalMinutes / 60) % 24;
+                let newDayMinute = Math.round(totalMinutes % 60);
+                appState.currentTimeOfDay = `${String(newDayHour).padStart(2, '0')}:${String(newDayMinute).padStart(2, '0')} ${newDayHour >= 12 ? 'PM' : 'AM'}`;
+                HexplorationLogic.calculateEffectivePartySpeed(); // Update display text
             }
             
             if (appState.currentMapId) {
-                handleSaveCurrentMap(true);
+                handleSaveCurrentMap(true); // Autosave
             }
     
             if (!(encounterOnEnterDetails.markedByGM || encounterOnDiscoverDetails.some(d => d.markedByGM))) {
-                renderApp();
+                renderApp(); // Render unless an encounter dialog is taking over
             }
         };
 
         if (!isExploringCurrentHex && animationDurationMs > 0) {
-            AnimationLogic.startTravelAnimation(targetHex, animationDurationMs, onTravelComplete); // Use AnimationLogic
+            AnimationLogic.startTravelAnimation(targetHex, animationDurationMs, onTravelComplete);
         } else {
             await onTravelComplete();
         }
