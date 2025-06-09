@@ -6,6 +6,10 @@ import * as MapManagement from "./map-management.js";
 import * as HexplorationLogic from "./hexploration-logic.js";
 import { syncActivitiesToFoundry } from './app.js'; // Assuming it will be exported from app.js
 
+const APP_MODULE_ID = new URLSearchParams(window.location.search).get('moduleId');
+
+
+
 let mainTemplateCompiled;
 const appContainer = document.getElementById("app-container");
 
@@ -447,9 +451,12 @@ export function renderApp(options = {}) {
                 Array(20).fill(null).map(() => (
                     { symbol: appState.travelAnimation.terrainSymbol }
                 ))
-            )
+            ),
+                        currentMapPartyMarkerImagePath: appState.currentMapPartyMarkerImagePath 
         },
     };
+
+    console.log("UI renderApp: currentMapPartyMarkerImagePath in renderContext:", renderContext.currentMapPartyMarkerImagePath);
 
     appContainer.innerHTML = mainTemplateCompiled(renderContext);
 
@@ -606,6 +613,44 @@ export function attachEventListeners() {
       }
     };
   }
+
+
+  const browseMarkerBtn = el("browsePartyMarkerImageButton");
+  if (browseMarkerBtn) {
+      browseMarkerBtn.onclick = () => {
+          if (appState.isGM && !appState.isStandaloneMode) {
+              window.parent.postMessage({
+                  type: 'requestFilePickForMarker', // Unique type
+                  payload: {
+                      current: appState.currentMapPartyMarkerImagePath || ""
+                  },
+                  moduleId: APP_MODULE_ID 
+              }, '*');
+          } else if (appState.isStandaloneMode) { // Fallback for standalone
+              const path = prompt("Enter path/URL to party marker image:", appState.currentMapPartyMarkerImagePath || "icons/svg/mystery-man.svg");
+              if (path !== null) { // Allow empty string to clear, or a new path
+                  appState.currentMapPartyMarkerImagePath = path.trim() === "" ? null : path.trim();
+                  appState.isCurrentMapDirty = true;
+                  renderApp({ preserveScroll: true });
+              }
+          }
+      };
+  }
+
+  const clearMarkerBtn = el("clearPartyMarkerImageButton");
+  if (clearMarkerBtn) {
+      clearMarkerBtn.onclick = () => {
+          if (appState.currentMapPartyMarkerImagePath) {
+              appState.currentMapPartyMarkerImagePath = null;
+              appState.isCurrentMapDirty = true;
+              renderApp({ preserveScroll: true });
+              // If you also want to update the input field directly (though renderApp should handle it)
+              const pathInput = el("partyMarkerImagePathInput");
+              if(pathInput) pathInput.value = "";
+          }
+      };
+  }
+
 
   const openSelectedMapBtn = el("openSelectedMapButton");
   if (openSelectedMapBtn && savedMapSelect) {

@@ -38,6 +38,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(134, 239, 172)', mid: 'rgb(74, 222, 128)', high: 'rgb(34, 197, 94)' },
     elevationThresholds: { mid: 50, high: 150 },
+    encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   TALLGRASS_PRAIRIE: {
     id: 'tallgrass_prairie', name: 'Tallgrass Prairie', symbol: '🌿', color: 'fill-lime-600',
@@ -45,6 +47,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(100, 150, 70)', mid: 'rgb(120, 170, 90)', high: 'rgb(140, 190, 110)' },
     elevationThresholds: { mid: 50, high: 200 },
+    encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   SHORTGRASS_STEPPE: {
     id: 'shortgrass_steppe', name: 'Shortgrass Steppe', symbol: '🐎', color: 'fill-amber-300',
@@ -52,6 +56,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(180, 180, 100)', mid: 'rgb(190, 190, 120)', high: 'rgb(200, 200, 140)' },
     elevationThresholds: { mid: 100, high: 400 },
+    encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   OAK_FOREST: {
     id: 'oak_forest', name: 'Oak Forest', symbol: '🌳', color: 'fill-green-700',
@@ -59,6 +65,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(40, 100, 30)', mid: 'rgb(50, 110, 40)', high: 'rgb(60, 120, 50)' },
     elevationThresholds: { mid: 100, high: 300 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   PINE_FOREST: {
     id: 'pine_forest', name: 'Pine Forest', symbol: '🌲', color: 'fill-emerald-800',
@@ -66,6 +74,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(10, 80, 50)', mid: 'rgb(20, 90, 60)', high: 'rgb(30, 100, 70)' },
     elevationThresholds: { mid: 150, high: 500 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   BIRCH_FOREST: {
     id: 'birch_forest', name: 'Birch Forest', symbol: '🤍', color: 'fill-lime-500',
@@ -73,6 +83,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(120, 160, 90)', mid: 'rgb(130, 170, 100)', high: 'rgb(140, 180, 110)' },
     elevationThresholds: { mid: 100, high: 300 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   GRASSY_HILLS: {
     id: 'grassy_hills', name: 'Grassy Hills', symbol: '⛰️', color: 'fill-amber-600',
@@ -80,6 +92,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(218, 165, 32)', mid: 'rgb(228, 175, 42)', high: 'rgb(238, 185, 52)' },
     elevationThresholds: { mid: 300, high: 600 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   ROCKY_FOOTHILLS: {
     id: 'rocky_foothills', name: 'Rocky Foothills', symbol: '🪨', color: 'fill-stone-700',
@@ -87,6 +101,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(140, 110, 80)', mid: 'rgb(150, 120, 90)', high: 'rgb(160, 130, 100)' },
     elevationThresholds: { mid: 400, high: 800 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   ALPINE_TUNDRA: {
     id: 'alpine_tundra', name: 'Alpine Tundra', symbol: '❄️', color: 'fill-gray-400',
@@ -94,6 +110,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(110, 120, 100)', mid: 'rgb(120, 130, 110)', high: 'rgb(130, 140, 120)' },
     elevationThresholds: { mid: 2000, high: 3000 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   COASTAL_BEACH: {
     id: 'coastal_beach', name: 'Coastal Beach', symbol: '🏖️', color: 'fill-yellow-100',
@@ -101,6 +119,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(255, 245, 190)', mid: 'rgb(255, 250, 200)', high: 'rgb(255, 255, 210)' },
     elevationThresholds: { mid: 1, high: 5 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   FRESHWATER_SWAMP: {
     id: 'freshwater_swamp', name: 'Freshwater Swamp', symbol: '🐊', color: 'fill-teal-700',
@@ -108,6 +128,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(13, 148, 136)', mid: 'rgb(23, 158, 146)', high: 'rgb(33, 168, 156)' },
     elevationThresholds: { mid: -5, high: 10 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   REED_MARSH: {
     id: 'reed_marsh', name: 'Reed Marsh', symbol: '🌾', color: 'fill-teal-500',
@@ -115,6 +137,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(30, 120, 110)', mid: 'rgb(40, 130, 120)', high: 'rgb(50, 140, 130)' },
     elevationThresholds: { mid: -2, high: 5 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   SAND_DUNES_DESERT: {
     id: 'sand_dunes_desert', name: 'Sand Dunes Desert', symbol: '🏜️', color: 'fill-yellow-300',
@@ -122,6 +146,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(250, 204, 21)', mid: 'rgb(255, 214, 31)', high: 'rgb(255, 224, 41)' },
     elevationThresholds: { mid: 200, high: 600 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   ROCKY_INFERTILE_DESERT: {
     id: 'rocky_infertile_desert', name: 'Rocky Infertile Desert', symbol: '🌵', color: 'fill-amber-700',
@@ -129,6 +155,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(200, 160, 80)', mid: 'rgb(210, 170, 90)', high: 'rgb(220, 180, 100)' },
     elevationThresholds: { mid: 300, high: 700 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   ARCTIC_ICE_FLATS: {
     id: 'arctic_ice_flats', name: 'Arctic Ice Flats', symbol: '❄️', color: 'fill-cyan-200',
@@ -136,6 +164,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(207, 250, 254)', mid: 'rgb(217, 252, 255)', high: 'rgb(227, 255, 255)' },
     elevationThresholds: { mid: 0, high: 50 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   SAVANNA_WOODLAND: {
     id: 'savanna_woodland', name: 'Savanna Woodland', symbol: '🌳', color: 'fill-yellow-500',
@@ -143,6 +173,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(160, 190, 70)', mid: 'rgb(170, 200, 80)', high: 'rgb(180, 210, 90)' },
     elevationThresholds: { mid: 100, high: 400 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   RAINFOREST_JUNGLE: {
     id: 'rainforest_jungle', name: 'Rainforest Jungle', symbol: '🌴', color: 'fill-green-900',
@@ -150,6 +182,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: true,
     colors: { low: 'rgb(4, 120, 87)', mid: 'rgb(14, 130, 97)', high: 'rgb(24, 140, 107)' },
     elevationThresholds: { mid: 100, high: 500 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   MANGROVE_COAST: {
     id: 'mangrove_coast', name: 'Mangrove Coast', symbol: '🌿', color: 'fill-emerald-700',
@@ -157,6 +191,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(60, 100, 90)', mid: 'rgb(70, 110, 100)', high: 'rgb(80, 120, 110)' },
     elevationThresholds: { mid: -2, high: 2 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   CLOUD_MIST_FOREST: {
     id: 'cloud_mist_forest', name: 'Cloud Mist Forest', symbol: '☁️', color: 'fill-gray-300',
@@ -164,6 +200,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: true,
     colors: { low: 'rgb(150, 190, 170)', mid: 'rgb(160, 200, 180)', high: 'rgb(170, 210, 190)' },
     elevationThresholds: { mid: 1000, high: 2000 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   GLACIAL_FJORDS: {
     id: 'glacial_fjords', name: 'Glacial Fjords', symbol: '🧊🌊', color: 'fill-blue-600',
@@ -171,6 +209,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: true,
     colors: { low: 'rgb(40, 120, 180)', mid: 'rgb(50, 130, 190)', high: 'rgb(60, 140, 200)' },
     elevationThresholds: { mid: -50, high: 0 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   SALT_FLATS_DRY: {
     id: 'salt_flats_dry', name: 'Dry Salt Flats', symbol: '🧂', color: 'fill-stone-100',
@@ -178,6 +218,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(240, 240, 230)', mid: 'rgb(245, 245, 235)', high: 'rgb(250, 250, 240)' },
     elevationThresholds: { mid: -10, high: 10 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   CRIMSON_CANYON_LANDS: {
     id: 'crimson_canyon_lands', name: 'Crimson Canyon Lands', symbol: '🏜️', color: 'fill-red-800',
@@ -185,6 +227,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: true,
     colors: { low: 'rgb(234, 88, 12)', mid: 'rgb(244, 98, 22)', high: 'rgb(254, 108, 32)' },
     elevationThresholds: { mid: 200, high: 600 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   GEOTHERMAL_SPRINGS: {
     id: 'geothermal_springs', name: 'Geothermal Springs', symbol: '♨️', color: 'fill-orange-600',
@@ -192,6 +236,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(255, 120, 0)', mid: 'rgb(255, 140, 20)', high: 'rgb(255, 160, 40)' },
     elevationThresholds: { mid: 50, high: 150 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   ANCIENT_OVERGROWN_RUINS: {
     id: 'ancient_overgrown_ruins', name: 'Ancient Overgrown Ruins', symbol: '🏛️', color: 'fill-gray-700',
@@ -199,6 +245,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: true,
     colors: { low: 'rgb(130, 120, 110)', mid: 'rgb(140, 130, 120)', high: 'rgb(150, 140, 130)' },
     elevationThresholds: { mid: 100, high: 300 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   METEORITE_IMPACT_CRATER: {
     id: 'meteorite_impact_crater', name: 'Meteorite Impact Crater', symbol: '🌑', color: 'fill-gray-800',
@@ -206,6 +254,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: true,
     colors: { low: 'rgb(70, 60, 50)', mid: 'rgb(80, 70, 60)', high: 'rgb(90, 80, 70)' },
     elevationThresholds: { mid: 0, high: 100 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   SHALLOW_QUICKSAND_PIT: {
     id: 'shallow_quicksand_pit', name: 'Shallow Quicksand Pit', symbol: '⏳', color: 'fill-yellow-700',
@@ -213,6 +263,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(161, 98, 7)', mid: 'rgb(171, 108, 17)', high: 'rgb(181, 118, 27)' },
     elevationThresholds: { mid: -5, high: 0 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   SINKING_TAR_PITS: {
     id: 'sinking_tar_pits', name: 'Sinking Tar Pits', symbol: '🕳️', color: 'fill-neutral-900',
@@ -220,6 +272,8 @@ const TERRAIN_METADATA = {
     isImpassable: true, blocksLineOfSight: false,
     colors: { low: 'rgb(20, 20, 20)', mid: 'rgb(30, 30, 30)', high: 'rgb(40, 40, 40)' },
     elevationThresholds: { mid: -10, high: 0 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   DEEP_MIRE: {
     id: 'deep_mire', name: 'Deep Mire', symbol: '🕳️', color: 'fill-gray-800',
@@ -227,6 +281,8 @@ const TERRAIN_METADATA = {
     isImpassable: true, blocksLineOfSight: false,
     colors: { low: 'rgb(20, 30, 10)', mid: 'rgb(30, 40, 20)', high: 'rgb(40, 50, 30)' },
     elevationThresholds: { mid: -20, high: -5 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   IRONLEAF_FOREST: {
     id: 'ironleaf_forest', name: 'Ironleaf Forest', symbol: '🛡️', color: 'fill-slate-500',
@@ -234,6 +290,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(130, 140, 150)', mid: 'rgb(140, 150, 160)', high: 'rgb(150, 160, 170)' },
     elevationThresholds: { mid: 100, high: 400 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   MOONOAK_FOREST: {
     id: 'moonlit_oak_forest', name: 'Moon-Oak Forest', symbol: '🌕', color: 'fill-indigo-700',
@@ -241,6 +299,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: true,
     colors: { low: 'rgb(80, 100, 140)', mid: 'rgb(90, 110, 150)', high: 'rgb(100, 120, 160)' },
     elevationThresholds: { mid: 100, high: 400 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   PETRIFIED_STONE_FOREST: {
     id: 'petrified_stone_forest', name: 'Petrified Stone Forest', symbol: '🗿', color: 'fill-stone-600',
@@ -248,6 +308,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(110, 100, 90)', mid: 'rgb(120, 110, 100)', high: 'rgb(130, 120, 110)' },
     elevationThresholds: { mid: 50, high: 200 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   BIOLUMINESCENT_GROVE: {
     id: 'bioluminescent_grove', name: 'Bioluminescent Grove', symbol: '✨', color: 'fill-purple-500',
@@ -255,6 +317,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(70, 20, 120)', mid: 'rgb(80, 30, 130)', high: 'rgb(90, 40, 140)' },
     elevationThresholds: { mid: -20, high: 30 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   SNOW_CAPPED_MOUNTAIN: {
     id: 'snow_capped_mountain', name: 'Snow-Capped Mountain', symbol: '🏔️', color: 'fill-blue-100',
@@ -262,6 +326,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: true,
     colors: { low: 'rgb(180, 190, 200)', mid: 'rgb(200, 220, 255)', high: 'rgb(230, 240, 255)' },
     elevationThresholds: { mid: 1500, high: 3000 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   OBSIDIAN_LAVA_FLOW_FIELD: {
     id: 'obsidian_lava_flow_field', name: 'Obsidian Lava Flow Field', symbol: '🌋', color: 'fill-neutral-700',
@@ -269,6 +335,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(40, 40, 50)', mid: 'rgb(50, 50, 60)', high: 'rgb(60, 60, 70)' },
     elevationThresholds: { mid: 100, high: 500 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   COMPACT_EARTH_CAVERN: {
     id: 'compact_earth_cavern', name: 'Compact Earth Cavern', symbol: '🕳️', color: 'fill-gray-600',
@@ -276,6 +344,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(97, 104, 118)', mid: 'rgb(107, 114, 128)', high: 'rgb(117, 124, 138)' },
     elevationThresholds: { mid: -1000, high: -200 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   NATURAL_CAVE_TUNNEL: {
     id: 'natural_cave_tunnel', name: 'Natural Cave Tunnel', symbol: '↦', color: 'fill-gray-800',
@@ -283,6 +353,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: true,
     colors: { low: 'rgb(21, 31, 45)', mid: 'rgb(31, 41, 55)', high: 'rgb(41, 51, 65)' },
     elevationThresholds: { mid: -2000, high: -500 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   SUBTERRANEAN_RIVER_BED: {
     id: 'subterranean_river_bed', name: 'Subterranean River Bed', symbol: '🏞️', color: 'fill-blue-800',
@@ -290,6 +362,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(20, 54, 165)', mid: 'rgb(30, 64, 175)', high: 'rgb(40, 74, 185)' },
     elevationThresholds: { mid: -1500, high: -400 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   LUMINOUS_CRYSTAL_CAVERNS: {
     id: 'luminous_crystal_caverns', name: 'Luminous Crystal Caverns', symbol: '💎', color: 'fill-cyan-400',
@@ -297,6 +371,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(93, 222, 239)', mid: 'rgb(103, 232, 249)', high: 'rgb(113, 242, 255)' },
     elevationThresholds: { mid: -800, high: -300 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   UNDERGROUND_FUNGI_FOREST: {
     id: 'underground_fungi_forest', name: 'Underground Fungi Forest', symbol: '🍄', color: 'fill-purple-600',
@@ -304,6 +380,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(158, 75, 237)', mid: 'rgb(168, 85, 247)', high: 'rgb(178, 95, 255)' },
     elevationThresholds: { mid: -600, high: -150 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   GLOWWORM_LIT_CAVE: {
     id: 'glowworm_lit_cave', name: 'Glowworm-Lit Cave', symbol: '✨', color: 'fill-sky-700',
@@ -311,6 +389,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(70, 90, 110)', mid: 'rgb(80, 100, 120)', high: 'rgb(90, 110, 130)' },
     elevationThresholds: { mid: -1200, high: -300 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   COOLING_MAGMA_TUBE: {
     id: 'cooling_magma_tube', name: 'Cooling Magma Tube', symbol: '🌋', color: 'fill-red-900',
@@ -318,6 +398,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(45, 15, 15)', mid: 'rgb(55, 25, 25)', high: 'rgb(65, 35, 35)' },
     elevationThresholds: { mid: -2500, high: -1000 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   SHEER_GRANITE_WALL: {
     id: 'sheer_granite_wall', name: 'Sheer Granite Wall', symbol: '⛰️', color: 'fill-gray-700',
@@ -325,6 +407,8 @@ const TERRAIN_METADATA = {
     isImpassable: true, blocksLineOfSight: true,
     colors: { dark: 'rgb(100, 90, 80)', light: 'rgb(120, 110, 100)' },
     elevationThresholds: { light: -1000 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   BASALT_COLUMN_BARRIER: {
     id: 'basalt_column_barrier', name: 'Basalt Column Barrier', symbol: '🪨', color: 'fill-slate-900',
@@ -332,6 +416,8 @@ const TERRAIN_METADATA = {
     isImpassable: true, blocksLineOfSight: true,
     colors: { dark: 'rgb(50, 50, 60)', light: 'rgb(70, 70, 80)' },
     elevationThresholds: { light: -1000 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   QUARTZ_CRYSTAL_SPINES: {
     id: 'quartz_crystal_spines', name: 'Quartz Crystal Spines', symbol: '💎', color: 'fill-cyan-500',
@@ -339,6 +425,8 @@ const TERRAIN_METADATA = {
     isImpassable: true, blocksLineOfSight: true,
     colors: { dark: 'rgb(190, 230, 245)', light: 'rgb(210, 250, 255)' },
     elevationThresholds: { light: -1000 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   LIMESTONE_FLOWSTONE_WALL: {
     id: 'limestone_flowstone_wall', name: 'Limestone Flowstone Wall', symbol: '⛰️', color: 'fill-amber-400',
@@ -346,6 +434,8 @@ const TERRAIN_METADATA = {
     isImpassable: true, blocksLineOfSight: true,
     colors: { dark: 'rgb(160, 150, 140)', light: 'rgb(180, 170, 160)' },
     elevationThresholds: { light: -1000 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   SOLID_OBSIDIAN_WALL: {
     id: 'solid_obsidian_wall', name: 'Solid Obsidian Wall', symbol: '🔮', color: 'fill-gray-900',
@@ -353,6 +443,8 @@ const TERRAIN_METADATA = {
     isImpassable: true, blocksLineOfSight: true,
     colors: { dark: 'rgb(0,0,0)', light: 'rgb(10, 5, 15)' },
     elevationThresholds: { light: -1000 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   MARBLE_STRATA_WALL: {
     id: 'marble_strata_wall', name: 'Marble Strata Wall', symbol: '🧱', color: 'fill-gray-200',
@@ -360,6 +452,8 @@ const TERRAIN_METADATA = {
     isImpassable: true, blocksLineOfSight: true,
     colors: { dark: 'rgb(180, 170, 160)', light: 'rgb(200, 190, 180)' },
     elevationThresholds: { light: -1000 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   COMPACTED_CLAY_DEPOSIT: {
     id: 'compacted_clay_deposit', name: 'Compacted Clay Deposit', symbol: '🕳️', color: 'fill-amber-900',
@@ -367,6 +461,8 @@ const TERRAIN_METADATA = {
     isImpassable: true, blocksLineOfSight: true,
     colors: { dark: 'rgb(130, 90, 50)', light: 'rgb(150, 110, 70)' },
     elevationThresholds: { light: -500 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   ADAMANTINE_ORE_VEIN: {
     id: 'adamantine_ore_vein', name: 'Adamantine Ore Vein', symbol: '💎', color: 'fill-slate-800',
@@ -374,6 +470,8 @@ const TERRAIN_METADATA = {
     isImpassable: true, blocksLineOfSight: true,
     colors: { dark: 'rgb(40, 50, 60)', light: 'rgb(60, 70, 80)' },
     elevationThresholds: { light: -2000 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   DEEP_SUBTERRANEAN_CHASM: {
     id: 'deep_subterranean_chasm', name: 'Deep Subterranean Chasm', symbol: '⚫', color: 'fill-black',
@@ -381,6 +479,8 @@ const TERRAIN_METADATA = {
     isImpassable: true, blocksLineOfSight: true,
     colors: { dark: 'rgb(0,0,0)', light: 'rgb(20,20,20)' },
     elevationThresholds: { light: -4000 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   VOLCANIC_LAVA_RIVER: {
     id: 'volcanic_lava_river', name: 'Volcanic Lava River', symbol: '🔥', color: 'fill-red-800',
@@ -388,6 +488,8 @@ const TERRAIN_METADATA = {
     isImpassable: true, blocksLineOfSight: false,
     colors: { cool: 'rgb(200, 50, 0)', hot: 'rgb(255, 150, 50)' },
     elevationThresholds: { hot: -1500 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   COASTAL_SHALLOWS: {
     id: 'coastal_shallows', name: 'Coastal Shallows', symbol: '🌊', color: 'fill-cyan-400',
@@ -395,6 +497,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { deep: 'rgb(46, 179, 238)', mid: 'rgb(56, 189, 248)', shallow: 'rgb(66, 199, 255)' },
     elevationThresholds: { mid: -50, shallow: -10 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   VIBRANT_CORAL_REEF: {
     id: 'vibrant_coral_reef', name: 'Vibrant Coral Reef', symbol: '🐠', color: 'fill-pink-400',
@@ -402,6 +506,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { deep: 'rgb(239, 158, 202)', mid: 'rgb(249, 168, 212)', shallow: 'rgb(255, 178, 222)' },
     elevationThresholds: { mid: -40, shallow: -15 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   DENSE_KELP_FOREST: {
     id: 'dense_kelp_forest', name: 'Dense Kelp Forest', symbol: '🌿', color: 'fill-teal-600',
@@ -409,6 +515,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { deep: 'rgb(5, 108, 100)', mid: 'rgb(15, 118, 110)', shallow: 'rgb(25, 128, 120)' },
     elevationThresholds: { mid: -100, shallow: -30 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   ABYSSAL_OCEAN_FLOOR: {
     id: 'abyssal_ocean_floor', name: 'Abyssal Ocean Floor', symbol: '🌑', color: 'fill-blue-900',
@@ -416,6 +524,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { deep: 'rgb(7, 14, 29)', mid: 'rgb(17, 24, 39)', high: 'rgb(27, 34, 49)' },
     elevationThresholds: { mid: -4000, high: -1000 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   HYDROTHERMAL_VENT_FIELD: {
     id: 'hydrothermal_vent_field', name: 'Hydrothermal Vent Field', symbol: '🫧', color: 'fill-gray-950',
@@ -423,6 +533,8 @@ const TERRAIN_METADATA = {
     isImpassable: true, blocksLineOfSight: false,
     colors: { deep: 'rgb(0,0,10)', mid: 'rgb(5, 5, 20)', high: 'rgb(10, 10, 30)' },
     elevationThresholds: { mid: -5000, high: -2000 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   OCEANIC_TRENCH: {
     id: 'oceanic_trench', name: 'Oceanic Trench', symbol: '↯', color: 'fill-black',
@@ -430,6 +542,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { deepest: 'rgb(0,0,0)', mid: 'rgb(0,0,5)', upper: 'rgb(0,0,10)' },
     elevationThresholds: { mid: -8000, upper: -4000 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   CLEAR_SKY: {
     id: 'clear_sky', name: 'Clear Sky', symbol: '☁️', color: 'fill-sky-300',
@@ -437,6 +551,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(125, 196, 225)', mid: 'rgb(135, 206, 235)', high: 'rgb(145, 216, 245)' },
     elevationThresholds: { mid: 10000, high: 20000 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   TURBULENT_AIR_CURRENTS: {
     id: 'turbulent_air_currents', name: 'Turbulent Air Currents', symbol: '🌬️', color: 'fill-sky-400',
@@ -444,6 +560,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(90, 170, 210)', mid: 'rgb(100, 180, 220)', high: 'rgb(110, 190, 230)' },
     elevationThresholds: { mid: 8000, high: 16000 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   FLOATING_EARTHMOTE_CLUSTER: {
     id: 'floating_earthmote_cluster', name: 'Floating Earthmote Cluster', symbol: '🏝️', color: 'fill-amber-700',
@@ -451,6 +569,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(170, 140, 90)', mid: 'rgb(180, 150, 100)', high: 'rgb(190, 160, 110)' },
     elevationThresholds: { mid: 5000, high: 10000 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   CELESTIAL_SKY_ISLAND: {
     id: 'celestial_sky_island', name: 'Celestial Sky Island', symbol: '🏝️', color: 'fill-yellow-100',
@@ -458,6 +578,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: true,
     colors: { low: 'rgb(244, 239, 185)', mid: 'rgb(254, 249, 195)', high: 'rgb(255, 255, 205)' },
     elevationThresholds: { mid: 15000, high: 25000 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   ETERNAL_BATTLEFIELD_PLAINS: {
     id: 'eternal_battlefield_plains', name: 'Eternal Battlefield Plains', symbol: '⚔️', color: 'fill-slate-600',
@@ -465,6 +587,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(140, 140, 150)', mid: 'rgb(150, 150, 160)', high: 'rgb(160, 160, 170)' },
     elevationThresholds: { mid: 100, high: 400 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   ARCANE_RADIATION_WASTES: {
     id: 'arcane_radiation_wastes', name: 'Arcane Radiation Wastes', symbol: '☢️', color: 'fill-purple-700',
@@ -472,6 +596,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(170, 140, 190)', mid: 'rgb(180, 150, 200)', high: 'rgb(190, 160, 210)' },
     elevationThresholds: { mid: 200, high: 800 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   NON_EUCLIDEAN_RUINS: {
     id: 'non_euclidean_ruins', name: 'Non-Euclidean Ruins', symbol: '🌀', color: 'fill-indigo-800',
@@ -479,6 +605,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: true,
     colors: { low: 'rgb(110, 70, 140)', mid: 'rgb(120, 80, 150)', high: 'rgb(130, 90, 160)' },
     elevationThresholds: { mid: 500, high: 1500 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   FLESHCRAFTING_LABORATORY: {
     id: 'fleshcrafting_laboratory', name: 'Fleshcrafting Laboratory', symbol: '🧬', color: 'fill-red-900',
@@ -486,13 +614,17 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(170, 70, 70)', mid: 'rgb(180, 80, 80)', high: 'rgb(190, 90, 90)' },
     elevationThresholds: { mid: 0, high: 50 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
-  WHITE_ASH_NECROPOLIS: {
-    id: 'white_ash_necropolis', name: 'White Ash Necropolis', symbol: '💀', color: 'fill-gray-300',
+  RUINED_NECROPOLIS: {
+    id: 'ruined_necropolis', name: 'Ruined Necropolis', symbol: '®️', color: 'fill-gray-300',
     speedMultiplier: 1.3, visibilityFactor: 0.9, baseInherentVisibilityBonus: 0, prominence: 10, canopyBlockage: 0,
     isImpassable: false, blocksLineOfSight: false,
-    colors: { low: 'rgb(200, 200, 210)', mid: 'rgb(210, 210, 220)', high: 'rgb(220, 220, 230)' },
+    colors: { low: 'rgb(123, 123, 232)', mid: 'rgb(116, 116, 255)', high: 'rgb(62, 62, 255)' },
     elevationThresholds: { mid: 100, high: 300 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   REALITY_CANCER_FLESHLANDS: {
     id: 'reality_cancer_fleshlands', name: 'Reality-Cancer Fleshlands', symbol: '🦠', color: 'fill-pink-800',
@@ -500,6 +632,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(190, 40, 90)', mid: 'rgb(200, 50, 100)', high: 'rgb(210, 60, 110)' },
     elevationThresholds: { mid: 0, high: 100 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   FEY_EMOTION_LANDSCAPE: {
     id: 'fey_emotion_landscape', name: 'Fey Emotion-Landscape', symbol: '🎭', color: 'fill-fuchsia-400',
@@ -507,6 +641,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(210, 90, 245)', mid: 'rgb(220, 100, 255)', high: 'rgb(230, 110, 255)' },
     elevationThresholds: { mid: 50, high: 250 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   AERIAL_VORTEX: {
     id: 'aerial_vortex', name: 'Aerial Vortex', symbol: '🌀', color: 'fill-purple-900',
@@ -514,6 +650,8 @@ const TERRAIN_METADATA = {
     isImpassable: true, blocksLineOfSight: false,
     colors: { low: 'rgb(20, 0, 40)', mid: 'rgb(30, 0, 50)', high: 'rgb(40, 0, 60)' },
     elevationThresholds: { mid: 10000, high: 20000 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   FLOATING_MOUNTAIN_BARRIER: {
     id: 'floating_mountain_barrier', name: 'Floating Mountain Barrier', symbol: '☁️🏔️', color: 'fill-slate-500',
@@ -521,6 +659,8 @@ const TERRAIN_METADATA = {
     isImpassable: true, blocksLineOfSight: true,
     colors: { low: 'rgb(90, 110, 130)', mid: 'rgb(100, 120, 140)', high: 'rgb(110, 130, 150)' },
     elevationThresholds: { mid: 8000, high: 15000 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   SPECTRAL_RAIN_ZONE: {
     id: 'spectral_rain_zone', name: 'Spectral Rain Zone', symbol: '💧', color: 'fill-slate-400',
@@ -528,6 +668,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(160, 160, 180)', mid: 'rgb(170, 170, 190)', high: 'rgb(180, 180, 200)' },
     elevationThresholds: { mid: 50, high: 200 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   ECHO_STORM_FIELD: {
     id: 'echo_storm_field', name: 'Echo Storm Field', symbol: '🌩️', color: 'fill-indigo-400',
@@ -535,6 +677,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: true,
     colors: { low: 'rgb(120, 120, 140)', mid: 'rgb(130, 130, 150)', high: 'rgb(140, 140, 160)' },
     elevationThresholds: { mid: 100, high: 500 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   ETERNAL_WEEPING_HILLS: {
     id: 'eternal_weeping_hills', name: 'Eternal Weeping Hills', symbol: '😢', color: 'fill-teal-800',
@@ -542,6 +686,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(100, 130, 120)', mid: 'rgb(110, 140, 130)', high: 'rgb(120, 150, 140)' },
     elevationThresholds: { mid: 200, high: 500 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   VOID_QUARTZ_VEINS: {
     id: 'void_quartz_veins', name: 'Void Quartz Veins', symbol: '🔮', color: 'fill-purple-900',
@@ -549,6 +695,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(10, 0, 20)', mid: 'rgb(20, 5, 30)', high: 'rgb(30, 10, 40)' },
     elevationThresholds: { mid: 0, high: 200 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   FLOATING_RUIN_FIELD: {
     id: 'floating_ruin_field', name: 'Floating Ruin Field', symbol: '🏛️', color: 'fill-gray-600',
@@ -556,6 +704,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(110, 110, 120)', mid: 'rgb(120, 120, 130)', high: 'rgb(130, 130, 140)' },
     elevationThresholds: { mid: 4000, high: 8000 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   UNSTABLE_LEY_LINE_CONFLUX: {
     id: 'unstable_ley_line_conflux', name: 'Unstable Ley Line Conflux', symbol: '💥', color: 'fill-fuchsia-600',
@@ -563,6 +713,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(150, 50, 200)', mid: 'rgb(170, 70, 220)', high: 'rgb(190, 90, 240)' },
     elevationThresholds: { mid: 100, high: 500 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   CRIMSON_WIDOWS_VEIL_FIELD: {
     id: 'crimson_widows_veil_field', name: "Crimson Widow's Veil Field", symbol: '🍄', color: 'fill-red-700',
@@ -570,6 +722,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(150, 20, 20)', mid: 'rgb(180, 30, 30)', high: 'rgb(210, 40, 40)' },
     elevationThresholds: { mid: 0, high: 100 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   MARROW_CAP_GROVE: {
     id: 'marrow_cap_grove', name: 'Marrow Cap Grove', symbol: '🦴', color: 'fill-stone-300',
@@ -577,13 +731,17 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(200, 200, 180)', mid: 'rgb(210, 210, 190)', high: 'rgb(220, 220, 200)' },
     elevationThresholds: { mid: 50, high: 150 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   ASHEN_BONE_PLAINS: {
-    id: 'ashen_bone_plains', name: 'Ashen Bone Plains', symbol: '💀', color: 'fill-gray-400',
+    id: 'ashen_bone_plains', name: 'Ashen Bone Plains', symbol: '🌫️', color: 'fill-gray-400',
     speedMultiplier: 1.1, visibilityFactor: 1.1, baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(190, 190, 190)', mid: 'rgb(200, 200, 200)', high: 'rgb(210, 210, 210)' },
     elevationThresholds: { mid: 100, high: 300 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   HARMONIC_CRYSTAL_PILLARS: {
     id: 'harmonic_crystal_pillars', name: 'Harmonic Crystal Pillars', symbol: '💎', color: 'fill-teal-400',
@@ -591,6 +749,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: true,
     colors: { low: 'rgb(100, 180, 180)', mid: 'rgb(120, 200, 200)', high: 'rgb(140, 220, 220)' },
     elevationThresholds: { mid: 200, high: 800 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   TELLURIC_FLUX_ZONE: {
     id: 'telluric_flux_zone', name: 'Telluric Flux Zone', symbol: '🌍', color: 'fill-amber-800',
@@ -598,6 +758,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(140, 100, 60)', mid: 'rgb(160, 120, 80)', high: 'rgb(180, 140, 100)' },
     elevationThresholds: { mid: 0, high: 200 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   LIVING_MIST_SEA: {
     id: 'living_mist_sea', name: 'Living Mist Sea', symbol: '🌫️', color: 'fill-slate-500',
@@ -605,6 +767,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: true,
     colors: { low: 'rgb(140, 150, 160)', mid: 'rgb(160, 170, 180)', high: 'rgb(180, 190, 200)' },
     elevationThresholds: { mid: 50, high: 250 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   ECHO_BAZAAR: {
     id: 'echo_bazaar', name: 'Echo Bazaar', symbol: '🗣️', color: 'fill-violet-600',
@@ -612,6 +776,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(120, 100, 130)', mid: 'rgb(140, 120, 150)', high: 'rgb(160, 140, 170)' },
     elevationThresholds: { mid: 0, high: 100 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   FROZEN_SOUL_GLACIER: {
     id: 'frozen_soul_glacier', name: 'Frozen Soul Glacier', symbol: '🧊', color: 'fill-sky-300',
@@ -619,6 +785,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(150, 180, 220)', mid: 'rgb(170, 200, 240)', high: 'rgb(190, 220, 255)' },
     elevationThresholds: { mid: 1000, high: 2500 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   WHITE_BLOOD_SNOWFIELD: {
     id: 'white_blood_snowfield', name: 'White Blood Snowfield', symbol: '❄️', color: 'fill-gray-200',
@@ -626,6 +794,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(220, 210, 210)', mid: 'rgb(230, 220, 220)', high: 'rgb(240, 230, 230)' },
     elevationThresholds: { mid: 500, high: 1500 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   KRAKEN_BONE_TRENCH: {
     id: 'kraken_bone_trench', name: 'Kraken Bone Trench', symbol: '🐙', color: 'fill-slate-800',
@@ -633,6 +803,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(20, 20, 40)', mid: 'rgb(30, 30, 50)', high: 'rgb(40, 40, 60)' },
     elevationThresholds: { mid: -5000, high: -2000 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   WHISPERING_JELLYFISH_SWARM: {
     id: 'whispering_jellyfish_swarm', name: 'Whispering Jellyfish Swarm', symbol: '🎐', color: 'fill-blue-300',
@@ -640,6 +812,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(150, 150, 220)', mid: 'rgb(170, 170, 240)', high: 'rgb(190, 190, 255)' },
     elevationThresholds: { mid: -500, high: -100 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   OBSIDIAN_ZIGGURAT_RUINS: {
     id: 'obsidian_ziggurat_ruins', name: 'Obsidian Ziggurat Ruins', symbol: '🔺', color: 'fill-black',
@@ -647,6 +821,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: true,
     colors: { low: 'rgb(25, 10, 30)', mid: 'rgb(35, 15, 40)', high: 'rgb(45, 20, 50)' },
     elevationThresholds: { mid: 100, high: 400 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   BLOODVINE_JUNGLE: {
     id: 'bloodvine_jungle', name: 'Bloodvine Jungle', symbol: '🩸', color: 'fill-red-800',
@@ -654,6 +830,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: true,
     colors: { low: 'rgb(100, 20, 30)', mid: 'rgb(120, 30, 40)', high: 'rgb(140, 40, 50)' },
     elevationThresholds: { mid: 50, high: 300 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   SILVERDEW_SPRING: {
     id: 'silverdew_spring', name: 'Silverdew Spring', symbol: '💧', color: 'fill-cyan-100',
@@ -661,6 +839,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(180, 200, 210)', mid: 'rgb(200, 220, 230)', high: 'rgb(220, 240, 250)' },
     elevationThresholds: { mid: 50, high: 200 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   FLESHFORGED_DEMON_CITADEL: {
     id: 'fleshforged_demon_citadel', name: 'Fleshforged Demon Citadel', symbol: '👹', color: 'fill-rose-900',
@@ -668,6 +848,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: true,
     colors: { low: 'rgb(110, 50, 60)', mid: 'rgb(130, 60, 70)', high: 'rgb(150, 70, 80)' },
     elevationThresholds: { mid: 100, high: 500 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
   VOID_FUNGUS_CAVERNS: {
     id: 'void_fungus_caverns', name: 'Void Fungus Caverns', symbol: '🍄', color: 'fill-indigo-900',
@@ -675,6 +857,8 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(40, 30, 50)', mid: 'rgb(60, 50, 70)', high: 'rgb(80, 70, 90)' },
     elevationThresholds: { mid: -2000, high: -800 },
+        encounterChanceOnEnter: 5,
+    encounterChanceOnDiscover: 5
   },
 };
 

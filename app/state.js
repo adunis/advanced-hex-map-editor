@@ -13,6 +13,7 @@ export const appState = {
   currentMapHexSizeUnit: CONST.DEFAULT_HEX_SIZE_UNIT,
   currentMapHexTraversalTimeValue: CONST.DEFAULT_HEX_TRAVERSAL_TIME_VALUE,
   currentMapHexTraversalTimeUnit: CONST.DEFAULT_HEX_TRAVERSAL_TIME_UNIT,
+    currentMapPartyMarkerImagePath: null, // <<< NEW PROPERTY
 
   isWaitingForFeatureDetails: false,
   featureDetailsCallback: null,
@@ -109,6 +110,7 @@ export function resetActiveMapState() {
     appState.lastMovementInfo = null;
     appState.isWaitingForFeatureDetails = false;
 
+        appState.currentMapPartyMarkerImagePath = null; // <<< RESET NEW PROPERTY
     appState.currentMapEventLog = [];
     appState.mapInitialized = false; appState.isCurrentMapDirty = false;
     appState.featureDetailsCallback = null;

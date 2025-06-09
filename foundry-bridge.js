@@ -11,7 +11,8 @@ const DEFAULT_MAP_SETTINGS = {
   hexSizeUnit: "km",
   hexTraversalTimeValue: 1,
   hexTraversalTimeUnit: "hour",
-  zoomLevel: 1.0,
+  zoomLevel: 1.0, 
+      partyMarkerImagePath: null // <<< ADDED
 };
 const DEFAULT_LANDMARK_ICON_COLOR_CLASS_BRIDGE = "fill-yellow-200";
 
@@ -74,6 +75,9 @@ async function getModuleData() {
           !isNaN(map.mapSettings.zoomLevel)
             ? map.mapSettings.zoomLevel
             : DEFAULT_MAP_SETTINGS.zoomLevel;
+
+
+                      map.mapSettings.partyMarkerImagePath = (typeof map.mapSettings.partyMarkerImagePath === 'string') ? map.mapSettings.partyMarkerImagePath : DEFAULT_MAP_SETTINGS.partyMarkerImagePath; // <<< ADDED
       }
     }
   }
@@ -224,6 +228,112 @@ class HexMapApplication extends Application {
             );
           }
           break;
+// foundry-bridge.js
+case "requestFilePickForMarker":
+    if (!game.user?.isGM) { ui.notifications.warn("Only GMs can pick files."); return; }
+    
+    // Store a reference to the FilePicker instance to access its properties in the callback
+    let fpInstance = null; 
+
+    fpInstance = new FilePicker({
+        type: "imagevideo",
+        current: payload.current || "",
+        callback: (pathFromPicker) => {
+            console.log("AHME_BRIDGE: FilePicker returned raw path:", pathFromPicker);
+
+            let finalPath = pathFromPicker;
+
+            // Check if the path is already absolute or a full URL
+            if (!pathFromPicker.startsWith('/') && !pathFromPicker.startsWith('http://') && !pathFromPicker.startsWith('https://')) {
+                // If not, it's likely relative to the FilePicker's target.
+                // We need to construct the full path.
+                const currentTarget = fpInstance?.target?.value || ""; // Path within the activeSource
+                const activeSource = fpInstance?.activeSource || "data"; // Default to "data" if somehow missing
+
+                let basePath = "";
+                if (activeSource === "data") {
+                    basePath = "/"; // Paths from "data" source are usually root relative already if they include folders
+                                  // e.g. worlds/myworld/image.png (FilePicker should return this)
+                                  // However, if currentTarget is something like "my_folder_at_data_root"
+                                  // and pathFromPicker is "image.png", we need to combine.
+                } else if (activeSource === "s3" && fpInstance?.sources?.s3?.[currentTarget]?.bucket) {
+                    // For S3, the pathFromPicker might already be the full key, or relative.
+                    // This can get complex depending on S3 setup.
+                    // For now, assume pathFromPicker from S3 might be okay, or needs specific handling
+                    // if it's just a filename. A robust S3 solution might require more context.
+                    // Let's assume for now if it's S3 and not absolute, it's relative to the bucket's displayPath
+                    // This is a simplification; S3 paths can be tricky.
+                    const s3BucketData = fpInstance.sources.s3[currentTarget];
+                    if (s3BucketData && s3BucketData.displayPath) {
+                        basePath = s3BucketData.displayPath.endsWith('/') ? s3BucketData.displayPath : s3BucketData.displayPath + '/';
+                    }
+                    // Or, if FilePicker for S3 returns full URLs, that's better.
+                }
+                
+                // Construct the path carefully
+                // If currentTarget already contains the filename (FilePicker sometimes does this if `current` was a full path)
+                // and pathFromPicker is just the filename again, we don't want to double it.
+                if (currentTarget.endsWith(pathFromPicker)) {
+                    finalPath = currentTarget;
+                } else {
+                    // Ensure no double slashes if currentTarget ends with / and pathFromPicker starts with / (unlikely here)
+                    let combinedPath = (currentTarget.endsWith('/') ? currentTarget : currentTarget + '/') + pathFromPicker;
+                    // Remove double slashes that might have formed
+                    combinedPath = combinedPath.replace(/\/\//g, '/');
+                    finalPath = combinedPath;
+                }
+
+
+                // If the activeSource is 'data', the path should ideally be relative from the true root.
+                // e.g., if currentTarget was "worlds/my-world/assets" and pathFromPicker was "token.png",
+                // finalPath should become "/worlds/my-world/assets/token.png".
+                // The FilePicker.target.value usually includes the source prefix if it's not "data", like "modules/my-module/img".
+                // If activeSource is 'data', fpInstance.target.value is often like "worlds/..."
+                if (activeSource === "data" && !finalPath.startsWith('/')) {
+                     finalPath = "/" + finalPath;
+                }
+
+                // If for some reason the above results in something like "//worlds/..."
+                finalPath = finalPath.replace(/^\/\//, '/');
+
+
+                console.log(`AHME_BRIDGE: ActiveSource: ${activeSource}, CurrentTarget: ${currentTarget}, BasePath constructed: ${basePath}`);
+                console.log("AHME_BRIDGE: Constructed finalPath:", finalPath);
+            }
+
+
+            if (iframe.contentWindow) {
+                iframe.contentWindow.postMessage({
+                    type: "partyMarkerImageSelected",
+                    payload: { path: finalPath },
+                    moduleId: MODULE_ID
+                }, "*");
+            }
+        },
+        buttons: [{
+            label: "Clear & Use Default",
+            class: "clear-file",
+            icon: "fas fa-times-circle",
+            action: function(fp) { // fpInstance is the same as fp here
+                if (iframe.contentWindow) {
+                    iframe.contentWindow.postMessage({
+                        type: "partyMarkerImageSelected",
+                        payload: { path: null },
+                        moduleId: MODULE_ID
+                    }, "*");
+                }
+                fp.close();
+            }
+        }]
+    });
+    // Store the instance so the callback can access its properties
+    // This is a bit of a workaround for not having `this` directly in the callback
+    // if the callback is an arrow function.
+    // However, `fpInstance` assigned outside and then used by the callback should work.
+    // The `fp` argument to the button action is also the FilePicker instance.
+    
+    fpInstance.browse(payload.current || ""); // Open the FilePicker
+    break;
         case "requestMapLoad":
           if (!payload || !payload.mapId) {
             if (iframe.contentWindow)
@@ -325,8 +435,7 @@ class HexMapApplication extends Application {
             typeof payload.mapSettings.hexSizeUnit !== "string" ||
             typeof payload.mapSettings.hexTraversalTimeValue !== "number" ||
             typeof payload.mapSettings.hexTraversalTimeUnit !== "string" ||
-            typeof payload.mapSettings.zoomLevel !== "number"
-          ) {
+            typeof payload.mapSettings.zoomLevel !== 'number' || typeof payload.mapSettings.partyMarkerImagePath !== 'string' && payload.mapSettings.partyMarkerImagePath !== null){
             validationError = "Map settings invalid.";
           }
 

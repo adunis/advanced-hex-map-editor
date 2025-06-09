@@ -1,3 +1,4 @@
+{{! app/templates/travel-animation.hbs }}
 <div id="travel-animation-popup" class="travel-animation-container {{#unless isActive}}hidden{{/unless}}">
   <div class="travel-animation-terrain" style="background-color: {{terrainColor}};">
     {{#each terrainPatternRows}}
@@ -7,7 +8,24 @@
         {{/each}}
       </div>
     {{/each}}
-    <div class="travel-animation-marker" style="left: {{markerPosition}}%;"></div>
+    
+    {{!-- The Marker itself --}}
+    <div class="travel-animation-marker" style="left: {{markerPosition}}%;">
+      {{!-- Conditionally render custom image or fallback --}}
+      {{#if currentMapPartyMarkerImagePath}}
+        <img src="{{currentMapPartyMarkerImagePath}}" 
+             alt="Party Marker" 
+             class="w-full h-full object-contain" {{!-- Make image fill the marker div --}}
+             onerror="this.style.display='none'; this.parentElement.querySelector('.fallback-marker-icon').style.display='block';" {{!-- Basic error handling --}}
+        />
+        {{!-- Fallback for if image fails to load, hidden by default --}}
+        <span class.="fallback-marker-icon" style="display:none; font-size: 10px; text-align: center; line-height: 16px;">👥</span> 
+      {{else}}
+        {{!-- Default party icon (you can use text, an SVG, or keep the pseudo-element if preferred) --}}
+        {{!-- Using text for simplicity here as ::before is CSS only --}}
+        <span style="font-size: 10px; text-align: center; line-height: 16px;">👥</span> 
+      {{/if}}
+    </div>
   </div>
   <div class="travel-animation-info">
     Travelling through {{terrainName}}...

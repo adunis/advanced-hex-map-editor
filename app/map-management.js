@@ -53,7 +53,8 @@ export function getMapContextDataForSave() {
             hexSizeUnit: appState.currentMapHexSizeUnit,
             hexTraversalTimeValue: appState.currentMapHexTraversalTimeValue,
             hexTraversalTimeUnit: appState.currentMapHexTraversalTimeUnit,
-            zoomLevel: appState.zoomLevel
+            zoomLevel: appState.zoomLevel,
+                        partyMarkerImagePath: appState.currentMapPartyMarkerImagePath // <<< ADDED
         }
     };
 
@@ -299,6 +300,7 @@ function createMapLogic(formDataFromDialog) {
     appState.currentMapName = finalMapName;
     appState.currentMapHexSizeValue = parseFloat(formDataFromDialog.hexSizeValue) || CONST.DEFAULT_HEX_SIZE_VALUE;
     appState.currentMapHexSizeUnit = formDataFromDialog.hexSizeUnit || CONST.DEFAULT_HEX_SIZE_UNIT;
+        appState.currentMapPartyMarkerImagePath = null; // <<< ADDED (default for new maps)
     appState.currentMapHexTraversalTimeValue = parseFloat(formDataFromDialog.hexTraversalTimeValue) || CONST.DEFAULT_HEX_TRAVERSAL_TIME_VALUE;
     appState.currentMapHexTraversalTimeUnit = formDataFromDialog.hexTraversalTimeUnit || CONST.DEFAULT_HEX_TRAVERSAL_TIME_UNIT;
     appState.isCurrentMapDirty = true;
@@ -500,6 +502,7 @@ export function handleLoadMapFileSelected(event) {
                 appState.currentMapHexTraversalTimeValue = parseFloat(mapSettingsFromFile.hexTraversalTimeValue) || CONST.DEFAULT_HEX_TRAVERSAL_TIME_VALUE;
                 appState.currentMapHexTraversalTimeUnit = mapSettingsFromFile.hexTraversalTimeUnit || CONST.DEFAULT_HEX_TRAVERSAL_TIME_UNIT;
                 appState.zoomLevel = parseFloat(mapSettingsFromFile.zoomLevel) || 1.0;
+                            appState.currentMapPartyMarkerImagePath = mapSettingsFromFile.partyMarkerImagePath || null; // <<< ADDED
             } else {
                  // Reset to defaults if not in file
                 appState.currentMapHexSizeValue = CONST.DEFAULT_HEX_SIZE_VALUE;
@@ -507,6 +510,7 @@ export function handleLoadMapFileSelected(event) {
                 appState.currentMapHexTraversalTimeValue = CONST.DEFAULT_HEX_TRAVERSAL_TIME_VALUE;
                 appState.currentMapHexTraversalTimeUnit = CONST.DEFAULT_HEX_TRAVERSAL_TIME_UNIT;
                 appState.zoomLevel = 1.0;
+                            appState.currentMapPartyMarkerImagePath = null; // <<< ADDED DEFAULT
             }
 
             initializeGridData(w, h, hexes, true);
