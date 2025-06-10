@@ -108,10 +108,20 @@ async function handleEncounterFeatureCreation(hexForEncounter, encounterTypeDesc
     });
 }
 
+
 export async function checkRandomEncountersOnEnter(targetHex) {
     if (!appState.isGM) return { triggered: false, markedByGM: false };
     const terrainConfig = CONST.TERRAIN_TYPES_CONFIG[targetHex.terrain] || CONST.TERRAIN_TYPES_CONFIG[CONST.DEFAULT_TERRAIN_TYPE];
-    const chance = terrainConfig.encounterChanceOnEnter || 0;
+    let chance = terrainConfig.encounterChanceOnEnter || 0;
+
+    if (appState.isWeatherEnabled && appState.mapWeatherSystem.weatherGrid[targetHex.id]) {
+        const weatherId = appState.mapWeatherSystem.weatherGrid[targetHex.id];
+        const weatherCondition = CONST.DEFAULT_WEATHER_CONDITIONS.find(wc => wc.id === weatherId);
+        if (weatherCondition && weatherCondition.effects && typeof weatherCondition.effects.encounterChanceModifier === 'number') {
+            chance += weatherCondition.effects.encounterChanceModifier;
+        }
+    }
+    chance = Math.max(0, Math.min(100, chance)); // Clamp chance
 
     if (rollPercent(chance)) {
         HexplorationLogic.postHexplorationChatMessage(`System: Potential encounter upon entering hex ${targetHex.id} (${targetHex.terrain}). GM has been prompted.`, true);
@@ -135,7 +145,17 @@ export async function checkRandomEncountersOnDiscover(discoveredHexIdsSet) {
         const hex = appState.hexDataMap.get(hexId);
         if (!hex) continue;
         const terrainConfig = CONST.TERRAIN_TYPES_CONFIG[hex.terrain] || CONST.TERRAIN_TYPES_CONFIG[CONST.DEFAULT_TERRAIN_TYPE];
-        const chance = terrainConfig.encounterChanceOnDiscover || 0;
+        let chance = terrainConfig.encounterChanceOnDiscover || 0;
+
+        // Apply weather effect
+        if (appState.isWeatherEnabled && appState.mapWeatherSystem.weatherGrid[hex.id]) {
+            const weatherId = appState.mapWeatherSystem.weatherGrid[hex.id];
+            const weatherCondition = CONST.DEFAULT_WEATHER_CONDITIONS.find(wc => wc.id === weatherId);
+            if (weatherCondition && weatherCondition.effects && typeof weatherCondition.effects.encounterChanceModifier === 'number') {
+                chance += weatherCondition.effects.encounterChanceModifier;
+            }
+        }
+        chance = Math.max(0, Math.min(100, chance)); // Clamp chance
 
         if (rollPercent(chance)) {
             HexplorationLogic.postHexplorationChatMessage(`System: Potential encounter noticed upon discovering hex ${hex.id} (${hex.terrain}). GM has been prompted.`, true);

@@ -1,5 +1,5 @@
 <div class="flex flex-col h-screen antialiased text-gray-200 bg-gray-800">
-  {{!-- Header --}}
+  {{! Header }}
   <header class="flex-shrink-0 flex items-center justify-between p-2 sm:p-3 bg-gray-900 shadow-md z-10">
     <div class="flex items-center">
       <svg class="w-6 h-6 sm:w-8 sm:h-8 text-sky-400 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -18,14 +18,14 @@
     </div>
   </header>
 
-  {{!-- Main Content Area --}}
-  <main class="flex-grow flex p-2 sm:p-3 overflow-hidden">
-    {{!-- Left Control Panel --}}
+  {{! Main Content Area: Use gap for spacing between panels }}
+  <main class="flex-grow flex p-1.5 sm:p-2 gap-1.5 sm:gap-2 overflow-hidden">
+    {{! Left Control Panel - Its width is set in controls.hbs, flex-shrink-0 prevents it from shrinking }}
     {{> controls}}
 
-    {{!-- Center SVG Map Area --}}
-    <section id="center-panel" class="flex-grow flex flex-col bg-gray-850 rounded-lg shadow-inner overflow-hidden mx-2">
-      <div id="svg-scroll-container" class="flex-grow overflow-auto bg-gray-900 border border-gray-700 rounded-md relative">
+    {{! Center SVG Map Area - flex-grow allows it to take remaining space }}
+    <section id="center-panel" class="flex-grow flex flex-col bg-transparent rounded-lg shadow-inner overflow-hidden">
+      <div id="svg-scroll-container" class="flex-grow overflow-auto bg-transparent border border-gray-700 rounded-md relative">
         {{#if hasValidGridDataAndInitialized}}
           {{> hexGrid}}
         {{else}}
@@ -42,26 +42,39 @@
       </div>
     </section>
 
-    {{!-- Right Panel: Hexploration Info & Event Log --}}
-    <aside id="right-panel" class="w-1/3 max-w-xs sm:max-w-sm flex flex-col flex-shrink-0 bg-gray-750 p-2 sm:p-3 ml-0 md:ml-2 rounded-lg shadow-lg overflow-hidden">
-      {{!-- Non-scrolling Hexploration Status part --}}
+    {{! Right Panel: Hexploration Info & Event Log - Its width is set by Tailwind max-w classes, flex-shrink-0 prevents shrinking }}
+    <aside id="right-panel" class="w-1/3 max-w-xs sm:max-w-sm flex flex-col flex-shrink-0 bg-gray-750 p-2 sm:p-3 rounded-lg shadow-lg overflow-hidden">
+      {{! Section 1: Hexploration Status & (conditional) Party Activities }}
       <div class="flex-shrink-0">
-          {{#if isWeatherEnabled}}
-            <div class="mb-2 p-1.5 bg-gray-700 rounded-md shadow">
-              <div class="flex items-center">
-                <input type="checkbox" id="playerSeeCurrentWeatherToggle" name="playerSeeCurrentWeatherToggle" {{#if playerCanSeeCurrentWeather}}checked{{/if}} class="h-4 w-4 text-sky-600 border-gray-500 rounded bg-gray-800 focus:ring-sky-500 focus:ring-offset-gray-700">
-                <label for="playerSeeCurrentWeatherToggle" class="ml-2 block text-xs text-gray-300">Show Current Weather</label>
-              </div>
-            </div>
+          <h3 class="text-lg font-semibold text-sky-300 mb-2 border-b border-gray-600 pb-1">Hexploration Status</h3>
+          
+          {{#if mapInitialized}}
+
+
+                <div class="mt-1 mb-2 text-sm space-y-1">
+                    <label for="playerForecastSlider" class="block text-xs text-gray-300">
+                        Forecast: <span id="playerForecastHoursDisplay" class="font-semibold">{{#if (eq forecastHoursPlayer 0)}}Current Weather{{else}}{{forecastHoursPlayer}}h Ahead{{/if}}</span>
+                    </label>
+                    <input type="range" id="playerForecastSlider" min="0" max="24" step="1" value="{{forecastHoursPlayer}}" 
+                           class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-sky-500">
+                </div>
+
+                <p><span class="text-gray-400">Wind:</span> 
+                  <span class="font-semibold">
+                    {{lookup (lookup CONST.WIND_STRENGTHS mapWeatherSystem.windStrength) 'name'}}
+                    {{#if (ne mapWeatherSystem.windDirection "CALM")}}
+                      from {{lookup (lookup CONST.WIND_DIRECTIONS mapWeatherSystem.windDirection) 'name'}} 
+                      <span class="text-xs">{{lookup (lookup CONST.WIND_DIRECTIONS mapWeatherSystem.windDirection) 'symbol'}}</span>
+                    {{/if}}
+                  </span>
+                </p>
           {{/if}}
 
-         <h3 class="text-lg font-semibold text-sky-300 mb-2 border-b border-gray-600 pb-1">Hexploration Status</h3>
-        <div class="text-sm space-y-1 text-gray-200 mb-2">
           <p><span class="text-gray-400">Mode:</span> <span class="font-semibold capitalize">{{capitalize appMode}}</span> ({{#if isGM}}GM{{else}}Player{{/if}} View)</p>
           {{#if mapInitialized}}
             <p><span class="text-gray-400">Hex Scale:</span> <span class="font-semibold">{{currentMapHexSizeValue}} {{getUnitLabelByKey currentMapHexSizeUnit "distance"}}</span></p>
             <p><span class="text-gray-400">Base Travel:</span> <span class="font-semibold">{{currentMapHexTraversalTimeValue}} {{getUnitLabelByKey currentMapHexTraversalTimeUnit "time"}} / hex</span></p>
-            <p><span class="text-gray-400">Effective Speed:</span> <span class="font-semibold">{{currentTravelSpeedText}}</span></p> {{!-- This uses the updated text --}}
+            <p><span class="text-gray-400">Effective Speed:</span> <span class="font-semibold">{{currentTravelSpeedText}}</span></p>
           {{else}}
              <p><span class="text-gray-400">Hex Scale:</span> <span class="font-semibold">N/A</span></p>
              <p><span class="text-gray-400">Base Travel:</span> <span class="font-semibold">N/A</span></p>
@@ -73,156 +86,153 @@
           {{#if isGM}}
             <button id="newHexplorationDayBtn" class="mt-2 w-full px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm shadow hover:shadow-md">Start New Day</button>
           {{/if}}
-        </div>
         
-        {{#if (eq appMode CONST.AppMode.PLAYER)}}
-        <hr class="my-2 sm:my-3 border-gray-600">
-        <h4 class="text-md font-semibold text-sky-300 mb-1">Active Party Activities:</h4>
-        <div id="active-party-activities-display" class="text-xs space-y-0.5 text-gray-300 mb-2" style="max-height: 150px; overflow-y: auto;">
-        {{#if activePartyActivitiesDisplay.length}}
-            <ul class="list-none pl-0 space-y-1">
-                {{#each activePartyActivitiesDisplay}}
-                    {{#with this.details}} {{!-- Use this.details which now contains timeFactor --}}
-                        <li class="p-1.5 bg-gray-700 rounded-md shadow-sm" title="Source: {{this.source}} (Time Factor: x{{toFixed this.timeFactor 2}})">
-                            <div class="flex justify-between items-center">
-                                <span class="flex items-center">
-                                    <span class="mr-2 w-5 text-center">{{this.icon}}</span>
-                                    <span>
-                                        {{#if (eq ../this.value "_GROUP_")}}
-                                            <strong class="text-teal-400">Party is</strong> {{this.name}}
-                                        {{else}}
-                                            <strong class="text-sky-400">{{../this.value}}</strong> is {{this.name}}
-                                        {{/if}}
+          {{#if (eq appMode CONST.AppMode.PLAYER)}}
+            <hr class="my-2 sm:my-3 border-gray-600">
+            <h4 class="text-md font-semibold text-sky-300 mb-1">Active Party Activities:</h4>
+            <div id="active-party-activities-display" class="text-xs space-y-0.5 text-gray-300 mb-2" style="max-height: 150px; overflow-y: auto;">
+            {{#if activePartyActivitiesDisplay.length}}
+                <ul class="list-none pl-0 space-y-1">
+                    {{#each activePartyActivitiesDisplay}}
+                        {{#with this.details}}
+                            <li class="p-1.5 bg-gray-700 rounded-md shadow-sm" title="Source: {{this.source}} (Time Factor: x{{toFixed this.timeFactor 2}})">
+                                <div class="flex justify-between items-center">
+                                    <span class="flex items-center">
+                                        <span class="mr-2 w-5 text-center">{{this.icon}}</span>
+                                        <span>
+                                            {{#if (eq ../this.value "_GROUP_")}}
+                                                <strong class="text-teal-400">Party is</strong> {{this.name}}
+                                            {{else}}
+                                                <strong class="text-sky-400">{{../this.value}}</strong> is {{this.name}}
+                                            {{/if}}
+                                        </span>
                                     </span>
-                                </span>
-                                {{#if @root.isGM}} {{!-- Only GM sees the toggle off button here --}}
-                                <button data-action="toggle-off-activity-display" data-activity-id="{{../this.key}}" class="ml-2 px-1.5 py-0.5 text-xs bg-red-600 hover:bg-red-700 text-white rounded-sm" aria-label="Toggle off {{this.name}}">×</button>
-                                {{/if}}
-                            </div>
-                            {{!-- Displaying timeFactor from this.details.timeFactor --}}
-                            <p class="text-xxs text-gray-400 mt-0.5">
-                                 (Time x{{toFixed this.timeFactor 2}})
+                                    {{#if @root.isGM}}
+                                    <button data-action="toggle-off-activity-display" data-activity-id="{{../this.key}}" class="ml-2 px-1.5 py-0.5 text-xs bg-red-600 hover:bg-red-700 text-white rounded-sm" aria-label="Toggle off {{this.name}}">×</button>
+                                    {{/if}}
+                                </div>
+                                <p class="text-xxs text-gray-400 mt-0.5">
+                                     (Time x{{toFixed this.timeFactor 2}})
+                                </p>
+                            </li>
+                        {{/with}}
+                    {{/each}}
+                </ul>
+            {{else}}
+                <p class="italic text-gray-400">None.</p>
+            {{/if}}
+            </div>
+          {{/if}}
+      </div> {{! End of Hexploration Status and Party Activities block }}
+
+      {{! Section 2: Event Log (takes remaining space, scrolls internally) }}
+      <div class="flex flex-col flex-grow mt-2 sm:mt-3 bg-gray-700 rounded-md shadow-lg overflow-hidden">
+        <h4 class="text-sky-300 font-semibold p-2 pb-1 mb-1 text-sm border-b border-gray-600 flex-shrink-0">
+          Event Log <span class="text-gray-400 text-xs">({{currentMapEventLog.length}} entries)</span>
+        </h4>
+        <div class="overflow-y-auto flex-grow text-xs pr-1 space-y-2 p-2 pt-1">
+            {{#if currentMapEventLog.length}}
+                {{#each currentMapEventLog}}
+                    <div class="p-1.5 rounded bg-gray-800 shadow">
+                        <div class="flex justify-between items-center mb-0.5">
+                            <strong class="text-sky-400">{{typeCapitalized this}}</strong>
+                            <span class="text-gray-400 text-xxs">{{formatTimestamp this.timestamp}}</span>
+                        </div>
+
+                        {{#if (eq this.type "movement")}}
+                            <p class="text-gray-200">
+                                Moved {{this.directionText}} from <strong>{{this.fromHexId}}</strong> to <strong>{{this.toHexId}}</strong> ({{getTerrainName this.terrainAtDestination}}).
                             </p>
-                        </li>
-                    {{/with}}
-                {{/each}}
-            </ul>
-        {{else}}
-            <p class="italic text-gray-400">None.</p>
-        {{/if}}
-    </div>
-        {{/if}}
-
-        <hr class="my-2 sm:my-3 border-gray-600">
-        <h4 class="text-md font-semibold text-sky-300 mb-1">Event Log</h4>
-      </div>
-
-<div class="p-2 bg-gray-700 rounded-md shadow-lg flex flex-col" style="max-height: 300px;">
-    <h4 class="text-sky-300 font-semibold mb-2 text-sm">Event Log (Last {{currentMapEventLog.length}} entries)</h4>
-    <div class="overflow-y-auto flex-grow text-xs pr-1 space-y-2">
-        {{#if currentMapEventLog.length}}
-            {{#each currentMapEventLog}}
-                <div class="p-1.5 rounded bg-gray-800 shadow">
-                    <div class="flex justify-between items-center mb-0.5">
-                        <strong class="text-sky-400">{{typeCapitalized this}}</strong>
-                        <span class="text-gray-400 text-xxs">{{formatTimestamp this.timestamp}}</span>
-                    </div>
-
-                    {{#if (eq this.type "movement")}}
-                        <p class="text-gray-200">
-                            Moved {{this.directionText}} from <strong>{{this.fromHexId}}</strong> to <strong>{{this.toHexId}}</strong> ({{getTerrainName this.terrainAtDestination}}).
-                        </p>
-                        {{#if (isNonZero this.distanceValue)}}
-                            <p class="text-gray-300 pl-2 text-xxs">Distance: {{toFixed this.distanceValue 1}} {{getUnitLabelByKey this.distanceUnit 'distance'}}.</p>
-                        {{/if}}
-                    {{else if (eq this.type "exploration_current")}}
-                         <p class="text-gray-200">Explored current hex <strong>{{this.toHexId}}</strong> ({{getTerrainName this.terrainAtDestination}}).</p>
-                    {{/if}}
-                    
-                    <p class="text-gray-300 pl-2 text-xxs">
-                        Time Taken: <strong class="text-amber-300">{{toFixed this.totalTimeValue 1}} {{getUnitLabelByKey this.timeUnit 'time'}}</strong>
-                        (Base: {{toFixed this.timeBreakdown.base 1}}
-                        {{#if (isNonZero this.timeBreakdown.terrainModifier)}}
-                            ; Terrain: <span class="{{#if (isPositive this.timeBreakdown.terrainModifier)}}text-red-400{{else}}text-green-400{{/if}}">
-                                {{#if (isPositive this.timeBreakdown.terrainModifier)}}+{{/if}}{{toFixed this.timeBreakdown.terrainModifier 1}}
-                            </span>
-                        {{/if}}
-                        {{#if (isNonZero this.timeBreakdown.activityModifier)}}
-                            ; Activity: <span class="{{#if (isPositive this.timeBreakdown.activityModifier)}}text-red-400{{else}}text-green-400{{/if}}">
-                                {{#if (isPositive this.timeBreakdown.activityModifier)}}+{{/if}}{{toFixed this.timeBreakdown.activityModifier 1}}
-                            </span>
-                        {{/if}}
-                        {{#if this.timeBreakdown.weatherModifier}}
-                             {{#if (isNonZero this.timeBreakdown.weatherModifier)}}
-                                ; Weather {{this.weatherOnHex.icon}}: <span class="{{#if (isPositive this.timeBreakdown.weatherModifier)}}text-red-400{{else}}text-green-400{{/if}}">
-                                    {{#if (isPositive this.timeBreakdown.weatherModifier)}}+{{/if}}{{toFixed this.timeBreakdown.weatherModifier 1}}
-                                </span>
-                             {{/if}}
-                        {{/if}}
-                        {{#if (isNonZero this.timeBreakdown.elevationPenalty)}}
-                            ; Elevation ({{#if (isPositive this.elevationChange)}}+{{/if}}{{this.elevationChange}}m): <span class="text-red-400">
-                                +{{toFixed this.timeBreakdown.elevationPenalty 1}}
-                            </span>
-                        {{/if}}
-                        )
-                    </p>
-
-                    {{#if this.activitiesActive.length}}
-                        <p class="text-gray-400 pl-3 text-xxs italic">Active: {{#each this.activitiesActive}}{{@key}}{{#unless @last}}, {{/unless}}{{/each}}</p>
-                    {{/if}}
-
-                    {{#if this.encounterOnEnter.triggered}}
-                        <p class="text-yellow-400 pl-2 text-xxs">
-                            Encounter entering {{this.toHexId}}: 
-                            {{#if this.encounterOnEnter.markedByGM}}
-                                Marked as '{{this.encounterOnEnter.featureName}}' {{this.encounterOnEnter.featureIcon}}.
-                            {{else}}
-                                Skipped by GM ({{this.encounterOnEnter.reasonSkipped}}).
+                            {{#if (isNonZero this.distanceValue)}}
+                                <p class="text-gray-300 pl-2 text-xxs">Distance: {{toFixed this.distanceValue 1}} {{getUnitLabelByKey this.distanceUnit 'distance'}}.</p>
                             {{/if}}
+                        {{else if (eq this.type "exploration_current")}}
+                             <p class="text-gray-200">Explored current hex <strong>{{this.toHexId}}</strong> ({{getTerrainName this.terrainAtDestination}}).</p>
+                        {{/if}}
+                        
+                        <p class="text-gray-300 pl-2 text-xxs">
+                            Time Taken: <strong class="text-amber-300">{{toFixed this.totalTimeValue 1}} {{getUnitLabelByKey this.timeUnit 'time'}}</strong>
+                            (Base: {{toFixed this.timeBreakdown.base 1}}
+                            {{#if (isNonZero this.timeBreakdown.terrainModifier)}}
+                                ; Terrain: <span class="{{#if (isPositive this.timeBreakdown.terrainModifier)}}text-red-400{{else}}text-green-400{{/if}}">
+                                    {{#if (isPositive this.timeBreakdown.terrainModifier)}}+{{/if}}{{toFixed this.timeBreakdown.terrainModifier 1}}
+                                </span>
+                            {{/if}}
+                            {{#if (isNonZero this.timeBreakdown.activityModifier)}}
+                                ; Activity: <span class="{{#if (isPositive this.timeBreakdown.activityModifier)}}text-red-400{{else}}text-green-400{{/if}}">
+                                    {{#if (isPositive this.timeBreakdown.activityModifier)}}+{{/if}}{{toFixed this.timeBreakdown.activityModifier 1}}
+                                </span>
+                            {{/if}}
+                            {{#if this.timeBreakdown.weatherModifier}}
+                                 {{#if (isNonZero this.timeBreakdown.weatherModifier)}}
+                                    ; Weather {{this.weatherOnHex.icon}}: <span class="{{#if (isPositive this.timeBreakdown.weatherModifier)}}text-red-400{{else}}text-green-400{{/if}}">
+                                        {{#if (isPositive this.timeBreakdown.weatherModifier)}}+{{/if}}{{toFixed this.timeBreakdown.weatherModifier 1}}
+                                    </span>
+                                 {{/if}}
+                            {{/if}}
+                            {{#if (isNonZero this.timeBreakdown.elevationPenalty)}}
+                                ; Elevation ({{#if (isPositive this.elevationChange)}}+{{/if}}{{this.elevationChange}}m): <span class="text-red-400">
+                                    +{{toFixed this.timeBreakdown.elevationPenalty 1}}
+                                </span>
+                            {{/if}}
+                            )
                         </p>
-                    {{/if}}
 
-                    {{#if this.encountersOnDiscover.length}}
-                        {{#each this.encountersOnDiscover}}
+                        {{#if this.activitiesActive.length}}
+                            <p class="text-gray-400 pl-3 text-xxs italic">Active: {{#each this.activitiesActive}}{{@key}}{{#unless @last}}, {{/unless}}{{/each}}</p>
+                        {{/if}}
+
+                        {{#if this.encounterOnEnter.triggered}}
                             <p class="text-yellow-400 pl-2 text-xxs">
-                                Discovery at {{this.hexId}}:
-                                {{#if this.markedByGM}}
-                                    Marked as '{{this.featureName}}' {{this.featureIcon}}.
+                                Encounter entering {{this.toHexId}}: 
+                                {{#if this.encounterOnEnter.markedByGM}}
+                                    Marked as '{{this.encounterOnEnter.featureName}}' {{this.encounterOnEnter.featureIcon}}.
                                 {{else}}
-                                    Skipped by GM ({{this.reasonSkipped}}).
+                                    Skipped by GM ({{this.encounterOnEnter.reasonSkipped}}).
                                 {{/if}}
                             </p>
-                        {{/each}}
-                    {{/if}}
-                    
-                    {{#if this.newlyDiscoveredHexIds.length}}
-                         <p class="text-gray-400 pl-3 text-xxs italic">New Hexes Discovered: {{this.newlyDiscoveredHexIds}}</p>
-                    {{/if}}
+                        {{/if}}
 
-                </div>
-            {{/each}}
-        {{else}}
-            <p class="text-gray-400 text-center">No events logged for this map yet.</p>
-        {{/if}}
-    </div>
-<!-- Add this inside your #app-container or similar in index.html -->
-<div id="customPromptModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden"> <!-- Ensure ID is correct -->
-  <div class="bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-md">
-    <h3 id="customPromptTitle" class="text-xl font-semibold text-sky-300 mb-4">Input Required</h3>
-    <p id="customPromptMessage" class="text-gray-300 mb-3">Enter value:</p>
-    <div>
-      <input type="text" id="customPromptInput" class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2">
-    </div>
-    <div class="mt-6 flex justify-end space-x-3">
-      <button type="button" id="customPromptCancel" class="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-600 hover:bg-gray-500 rounded-md shadow-sm">Cancel</button>
-      <button type="button" id="customPromptOk" class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md shadow-sm">OK</button>
-    </div>
-  </div>
-</div>
-
-
-</div>
+                        {{#if this.encountersOnDiscover.length}}
+                            {{#each this.encountersOnDiscover}}
+                                <p class="text-yellow-400 pl-2 text-xxs">
+                                    Discovery at {{this.hexId}}:
+                                    {{#if this.markedByGM}}
+                                        Marked as '{{this.featureName}}' {{this.featureIcon}}.
+                                    {{else}}
+                                        Skipped by GM ({{this.reasonSkipped}}).
+                                    {{/if}}
+                                </p>
+                            {{/each}}
+                        {{/if}}
+                        
+                        {{#if this.newlyDiscoveredHexIds.length}}
+                             <p class="text-gray-400 pl-3 text-xxs italic">New Hexes Discovered: {{this.newlyDiscoveredHexIds}}</p>
+                        {{/if}}
+                    </div>
+                {{/each}}
+            {{else}}
+                <p class="text-gray-400 text-center py-4">No events logged for this map yet.</p>
+            {{/if}}
+        </div>
+      </div>
     </aside>
   </main>
+
+  {{! Custom Prompt Modal (ensure it's correctly placed, typically as a direct child of the main app wrapper or body) }}
+  <div id="customPromptModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
+    <div class="bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-md">
+      <h3 id="customPromptTitle" class="text-xl font-semibold text-sky-300 mb-4">Input Required</h3>
+      <p id="customPromptMessage" class="text-gray-300 mb-3">Enter value:</p>
+      <div>
+        <input type="text" id="customPromptInput" class="mt-1 block w-full bg-gray-700 border-gray-600 text-gray-200 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-2">
+      </div>
+      <div class="mt-6 flex justify-end space-x-3">
+        <button type="button" id="customPromptCancel" class="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-600 hover:bg-gray-500 rounded-md shadow-sm">Cancel</button>
+        <button type="button" id="customPromptOk" class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md shadow-sm">OK</button>
+      </div>
+    </div>
+  </div>
+
   {{> travelAnimationPopup travelAnimation}}
 </div>
