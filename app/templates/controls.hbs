@@ -1,98 +1,94 @@
-<aside id="left-panel" class="w-1/3 max-w-xs sm:max-w-sm flex flex-col flex-shrink-0 bg-gray-750 p-2 sm:p-3 mr-0 md:mr-2 rounded-lg shadow-lg overflow-y-auto">
+<aside id="left-panel" class="w-56 sm:w-60 flex flex-col flex-shrink-0 bg-gray-750 p-1 sm:p-1.5 mr-0 md:mr-2 rounded-lg shadow-lg overflow-y-auto">
   
   {{!-- App Mode Toggle --}}
-  <div class="mb-3">
-    <h3 class="text-lg font-semibold text-sky-300 mb-1.5 border-b border-gray-600 pb-1">App Mode</h3>
-    <div class="grid grid-cols-2 gap-1.5">
-      <button data-action="change-app-mode" data-mode="{{CONST.AppMode.HEX_EDITOR}}"
-        class="px-2 py-1.5 rounded-md text-xs sm:text-sm shadow hover:shadow-md transition-colors
+  <div class="mb-1">
+    <h3 class="text-sm font-semibold text-sky-300 mb-0.5 border-b border-gray-600 pb-px">App Mode</h3>
+    <div class="grid grid-cols-2 gap-1">
+      <button data-action="change-app-mode" data-mode="{{CONST.AppMode.HEX_EDITOR}}" class="px-1 py-0.5 rounded text-xs shadow hover:shadow-md transition-colors
                {{#if (eq appMode CONST.AppMode.HEX_EDITOR)}}bg-green-600 hover:bg-green-700 text-white{{else}}bg-gray-600 hover:bg-gray-500 text-gray-200{{/if}}
                {{#unless isGM}}cursor-not-allowed opacity-50{{/unless}}"
         {{#unless isGM}}title="GM Only" disabled{{/unless}}>
         Hex Editor
       </button>
       <button data-action="change-app-mode" data-mode="{{CONST.AppMode.PLAYER}}"
-        class="px-2 py-1.5 rounded-md text-xs sm:text-sm shadow hover:shadow-md transition-colors
+        class="px-1 py-0.5 rounded text-xs shadow hover:shadow-md transition-colors
                {{#if (eq appMode CONST.AppMode.PLAYER)}}bg-green-600 hover:bg-green-700 text-white{{else}}bg-gray-600 hover:bg-gray-500 text-gray-200{{/if}}">
         Player View
       </button>
     </div>
   </div>
 
-  <hr class="my-2 sm:my-3 border-gray-600">
+  <hr class="my-1 border-gray-600">
 
   {{!-- Map Management --}}
   <div>
-    <h3 class="text-lg font-semibold text-sky-300 mb-1.5 border-b border-gray-600 pb-1">Map Management</h3>
-    <div class="space-y-1.5 text-sm">
+    <h3 class="text-sm font-semibold text-sky-300 mb-0.5 border-b border-gray-600 pb-px">Map Management</h3>
+    <div class="space-y-0.5 text-xs">
       {{#if isGM}}
-      <button id="createNewMapButton" class="w-full px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white shadow hover:shadow-md">Create New Map</button>
+      <button id="createNewMapButton" class="w-full px-1.5 py-0.5 rounded bg-blue-600 hover:bg-blue-700 text-white shadow hover:shadow-md">Create New Map</button>
       {{/if}}
       
-      <div class="flex items-center space-x-1.5 {{#if isStandaloneMode}}hidden{{/if}}">
-        <select id="savedMapSelect" class="flex-grow p-1.5 border border-gray-600 rounded-md bg-gray-800 text-gray-200 text-xs sm:text-sm focus:ring-sky-500 focus:border-sky-500">
+      <div class="flex items-center space-x-1 {{#if isStandaloneMode}}hidden{{/if}}">
+        <select id="savedMapSelect" class="flex-grow p-0.5 border border-gray-600 rounded bg-gray-800 text-gray-200 text-xs focus:ring-sky-500 focus:border-sky-500">
           <option value="">{{#if mapList.length}}Select a map...{{else}}No maps saved yet{{/if}}</option>
           {{#each mapList}}
             <option value="{{this.id}}" {{#if (eq ../currentMapId this.id)}}selected{{/if}}>{{this.name}} ({{this.id}})</option>
           {{/each}}
         </select>
-        <button id="openSelectedMapButton" class="p-1.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white shadow" title="Open Selected Map">
-          <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19V5a2 2 0 012-2h6l5 5v11a2 2 0 01-2 2H7a2 2 0 01-2-2z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 2v5h5"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6M9 16h3"></path></svg>
+        <button id="openSelectedMapButton" class="p-1 rounded bg-teal-600 hover:bg-teal-700 text-white shadow" title="Open Selected Map">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19V5a2 2 0 012-2h6l5 5v11a2 2 0 01-2 2H7a2 2 0 01-2-2z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 2v5h5"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6M9 16h3"></path></svg>
         </button>
       </div>
 
       {{#if isGM}}
-      <div class="grid grid-cols-2 gap-1.5 {{#if isStandaloneMode}}hidden{{/if}}">
-        <button id="saveCurrentMapButton" class="px-3 py-1.5 rounded-md bg-green-600 hover:bg-green-700 text-white shadow hover:shadow-md text-xs sm:text-sm {{#unless mapInitialized}}opacity-50 cursor-not-allowed{{/unless}}" {{#unless mapInitialized}}disabled title="No map data to save"{{/unless}}>Save Current</button>
-        <button id="saveMapAsButton" class="px-3 py-1.5 rounded-md bg-green-700 hover:bg-green-800 text-white shadow hover:shadow-md text-xs sm:text-sm {{#unless mapInitialized}}opacity-50 cursor-not-allowed{{/unless}}" {{#unless mapInitialized}}disabled title="No map data to save as"{{/unless}}>Save As...</button>
+      <div class="grid grid-cols-2 gap-1 {{#if isStandaloneMode}}hidden{{/if}}">
+        <button id="saveCurrentMapButton" class="px-1.5 py-0.5 rounded bg-green-600 hover:bg-green-700 text-white shadow hover:shadow-md text-xs {{#unless mapInitialized}}opacity-50 cursor-not-allowed{{/unless}}" {{#unless mapInitialized}}disabled title="No map data to save"{{/unless}}>Save Current</button>
+        <button id="saveMapAsButton" class="px-1.5 py-0.5 rounded bg-green-700 hover:bg-green-800 text-white shadow hover:shadow-md text-xs {{#unless mapInitialized}}opacity-50 cursor-not-allowed{{/unless}}" {{#unless mapInitialized}}disabled title="No map data to save as"{{/unless}}>Save As...</button>
       </div>
-      <div class="grid grid-cols-2 gap-1.5">
-        <button id="loadMapFromFileButton" class="px-3 py-1.5 rounded-md bg-sky-600 hover:bg-sky-700 text-white shadow hover:shadow-md text-xs sm:text-sm">Load File...</button>
+      <div class="grid grid-cols-2 gap-1">
+        <button id="loadMapFromFileButton" class="px-1.5 py-0.5 rounded bg-sky-600 hover:bg-sky-700 text-white shadow hover:shadow-md text-xs">Load File...</button>
         <input type="file" id="fileLoadInput" class="hidden" accept=".json,.hexmap">
-        <button id="exportMapButton" class="px-3 py-1.5 rounded-md bg-sky-700 hover:bg-sky-800 text-white shadow hover:shadow-md text-xs sm:text-sm {{#unless mapInitialized}}opacity-50 cursor-not-allowed{{/unless}}" {{#unless mapInitialized}}disabled title="No map data to export"{{/unless}}>Export Map</button>
+        <button id="exportMapButton" class="px-1.5 py-0.5 rounded bg-sky-700 hover:bg-sky-800 text-white shadow hover:shadow-md text-xs {{#unless mapInitialized}}opacity-50 cursor-not-allowed{{/unless}}" {{#unless mapInitialized}}disabled title="No map data to export"{{/unless}}>Export Map</button>
       </div>
-      <div class="grid grid-cols-1 gap-1.5 {{#if isStandaloneMode}}hidden{{/if}}">
-         <button id="deleteSelectedMapButton" class="px-3 py-1.5 rounded-md bg-red-700 hover:bg-red-800 text-white shadow hover:shadow-md text-xs sm:text-sm {{#unless currentMapId}}opacity-50 cursor-not-allowed{{/unless}}" {{#unless currentMapId}}disabled title="No map selected to delete"{{/unless}}>Delete Selected</button>
+      <div class="grid grid-cols-1 gap-1 {{#if isStandaloneMode}}hidden{{/if}}">
+         <button id="deleteSelectedMapButton" class="px-1.5 py-0.5 rounded bg-red-700 hover:bg-red-800 text-white shadow hover:shadow-md text-xs {{#unless currentMapId}}opacity-50 cursor-not-allowed{{/unless}}" {{#unless currentMapId}}disabled title="No map selected to delete"{{/unless}}>Delete Selected</button>
       </div>
       {{/if}}
        {{!-- Save button for standalone mode --}}
       {{#if isStandaloneMode}}
-        <button id="saveStandaloneMapButton" class="w-full mt-1.5 px-3 py-1.5 rounded-md bg-green-600 hover:bg-green-700 text-white shadow hover:shadow-md text-xs sm:text-sm {{#unless mapInitialized}}opacity-50 cursor-not-allowed{{/unless}}" {{#unless mapInitialized}}disabled title="No map data to save"{{/unless}}>Save/Export Map File</button>
+        <button id="saveStandaloneMapButton" class="w-full mt-0.5 px-1.5 py-0.5 rounded bg-green-600 hover:bg-green-700 text-white shadow hover:shadow-md text-xs {{#unless mapInitialized}}opacity-50 cursor-not-allowed{{/unless}}" {{#unless mapInitialized}}disabled title="No map data to save"{{/unless}}>Save/Export Map File</button>
       {{/if}}
     </div>
   </div>
   
-  <hr class="my-2 sm:my-3 border-gray-600">
+  <hr class="my-1 border-gray-600">
 
   {{!-- View Options --}}
   <div>
-    <h3 class="text-lg font-semibold text-sky-300 mb-1.5 border-b border-gray-600 pb-1">View Options</h3>
-    <div class="space-y-1.5">
-      <div class="grid grid-cols-2 gap-1.5">
+    <h3 class="text-sm font-semibold text-sky-300 mb-0.5 border-b border-gray-600 pb-px">View Options</h3>
+    <div class="space-y-0.5">
+      <div class="grid grid-cols-2 gap-1">
         <button data-action="change-view-mode" data-mode="{{CONST.ViewMode.TWOD}}"
-          class="px-2 py-1.5 rounded-md text-xs sm:text-sm shadow hover:shadow-md transition-colors
+          class="px-1 py-0.5 rounded text-xs shadow hover:shadow-md transition-colors
                  {{#if (eq viewMode CONST.ViewMode.TWOD)}}bg-purple-600 hover:bg-purple-700 text-white{{else}}bg-gray-600 hover:bg-gray-500 text-gray-200{{/if}}">
           2D View
         </button>
         <button data-action="change-view-mode" data-mode="{{CONST.ViewMode.THREED}}"
-          class="px-2 py-1.5 rounded-md text-xs sm:text-sm shadow hover:shadow-md transition-colors
+          class="px-1 py-0.5 rounded text-xs shadow hover:shadow-md transition-colors
                  {{#if (eq viewMode CONST.ViewMode.THREED)}}bg-purple-600 hover:bg-purple-700 text-white{{else}}bg-gray-600 hover:bg-gray-500 text-gray-200{{/if}}">
           3D View
         </button>
       </div>
-      <div class="flex items-center space-x-1.5 text-sm">
-        <button id="zoomOutButton" class="p-1.5 bg-gray-600 hover:bg-gray-500 rounded-md shadow" title="Zoom Out">
-                   <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"></path></svg>
-
+      <div class="flex items-center space-x-1 text-xs">
+        <button id="zoomOutButton" class="p-1 bg-gray-600 hover:bg-gray-500 rounded shadow" title="Zoom Out">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"></path></svg>
         </button>
-        <input type="range" id="zoomSlider" min="{{minZoom}}" max="{{maxZoom}}" step="{{zoomStep}}" value="{{zoomLevel}}" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-sky-500 flex-grow">
-        <button id="zoomInButton" class="p-1.5 bg-gray-600 hover:bg-gray-500 rounded-md shadow" title="Zoom In">
-                    <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m-3-3h6"></path></svg>
-
-          
+        <input type="range" id="zoomSlider" min="{{minZoom}}" max="{{maxZoom}}" step="{{zoomStep}}" value="{{zoomLevel}}" class="w-full h-1.5 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-sky-500 flex-grow">
+        <button id="zoomInButton" class="p-1 bg-gray-600 hover:bg-gray-500 rounded shadow" title="Zoom In">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m-3-3h6"></path></svg>
         </button>
-        <button id="resetZoomButton" class="p-1.5 bg-gray-600 hover:bg-gray-500 rounded-md shadow" title="Reset Zoom (100%)">
-          <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m-15.357-2a8.001 8.001 0 0015.357 2m0 0H15"></path></svg>
+        <button id="resetZoomButton" class="p-1 bg-gray-600 hover:bg-gray-500 rounded shadow" title="Reset Zoom (100%)">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m-15.357-2a8.001 8.001 0 0015.357 2m0 0H15"></path></svg>
         </button>
       </div>
       <span class="text-xs text-gray-400 block text-center">Zoom: {{toFixed zoomLevel 2}}x</span>
@@ -100,21 +96,19 @@
   </div>
 
   {{!-- Party Marker Customization --}}
-{{#if (and isGM (eq appMode CONST.AppMode.HEX_EDITOR))}}
-<hr class="my-2 sm:my-3 border-gray-600">
+{{#if (and isGM (eq appMode CONST.AppMode.HEX_EDITOR))}} <hr class="my-1 border-gray-600">
 <div>
-    <h3 class="text-lg font-semibold text-sky-300 mb-1.5 border-b border-gray-600 pb-1">Party Marker</h3>
-    <div class="space-y-1.5 text-sm">
+    <h3 class="text-sm font-semibold text-sky-300 mb-0.5 border-b border-gray-600 pb-px">Party Marker</h3>
+    <div class="space-y-0.5 text-xs">
         <div>
             <label for="partyMarkerImagePathInput" class="block text-xs font-medium text-gray-300">Marker Image Path:</label>
-            <div class="flex items-center space-x-1.5 mt-1">
-                <input type="text" id="partyMarkerImagePathInput" value="{{currentMapPartyMarkerImagePath}}" readonly 
-                       class="flex-grow p-1.5 border border-gray-600 rounded-md bg-gray-800 text-gray-200 text-xs focus:ring-sky-500 focus:border-sky-500">
-                <button id="browsePartyMarkerImageButton" class="px-3 py-1.5 rounded-md bg-sky-600 hover:bg-sky-700 text-white text-xs shadow">Browse</button>
+            <div class="flex items-center space-x-1 mt-0.5">
+                <input type="text" id="partyMarkerImagePathInput" value="{{currentMapPartyMarkerImagePath}}" readonly class="flex-grow p-0.5 border border-gray-600 rounded bg-gray-800 text-gray-200 text-xs focus:ring-sky-500 focus:border-sky-500">
+                <button id="browsePartyMarkerImageButton" class="px-1.5 py-0.5 rounded bg-sky-600 hover:bg-sky-700 text-white text-xs shadow">Browse</button>
             </div>
         </div>
         <button id="clearPartyMarkerImageButton" 
-                class="w-full px-3 py-1.5 rounded-md bg-red-700 hover:bg-red-800 text-white text-xs shadow hover:shadow-md 
+                class="w-full px-1.5 py-0.5 rounded bg-red-700 hover:bg-red-800 text-white text-xs shadow hover:shadow-md 
                        {{#unless currentMapPartyMarkerImagePath}}opacity-50 cursor-not-allowed{{/unless}}"
                 {{#unless currentMapPartyMarkerImagePath}}disabled title="No image set to clear"{{/unless}}>
             Clear Marker Image
@@ -123,44 +117,42 @@
 </div>
 {{/if}}
   
-  <hr class="my-2 sm:my-3 border-gray-600">
+  <hr class="my-1 border-gray-600">
 
 {{!-- Party Activities --}}
-{{!-- This whole section is already wrapped in {{#if (eq appMode CONST.AppMode.PLAYER)}} 
-     so it only shows in Player View mode. We need to differentiate GM and Player INSIDE this. --}}
 {{#if (eq appMode CONST.AppMode.PLAYER)}}
-  <hr class="my-2 sm:my-3 border-gray-600">
+  <hr class="my-1 border-gray-600">
   <div>
-    <h3 class="text-lg font-semibold text-sky-300 mb-1.5 border-b border-gray-600 pb-1">
+    <h3 class="text-sm font-semibold text-sky-300 mb-0.5 border-b border-gray-600 pb-px">
       Party Activities {{#unless @root.isGM}}(View Only){{/unless}}
     </h3>
-    <div class="space-y-1 text-sm">
+    <div class="space-y-px text-xs">
       {{#each (objValues CONST.PARTY_ACTIVITIES)}}
-        <div class="flex items-center p-1.5 rounded-md 
+        <div class="flex items-center p-0.5 rounded 
                     {{#if (lookup @root.activePartyActivities this.id)}}bg-sky-700 border border-sky-500{{else}}bg-gray-600{{/if}}
                     {{#if @root.isGM}}hover:bg-gray-500 cursor-pointer{{else}}opacity-70 cursor-default{{/if}}"
              
              {{#if @root.isGM}}
                role="button" 
                tabindex="0" 
-               data-action="toggle-activity-button" {{!-- GM gets the action attribute --}}
+               data-action="toggle-activity-button"
                data-activity-id="{{this.id}}"
              {{/if}}
              title="{{this.description}} (Source: {{this.source}}){{#unless @root.isGM}} - GM Controlled{{/unless}}">
           
-          <span class="mr-2 w-5 text-center text-lg">{{this.icon}}</span>
+          <span class="mr-1 w-3.5 text-center text-sm">{{this.icon}}</span>
           <span class="flex-grow {{#if (lookup @root.activePartyActivities this.id)}}text-white font-semibold{{else}}text-gray-300{{/if}}">
             {{this.name}}
             {{#if (lookup @root.activePartyActivities this.id)}}
               {{#unless (eq (lookup @root.activePartyActivities this.id) "_GROUP_")}}
-                <span class="text-xs text-sky-300 ml-1">({{lookup @root.activePartyActivities this.id}})</span>
+                <span class="text-xxs text-sky-300 ml-0.5">({{lookup @root.activePartyActivities this.id}})</span>
               {{/unless}}
             {{/if}}
           </span>
           {{#if (lookup @root.activePartyActivities this.id)}}
-            <span class="ml-2 text-xs text-lime-400 font-bold">ACTIVE</span>
+            <span class="ml-1 text-xxs text-lime-400 font-bold">ACTIVE</span>
           {{else}}
-            <span class="ml-2 text-xs text-gray-400">Inactive</span>
+            <span class="ml-1 text-xxs text-gray-400">Inactive</span>
           {{/if}}
         </div>
       {{/each}}
@@ -169,55 +161,55 @@
 {{/if}}
 
   {{!-- Editor Tools (Only if AppMode is HEX_EDITOR and isGM) --}}
-  {{#if (and (eq appMode CONST.AppMode.HEX_EDITOR) isGM)}}
+  {{#if (and (eq appMode CONST.AppMode.HEX_EDITOR) isGM)}} <hr class="my-1 border-gray-600">
   <div>
-    <h3 class="text-lg font-semibold text-sky-300 mb-1.5 border-b border-gray-600 pb-1">Editor Tools</h3>
-    <div class="space-y-1.5 text-sm">
+    <h3 class="text-sm font-semibold text-sky-300 mb-0.5 border-b border-gray-600 pb-px">Editor Tools</h3>
+    <div class="space-y-0.5 text-xs">
       {{!-- Paint Mode --}}
       <label for="paintModeSelect" class="block text-xs font-medium text-gray-300">Paint Mode:</label>
-      <div class="grid grid-cols-3 gap-1.5">
-        <button data-action="change-paint-mode" data-mode="{{CONST.PaintMode.ELEVATION}}" class="px-1 py-1 rounded-md text-xs shadow hover:shadow-md {{#if (eq paintMode CONST.PaintMode.ELEVATION)}}bg-indigo-600 text-white{{else}}bg-gray-600 text-gray-200 hover:bg-gray-500{{/if}}">Elevation</button>
-        <button data-action="change-paint-mode" data-mode="{{CONST.PaintMode.TERRAIN}}" class="px-1 py-1 rounded-md text-xs shadow hover:shadow-md {{#if (eq paintMode CONST.PaintMode.TERRAIN)}}bg-indigo-600 text-white{{else}}bg-gray-600 text-gray-200 hover:bg-gray-500{{/if}}">Terrain</button>
-        <button data-action="change-paint-mode" data-mode="{{CONST.PaintMode.FEATURE}}" class="px-1 py-1 rounded-md text-xs shadow hover:shadow-md {{#if (eq paintMode CONST.PaintMode.FEATURE)}}bg-indigo-600 text-white{{else}}bg-gray-600 text-gray-200 hover:bg-gray-500{{/if}}">Feature</button>
+      <div class="grid grid-cols-3 gap-1">
+        <button data-action="change-paint-mode" data-mode="{{CONST.PaintMode.ELEVATION}}" class="px-0.5 py-px rounded text-xs shadow hover:shadow-md {{#if (eq paintMode CONST.PaintMode.ELEVATION)}}bg-indigo-600 text-white{{else}}bg-gray-600 text-gray-200 hover:bg-gray-500{{/if}}">Elevation</button>
+        <button data-action="change-paint-mode" data-mode="{{CONST.PaintMode.TERRAIN}}" class="px-0.5 py-px rounded text-xs shadow hover:shadow-md {{#if (eq paintMode CONST.PaintMode.TERRAIN)}}bg-indigo-600 text-white{{else}}bg-gray-600 text-gray-200 hover:bg-gray-500{{/if}}">Terrain</button>
+        <button data-action="change-paint-mode" data-mode="{{CONST.PaintMode.FEATURE}}" class="px-0.5 py-px rounded text-xs shadow hover:shadow-md {{#if (eq paintMode CONST.PaintMode.FEATURE)}}bg-indigo-600 text-white{{else}}bg-gray-600 text-gray-200 hover:bg-gray-500{{/if}}">Feature</button>
       </div>
 
       {{!-- Brush Size --}}
-      <label for="brushSize" class="block text-xs font-medium text-gray-300 mt-1.5">Brush Size: <span id="brushSizeValue" class="font-semibold">{{brushSize}}</span></label>
-      <input type="range" id="brushSize" name="brushSize" min="{{CONST.MIN_BRUSH_SIZE}}" max="{{CONST.MAX_BRUSH_SIZE}}" value="{{brushSize}}" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-sky-500">
+      <label for="brushSize" class="block text-xs font-medium text-gray-300 mt-0.5">Brush Size: <span id="brushSizeValue" class="font-semibold">{{brushSize}}</span></label>
+      <input type="range" id="brushSize" name="brushSize" min="{{CONST.MIN_BRUSH_SIZE}}" max="{{CONST.MAX_BRUSH_SIZE}}" value="{{brushSize}}" class="w-full h-1.5 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-sky-500">
 
       {{!-- Elevation Tools --}}
       {{#if (eq paintMode CONST.PaintMode.ELEVATION)}}
-        <div class="grid grid-cols-3 gap-1.5 mt-1.5">
-          <button data-action="change-elevation-mode" data-mode="{{CONST.ElevationBrushMode.INCREASE}}" class="px-1 py-0.5 rounded-md text-xs shadow hover:shadow-md {{#if (eq elevationBrushMode CONST.ElevationBrushMode.INCREASE)}}bg-emerald-600 text-white{{else}}bg-gray-600 text-gray-200 hover:bg-gray-500{{/if}}">Inc</button>
-          <button data-action="change-elevation-mode" data-mode="{{CONST.ElevationBrushMode.DECREASE}}" class="px-1 py-0.5 rounded-md text-xs shadow hover:shadow-md {{#if (eq elevationBrushMode CONST.ElevationBrushMode.DECREASE)}}bg-red-600 text-white{{else}}bg-gray-600 text-gray-200 hover:bg-gray-500{{/if}}">Dec</button>
-          <button data-action="change-elevation-mode" data-mode="{{CONST.ElevationBrushMode.SET_TO_VALUE}}" class="px-1 py-0.5 rounded-md text-xs shadow hover:shadow-md {{#if (eq elevationBrushMode CONST.ElevationBrushMode.SET_TO_VALUE)}}bg-sky-600 text-white{{else}}bg-gray-600 text-gray-200 hover:bg-gray-500{{/if}}">Set</button>
+        <div class="grid grid-cols-3 gap-1 mt-0.5">
+          <button data-action="change-elevation-mode" data-mode="{{CONST.ElevationBrushMode.INCREASE}}" class="px-0.5 py-px rounded text-xs shadow hover:shadow-md {{#if (eq elevationBrushMode CONST.ElevationBrushMode.INCREASE)}}bg-emerald-600 text-white{{else}}bg-gray-600 text-gray-200 hover:bg-gray-500{{/if}}">Inc</button>
+          <button data-action="change-elevation-mode" data-mode="{{CONST.ElevationBrushMode.DECREASE}}" class="px-0.5 py-px rounded text-xs shadow hover:shadow-md {{#if (eq elevationBrushMode CONST.ElevationBrushMode.DECREASE)}}bg-red-600 text-white{{else}}bg-gray-600 text-gray-200 hover:bg-gray-500{{/if}}">Dec</button>
+          <button data-action="change-elevation-mode" data-mode="{{CONST.ElevationBrushMode.SET_TO_VALUE}}" class="px-0.5 py-px rounded text-xs shadow hover:shadow-md {{#if (eq elevationBrushMode CONST.ElevationBrushMode.SET_TO_VALUE)}}bg-sky-600 text-white{{else}}bg-gray-600 text-gray-200 hover:bg-gray-500{{/if}}">Set</button>
         </div>
 
         {{#if (or (eq elevationBrushMode CONST.ElevationBrushMode.INCREASE) (eq elevationBrushMode CONST.ElevationBrushMode.DECREASE))}}
-        <div class="mt-1.5">
+        <div class="mt-0.5">
             <label for="elevationStepInput" class="block text-xs font-medium text-gray-300">Step (m):</label>
-            <input type="number" id="elevationStepInput" name="elevationStepInput" value="{{elevationBrushCustomStep}}" step="10" class="w-full p-1 border border-gray-600 rounded-md bg-gray-800 text-gray-200 text-xs focus:ring-sky-500 focus:border-sky-500">
+            <input type="number" id="elevationStepInput" name="elevationStepInput" value="{{elevationBrushCustomStep}}" step="10" class="w-full p-0.5 border border-gray-600 rounded bg-gray-800 text-gray-200 text-xs focus:ring-sky-500 focus:border-sky-500">
         </div>
         {{/if}}
 
         {{#if (eq elevationBrushMode CONST.ElevationBrushMode.SET_TO_VALUE)}}
-        <div class="mt-1.5">
+        <div class="mt-0.5">
             <label for="elevationSetValueInput" class="block text-xs font-medium text-gray-300">Set Elevation to (m):</label>
-            <input type="number" id="elevationSetValueInput" name="elevationSetValueInput" value="{{elevationBrushSetValue}}" step="10" class="w-full p-1 border border-gray-600 rounded-md bg-gray-800 text-gray-200 text-xs focus:ring-sky-500 focus:border-sky-500">
+            <input type="number" id="elevationSetValueInput" name="elevationSetValueInput" value="{{elevationBrushSetValue}}" step="10" class="w-full p-0.5 border border-gray-600 rounded bg-gray-800 text-gray-200 text-xs focus:ring-sky-500 focus:border-sky-500">
         </div>
         {{/if}}
         
-        <div class="mt-2 flex items-center">
-            <input type="checkbox" id="autoTerrainChangeToggle" name="autoTerrainChangeToggle" {{#if autoTerrainChangeOnElevation}}checked{{/if}} class="h-4 w-4 text-sky-600 border-gray-500 rounded bg-gray-700 focus:ring-sky-500">
-            <label for="autoTerrainChangeToggle" class="ml-2 block text-xs text-gray-300">Auto-change terrain by elevation</label>
+        <div class="mt-1 flex items-center">
+            <input type="checkbox" id="autoTerrainChangeToggle" name="autoTerrainChangeToggle" {{#if autoTerrainChangeOnElevation}}checked{{/if}} class="h-3.5 w-3.5 text-sky-600 border-gray-500 rounded bg-gray-700 focus:ring-sky-500">
+            <label for="autoTerrainChangeToggle" class="ml-1.5 block text-xs text-gray-300">Auto-change terrain</label>
         </div>
 
       {{/if}}
 
       {{!-- Terrain Type Picker --}}
       {{#if (eq paintMode CONST.PaintMode.TERRAIN)}}
-        <label for="terrainTypeSelect" class="block text-xs font-medium text-gray-300 mt-1.5">Terrain Type:</label>
-        <select id="terrainTypeSelect" name="terrainTypeSelect" class="w-full p-1.5 border border-gray-600 rounded-md bg-gray-800 text-gray-200 text-xs focus:ring-sky-500 focus:border-sky-500">
+        <label for="terrainTypeSelect" class="block text-xs font-medium text-gray-300 mt-0.5">Terrain Type:</label>
+        <select id="terrainTypeSelect" name="terrainTypeSelect" class="w-full p-0.5 border border-gray-600 rounded bg-gray-800 text-gray-200 text-xs focus:ring-sky-500 focus:border-sky-500">
           {{#each (objEntries CONST.TERRAIN_TYPES_CONFIG)}}
             <option value="{{this.key}}" {{#if (eq ../selectedTerrainType this.key)}}selected{{/if}}>{{this.value.name}} ({{this.value.symbol}})</option>
           {{/each}}
@@ -226,24 +218,24 @@
       
       {{!-- Feature Type Picker --}}
       {{#if (eq paintMode CONST.PaintMode.FEATURE)}}
-        <label for="featureToggleSelect" class="block text-xs font-medium text-gray-300 mt-1.5">Feature Type:</label>
-        <select id="featureToggleSelect" name="featureToggleSelect" class="w-full p-1.5 border border-gray-600 rounded-md bg-gray-800 text-gray-200 text-xs focus:ring-sky-500 focus:border-sky-500">
+        <label for="featureToggleSelect" class="block text-xs font-medium text-gray-300 mt-0.5">Feature Type:</label>
+        <select id="featureToggleSelect" name="featureToggleSelect" class="w-full p-0.5 border border-gray-600 rounded bg-gray-800 text-gray-200 text-xs focus:ring-sky-500 focus:border-sky-500">
           {{#each (objValues CONST.TerrainFeature)}}
             <option value="{{this}}" {{#if (eq ../selectedFeatureType this)}}selected{{/if}}>{{capitalizeFirst this}}</option>
           {{/each}}
         </select>
-        <div class="grid grid-cols-2 gap-1.5 mt-1.5">
+        <div class="grid grid-cols-2 gap-1 mt-0.5">
           <button id="featureAddModeButton"
                   data-action="set-feature-brush-action"
                   data-feature-action="{{@root.CONST.FeatureBrushAction.ADD}}"
-                  class="px-2 py-1 text-xs border rounded {{#if (eq @root.featureBrushAction @root.CONST.FeatureBrushAction.ADD)}}bg-green-500 text-white{{else}}bg-gray-600 text-gray-200 hover:bg-gray-500{{/if}}"
+                  class="px-1 py-px text-xs border rounded {{#if (eq @root.featureBrushAction @root.CONST.FeatureBrushAction.ADD)}}bg-green-500 text-white{{else}}bg-gray-600 text-gray-200 hover:bg-gray-500{{/if}}"
                   title="Add features with brush (selected type)">
             Add Mode
           </button>
           <button id="featureRemoveModeButton"
                   data-action="set-feature-brush-action"
                   data-feature-action="{{@root.CONST.FeatureBrushAction.REMOVE}}"
-                  class="px-2 py-1 text-xs border rounded {{#if (eq @root.featureBrushAction @root.CONST.FeatureBrushAction.REMOVE)}}bg-red-500 text-white{{else}}bg-gray-600 text-gray-200 hover:bg-gray-500{{/if}}"
+                  class="px-1 py-px text-xs border rounded {{#if (eq @root.featureBrushAction @root.CONST.FeatureBrushAction.REMOVE)}}bg-red-500 text-white{{else}}bg-gray-600 text-gray-200 hover:bg-gray-500{{/if}}"
                   title="Remove features with brush">
             Remove Mode
           </button>
@@ -251,56 +243,86 @@
       {{/if}}
 
       {{!-- LoS Tools --}}
-      <div class="mt-1.5">
+      <div class="mt-1">
         <label class="block text-xs font-medium text-gray-300">Line of Sight (Editor):</label>
-        <div class="grid grid-cols-2 gap-1.5">
-            <button id="toggleLosButton" class="px-1 py-1 rounded-md text-xs shadow hover:shadow-md {{#if isEditorLosSelectMode}}bg-pink-600 text-white{{else}}bg-gray-600 text-gray-200 hover:bg-gray-500{{/if}}">
-                {{#if isEditorLosSelectMode}}Selecting Source...{{else}}Set LoS Source{{/if}}
+        <div class="grid grid-cols-2 gap-1">
+            <button id="toggleLosButton" class="px-0.5 py-px rounded text-xs shadow hover:shadow-md {{#if isEditorLosSelectMode}}bg-pink-600 text-white{{else}}bg-gray-600 text-gray-200 hover:bg-gray-500{{/if}}">
+                {{#if isEditorLosSelectMode}}Selecting...{{else}}Set LoS Src{{/if}}
             </button>
-            <button id="clearLosButton" class="px-1 py-1 rounded-md text-xs shadow hover:shadow-md bg-gray-600 text-gray-200 hover:bg-gray-500 {{#unless editorLosSourceHexId}}opacity-50 cursor-not-allowed{{/unless}}" {{#unless editorLosSourceHexId}}disabled{{/unless}}>
+            <button id="clearLosButton" class="px-0.5 py-px rounded text-xs shadow hover:shadow-md bg-gray-600 text-gray-200 hover:bg-gray-500 {{#unless editorLosSourceHexId}}opacity-50 cursor-not-allowed{{/unless}}" {{#unless editorLosSourceHexId}}disabled{{/unless}}>
                 Clear LoS
             </button>
         </div>
       </div>
       
       {{!-- Grid Admin --}}
-      <div class="mt-3 pt-2 border-t border-gray-600 {{#if isStandaloneMode}}hidden{{/if}}">
-        <h4 class="text-md font-semibold text-sky-300 mb-1">Map Reset Options</h4>
-        <button id="resetGridButton" class="w-full px-3 py-1.5 rounded-md bg-red-700 hover:bg-red-800 text-white shadow hover:shadow-md text-xs sm:text-sm mb-1.5">Reset Grid (Clear All Hexes)</button>
-        <button id="resetExplorationButton" class="w-full px-3 py-1.5 rounded-md bg-yellow-600 hover:bg-yellow-700 text-gray-800 shadow hover:shadow-md text-xs sm:text-sm">Reset Exploration & Marker</button>
+      <div class="mt-1.5 pt-1 border-t border-gray-600 {{#if isStandaloneMode}}hidden{{/if}}">
+        <h4 class="text-xs font-semibold text-sky-300 mb-0.5">Map Reset Options</h4>
+        <button id="resetGridButton" class="w-full px-1.5 py-0.5 rounded bg-red-700 hover:bg-red-800 text-white shadow hover:shadow-md text-xs mb-0.5">Reset Grid (Clear All Hexes)</button>
+        <button id="resetExplorationButton" class="w-full px-1.5 py-0.5 rounded bg-yellow-600 hover:bg-yellow-700 text-gray-800 shadow hover:shadow-md text-xs">Reset Exploration & Marker</button>
       </div>
 
       {{!-- Weather System --}}
-      <div class="mt-3 pt-2 border-t border-gray-600">
-        <h3 class="text-md font-semibold text-sky-300 mb-1.5">Weather System</h3>
-        <div class="flex items-center mb-2">
-          <input type="checkbox" id="enableWeatherToggle" name="enableWeatherToggle" class="h-4 w-4 text-sky-600 border-gray-500 rounded bg-gray-700 focus:ring-sky-500" {{#if isWeatherEnabled}}checked{{/if}}>
-          <label for="enableWeatherToggle" class="ml-2 text-xs text-gray-300">Enable Weather System</label>
+      <div class="mt-1.5 pt-1 border-t border-gray-600">
+        <h3 class="text-xs font-semibold text-sky-300 mb-0.5">Weather System</h3>
+        <div class="flex items-center mb-1">
+          <input type="checkbox" id="enableWeatherToggle" name="enableWeatherToggle" class="h-3.5 w-3.5 text-sky-600 border-gray-500 rounded bg-gray-700 focus:ring-sky-500" {{#if isWeatherEnabled}}checked{{/if}}>
+          <label for="enableWeatherToggle" class="ml-1.5 text-xs text-gray-300">Enable Weather</label>
         </div>
+        
+{{#if (and (eq appMode CONST.AppMode.HEX_EDITOR) isGM)}}
+  {{#if isWeatherEnabled}}
+    <div class="mt-1">
+        <h4 class="text-xxs font-semibold text-sky-300 mb-px">Wind Conditions</h4>
+        <div class="grid grid-cols-2 gap-1 text-xs">
+            <div>
+                <label for="windStrengthSelect" class="block text-gray-300 mb-px text-xxs">Strength:</label>
+                <select id="windStrengthSelect" class="w-full p-0.5 border border-gray-600 rounded bg-gray-800 text-gray-200 text-xxs focus:ring-sky-500 focus:border-sky-500">
+                    {{#each (objEntries CONST.WIND_STRENGTHS)}}
+                        <option value="{{this.key}}" {{#if (eq ../mapWeatherSystem.windStrength this.key)}}selected{{/if}}>{{this.value.name}}</option>
+                    {{/each}}
+                </select>
+            </div>
+            <div>
+                <label for="windDirectionSelect" class="block text-gray-300 mb-px text-xxs">Direction:</label>
+                <select id="windDirectionSelect" class="w-full p-0.5 border border-gray-600 rounded bg-gray-800 text-gray-200 text-xxs focus:ring-sky-500 focus:border-sky-500">
+                    {{#each (objEntries CONST.WIND_DIRECTIONS)}}
+                         <option value="{{this.key}}" {{#if (eq ../mapWeatherSystem.windDirection this.key)}}selected{{/if}}>{{this.value.name}} {{this.value.symbol}}</option>
+                    {{/each}}
+                </select>
+            </div>
+        </div>
+    </div>
 
-        {{#if isWeatherEnabled}}
-        <div>
-          <h4 class="text-sm font-semibold text-sky-300 mt-2 mb-1">Weather Distribution</h4>
-          <div class="space-y-1 text-xs">
-            {{#each weatherConditions}}
-            <div class="flex items-center justify-between">
-              <label for="weatherPercent-{{this.id}}" class="text-gray-300 flex-grow">
-                <span class="inline-block w-4 mr-1">{{this.icon}}</span> {{this.name}}
-              </label>
-              <input type="number" id="weatherPercent-{{this.id}}" data-weather-id="{{this.id}}" value="{{lookup ../weatherSettings this.id}}" min="0" max="100" class="w-16 p-1 border border-gray-600 rounded-md bg-gray-800 text-gray-200 text-xs focus:ring-sky-500 focus:border-sky-500">
-              <span class="ml-1 text-gray-400">%</span>
+    <div class="mt-1">
+        <h4 class="text-xxs font-semibold text-sky-300 mb-px">Map Weather Types & Weights</h4>
+       <div id="mapWeatherTypesScrollContainer" class="space-y-px text-xxs max-h-80 overflow-y-auto pr-px"> {{!-- Reduced max-h and pr, ADDED ID --}}
+             {{#each CONST.DEFAULT_WEATHER_CONDITIONS}}
+            <div class="flex items-center justify-between p-px bg-gray-800 rounded">
+                <div class="flex items-center"> 
+                    <input type="checkbox" id="mapWeatherType-{{this.id}}" data-weather-type-id="{{this.id}}" 
+                           class="h-3 w-3 text-sky-600 border-gray-500 rounded bg-gray-700 focus:ring-sky-500 mr-1 map-weather-type-toggle" 
+                           {{#if (isWeatherTypeAvailable ../mapWeatherSystem.availableWeatherTypes this.id)}}checked{{/if}}>
+                    <label for="mapWeatherType-{{this.id}}" class="text-gray-300">
+                        <span class="inline-block w-3 mr-0.5">{{this.icon}}</span> {{this.name}}
+                    </label>
+                </div>
+                <div class="flex items-center {{#unless (isWeatherTypeAvailable ../mapWeatherSystem.availableWeatherTypes this.id)}}opacity-50 pointer-events-none{{/unless}}">
+                    <input type="number" id="mapWeatherWeight-{{this.id}}" data-weather-weight-id="{{this.id}}" 
+                           value="{{lookup ../mapWeatherSystem.weatherTypeWeights this.id}}" min="0" max="100" 
+                           class="w-10 p-px border border-gray-600 rounded bg-gray-700 text-gray-200 text-xxs focus:ring-sky-500 focus:border-sky-500 map-weather-type-weight">
+                    <span class="ml-0.5 text-gray-400">%</span>
+                </div>
             </div>
             {{/each}}
-          </div>
         </div>
-        {{!-- Removed playerCanSeeForecastToggle --}}
-        <h4 class="text-md font-semibold text-sky-300 mt-2 mb-1">View Future Weather</h4>
-        <div class="flex items-center space-x-1.5">
-          <input type="number" id="forecastHoursInput" placeholder="Hours (e.g., 6)" class="w-24 p-1 border border-gray-600 rounded-md bg-gray-800 text-gray-200 text-xs">
-          <button id="viewForecastButton" class="px-2 py-1 rounded-md bg-sky-600 hover:bg-sky-700 text-white text-xs shadow">View</button>
-          <button id="clearForecastViewButton" class="px-2 py-1 rounded-md bg-gray-600 hover:bg-gray-500 text-white text-xs shadow {{#unless displayingForecastWeatherGrid}}hidden{{/unless}}">Clear View</button>
-        </div>
-        {{/if}}
+    </div>
+    
+    <button id="regenerateWeatherButton" class="mt-1 w-full px-1.5 py-0.5 rounded bg-orange-600 hover:bg-orange-700 text-white text-xs shadow">Regen Weather</button>
+    
+  {{/if}}
+{{/if}}
+
       </div>
     </div>
   </div>

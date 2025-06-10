@@ -15,39 +15,59 @@ const tabellaIncontriCasualiGenerica = [
 ];
 // --- END DATA TABLES ---
 
-// --- HELPER FUNCTIONS ---
-function simpleDiceRoll(formula) { 
-    if (typeof formula !== 'string') return 0;
-    const parts = formula.toLowerCase().split('d');
-    if (parts.length !== 2) {
-        const flatNum = parseInt(formula, 10);
-        return isNaN(flatNum) ? 0 : flatNum;
+export function postHexplorationChatMessage(message, whisperToGM = false, alias = "Hexploration System") {
+    if (!message || typeof message !== 'string' || message.trim() === "") {
+        console.warn("HexplorationLogic: postHexplorationChatMessage called with empty or invalid message.");
+        return;
     }
-    const numDice = parseInt(parts[0], 10) || 1;
-    const dieSize = parseInt(parts[1], 10);
-    if (isNaN(dieSize) || dieSize <= 0) return 0;
-    let total = 0;
-    for (let i = 0; i < numDice; i++) {
-        total += Math.floor(Math.random() * dieSize) + 1;
-    }
-    return total;
-}
 
-function tiraDaTabellaPesata(tabella) {
-    if (!tabella || !Array.isArray(tabella) || tabella.length === 0) {
-        return { tipo: "Error", descrizione: "Encounter table is invalid or empty.", peso: 1 };
+    if (appState.isStandaloneMode) {
+        const logStyle = whisperToGM 
+            ? "color: gray; font-style: italic;" 
+            : "color: black; background: #e0efff; padding: 2px; border-left: 3px solid #60a5fa;";
+        console.log(`%cHEXPLORATION CHAT (Standalone): ${alias} - ${message}`, logStyle);
+        
+        // Optionally, add to a more persistent in-app log if you have one for standalone
+        // For example, if you want these messages to also appear in the appState.currentMapEventLog:
+        if (!whisperToGM) { // Only log public messages to the event log
+            const logEntry = {
+                type: "chat_message_sim", // Differentiate from actual Foundry chat
+                timestamp: new Date().toISOString(),
+                alias: alias,
+                content: message,
+            };
+            if (!appState.currentMapEventLog) appState.currentMapEventLog = [];
+            appState.currentMapEventLog.unshift(logEntry);
+            if (appState.currentMapEventLog.length > 100) appState.currentMapEventLog.pop();
+            // If the event log is visible, a renderApp might be needed.
+            // However, this function is often called during other operations that will trigger renderApp.
+            // renderApp({ preserveScroll: true }); 
+        }
+        return;
     }
-    let pesoTotale = 0;
-    tabella.forEach(entry => pesoTotale += Math.max(1, (entry.peso || 1)));
-    if (pesoTotale === 0) return tabella[0] || { tipo: "Error", descrizione: "Encounter table has no valid weights.", peso: 1 };
 
-    let tiroCasuale = Math.floor(Math.random() * pesoTotale);
-    for (const entry of tabella) {
-        const currentWeight = Math.max(1, (entry.peso || 1));
-        if (tiroCasuale < currentWeight) return entry;
-        tiroCasuale -= currentWeight;
+    // Foundry Mode: Send message to bridge
+    if (window.parent && APP_MODULE_ID_HEXPLORATION && typeof window.parent.postMessage === 'function') {
+        const payloadToBridge = {
+            content: message,
+            whisper: whisperToGM,
+            alias: alias
+        };
+        try {
+            window.parent.postMessage({
+                type: 'postChatMessage', // Bridge listens for this type
+                payload: payloadToBridge,
+                moduleId: APP_MODULE_ID_HEXPLORATION
+            }, '*');
+        } catch (e) {
+            console.error("HexplorationLogic: Error posting chat message to parent:", e);
+        }
+    } else {
+        console.warn("HexplorationLogic: Cannot post chat message to Foundry. Parent window, postMessage, or APP_MODULE_ID_HEXPLORATION missing.");
+        // Fallback to console if bridge communication fails
+        const logStyle = whisperToGM ? "color: gray; font-style: italic;" : "color: darkred;";
+        console.log(`%cHEXPLORATION CHAT (Bridge Fail): ${alias} - ${message}`, logStyle);
     }
-    return tabella[tabella.length - 1]; // Fallback
 }
 
 
@@ -109,8 +129,6 @@ export function calculateAndUpdateCurrentTravelSpeed() {
 
     appState.currentTravelSpeedText = speedText;
 }
-
-// --- CORE HEXPLORATION ACTIONS (Exported) ---
 
 
 /**

@@ -96,22 +96,40 @@ export const appState = {
   },
 
   isWeatherEnabled: false,
-  weatherConditions: [
-    { id: 'sunny', name: 'Sunny', icon: '☀️', effects: { travelSpeed: 1, visibility: 1 } },
-    { id: 'cloudy', name: 'Cloudy', icon: '☁️', effects: { travelSpeed: 1, visibility: 0.8 } },
-    { id: 'rainy', name: 'Rainy', icon: '🌧️', effects: { travelSpeed: 0.8, visibility: 0.6 } }, // Note: PF2e this is usually x2 time
-    { id: 'stormy', name: 'Stormy', icon: '⛈️', effects: { travelSpeed: 0.5, visibility: 0.2 } }, // Note: PF2e this is usually x4 time
-    { id: 'foggy', name: 'Foggy', icon: '🌫️', effects: { travelSpeed: 0.9, visibility: 0.4 } }, // Note: PF2e this is usually x1.5 or x2 time
-  ],
+  mapWeatherSystem: getDefaultMapWeatherSystem(),
   weatherGrid: {},
-  weatherSettings: { sunny: 70, cloudy: 15, rainy: 10, foggy: 5, stormy: 1 },
-  timeSinceLastWeatherChange: 0,
-  forecastHoursAhead: null,
-  displayingForecastWeatherGrid: null,
-  playerCanSeeCurrentWeather: true,
-  activeWeatherSystems: [],
-  timeSinceLastNewWeatherSystemSpawn: 0,
+
+  timeSinceLastWeatherChange: 0, // This might be deprecated if weather moves continuously
+  forecastHours: 0, // For GM forecast input
+  forecastHoursPlayer: 0, // For player forecast slider
+  displayingForecastWeatherGrid: null, // Holds the grid for the forecast view
+  playerCanSeeCurrentWeather: true, // Player UI toggle
 };
+
+export function getDefaultMapWeatherSystem() {
+  const defaultAvailableTypes = CONST.DEFAULT_WEATHER_CONDITIONS.map(wc => wc.id);
+  const defaultWeights = {};
+  CONST.DEFAULT_WEATHER_CONDITIONS.forEach(wc => {
+    // Default weights, e.g., sunny 70, cloudy 15, rainy 10, etc.
+    if (wc.id === 'sunny') defaultWeights[wc.id] = 70;
+    else if (wc.id === 'cloudy') defaultWeights[wc.id] = 15;
+    else if (wc.id === 'rainy') defaultWeights[wc.id] = 10;
+    else if (wc.id === 'stormy') defaultWeights[wc.id] = 3;
+    else if (wc.id === 'foggy') defaultWeights[wc.id] = 2;
+    else defaultWeights[wc.id] = 0;
+  });
+
+  return {
+    windStrength: 'CALM', // Key from CONST.WIND_STRENGTHS
+    windDirection: 'CALM', // Key from CONST.WIND_DIRECTIONS
+    availableWeatherTypes: defaultAvailableTypes, // Array of weather type IDs
+    weatherTypeWeights: defaultWeights, // Object { weatherTypeId: weight, ... }
+    activeWeatherSystems: [], // Array of active weather system objects
+    weatherGrid: {}, // { hexId: weatherTypeId }
+    // Add other map-specific general weather settings if needed later
+  };
+}
+
 
 export function resetActiveMapState() {
     appState.hexGridData = []; appState.hexDataMap = new Map();
@@ -122,6 +140,15 @@ export function resetActiveMapState() {
     appState.playerDiscoveredHexIds = new Set();
     appState.lastMovementInfo = null;
     appState.isWaitingForFeatureDetails = false;
+
+    appState.isWeatherEnabled = false; // Default to off for a new/reset map context
+    appState.mapWeatherSystem = getDefaultMapWeatherSystem();
+
+    appState.timeSinceLastWeatherChange = 0;
+    appState.forecastHours = 0;
+    appState.forecastHoursPlayer = 0;
+    appState.displayingForecastWeatherGrid = null;
+    appState.playerCanSeeCurrentWeather = true;
 
     appState.currentMapPartyMarkerImagePath = null; 
     appState.currentMapEventLog = [];

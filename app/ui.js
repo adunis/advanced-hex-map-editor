@@ -76,6 +76,10 @@ export async function compileTemplates() {
     Handlebars.registerHelper({
         eq: (a, b) => a === b,
         or: (a, b) => a || b,
+                ne: (a, b) => a !== b,
+        isWeatherTypeAvailable: function(availableTypesArray, typeId) {
+    return availableTypesArray && availableTypesArray.includes(typeId);
+},
         capitalize: (s) => s ? s.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()) : "",
         capitalizeFirst: function (string) { if (!string || typeof string !== "string") return ""; return string.charAt(0).toUpperCase() + string.slice(1); },
         typeCapitalized: function(logEntry) { 
@@ -170,8 +174,10 @@ export async function compileTemplates() {
   }
 }
 
-
 export function renderApp(options = {}) {
+
+    options.preserveScroll = true;
+
     if (!mainTemplateCompiled || !appContainer) {
         console.error("AHME: Main template not compiled or appContainer not found.");
         if (appContainer) appContainer.innerHTML = "<p class='text-red-500 p-4'>Error: Application UI cannot be initialized.</p>";
@@ -190,11 +196,6 @@ export function renderApp(options = {}) {
         oldScrollLeft = svgScrollContainerPrior.scrollLeft;
         oldScrollTop = svgScrollContainerPrior.scrollTop;
     }
-    // ... (rest of hexGridRenderData and SVG sizing logic from your existing renderApp) ...
-    // Ensure you are using `movementPenaltyFactor` or `timeFactor` correctly from CONST.PARTY_ACTIVITIES
-    // when displaying activity details in the log or active activities list.
-    // The `HexplorationLogic.calculateEffectivePartySpeed` now populates `activeIndividualActivitiesList`
-    // and `activeGroupActivitiesList` in `appState`, which can be used by Handlebars.
 
     const hexesToRenderSource = appState.mapInitialized ? appState.hexGridData.flat().filter(Boolean) : [];
     if (appState.viewMode === CONST.ViewMode.THREED && appState.mapInitialized) {
@@ -277,10 +278,7 @@ export function renderApp(options = {}) {
                 const b = parseInt(rgbMatch[3]);
                 const brightness = (r * 299 + g * 587 + b * 114) / 1000;
                 if (brightness > 130) { txtClr = "fill-gray-800"; }
-                // This part regarding MOUNTAIN_ELEV_SNOW_LINE_START and MOUNTAIN_LIGHT_SURFACE_TEXT_COLOR
-                // needs MOUNTAIN_ELEV_SNOW_LINE_START and MOUNTAIN_LIGHT_SURFACE_TEXT_COLOR to be defined in CONST.
-                // Assuming they are, or this part would error. For now, I'll comment it if not found.
-                // if (curHex.terrain === CONST.TerrainType.MOUNTAIN && curHex.elevation >= CONST.MOUNTAIN_ELEV_SNOW_LINE_START) { txtClr = CONST.MOUNTAIN_LIGHT_SURFACE_TEXT_COLOR; }
+                if (curHex.terrain === CONST.TerrainType.MOUNTAIN && curHex.elevation >= CONST.MOUNTAIN_ELEV_SNOW_LINE_START) { txtClr = CONST.MOUNTAIN_LIGHT_SURFACE_TEXT_COLOR; }
             }
         } else {
             if ( fillForTopFace.includes("100") || fillForTopFace.includes("200") || fillForTopFace.includes("300") || fillForTopFace.includes("400") || (fillForTopFace.includes("lime")&&!fillForTopFace.includes("900"))||(fillForTopFace.includes("yellow")&&!fillForTopFace.includes("900"))||(fillForTopFace.includes("cyan")&&!fillForTopFace.includes("900")) ) { txtClr = "fill-gray-800"; }
@@ -354,62 +352,146 @@ export function renderApp(options = {}) {
         let elevTxt = `${curHex.elevation}m`;
         if (curHex.elevation > 0) elevTxt = `+${curHex.elevation}m`;
 
+  const gridToUseForWeatherTooltip = appState.displayingForecastWeatherGrid
+                                        ? appState.displayingForecastWeatherGrid
+                                        : appState.mapWeatherSystem.weatherGrid;
+
+        const weatherIdOnHexForTooltip = gridToUseForWeatherTooltip ? gridToUseForWeatherTooltip[curHex.id] : null;
+        let weatherCondition = null;
+        if (weatherIdOnHexForTooltip) {
+            weatherCondition = CONST.DEFAULT_WEATHER_CONDITIONS.find(wc => wc.id === weatherIdOnHexForTooltip);
+        }
+        
+        let showWeatherInTooltip = false;
+        if (appState.isWeatherEnabled && weatherIdOnHexForTooltip && weatherCondition) {
+            if (appState.isGM) {
+                showWeatherInTooltip = true; // GM always sees
+            } else { // Player logic
+                if (appState.displayingForecastWeatherGrid) { // If player is viewing a forecast
+                    showWeatherInTooltip = true;
+                } else if (appState.playerCanSeeCurrentWeather) { // If player is viewing current and has toggle on
+                    showWeatherInTooltip = true;
+                }
+            }
+        }
+
+        let weatherTooltipString = "";
+        let weatherDescriptionString = "";
+        if (showWeatherInTooltip && weatherCondition) {
+            weatherTooltipString = `\n🌦️ Weather: ${weatherCondition.name} ${weatherCondition.icon || ''}`;
+            let tempHumDetails = [];
+            if (weatherCondition.baseTemperatureC !== null && weatherCondition.baseTemperatureC !== undefined) {
+                 tempHumDetails.push(`${weatherCondition.baseTemperatureC}°C`);
+            }
+            if (weatherCondition.baseHumidityPercent !== null && weatherCondition.baseHumidityPercent !== undefined) {
+                 tempHumDetails.push(`${weatherCondition.baseHumidityPercent}% Hum.`);
+            }
+            if (tempHumDetails.length > 0) {
+                weatherTooltipString += ` (${tempHumDetails.join(', ')})`;
+            }
+            if (weatherCondition.description) { // ADDED Weather Description
+                weatherDescriptionString = `\n    <i>  ${weatherCondition.description}  </i> `;
+            }
+        }
+        
+        let displayEncounterChance = tc.encounterChanceOnEnter || 0;
+        let displaySpeedMultiplier = tc.speedMultiplier || 1.0;
+
+        if (showWeatherInTooltip && weatherCondition?.effects) {
+            if (typeof weatherCondition.effects.encounterChanceModifier === 'number') {
+                displayEncounterChance += weatherCondition.effects.encounterChanceModifier;
+                displayEncounterChance = Math.max(0, Math.min(100, displayEncounterChance));
+            }
+            if (typeof weatherCondition.effects.travelSpeedMultiplier === 'number') {
+                displaySpeedMultiplier *= weatherCondition.effects.travelSpeedMultiplier;
+                if (displaySpeedMultiplier <= 0) displaySpeedMultiplier = 999; // Indicate impassable/very slow
+            }
+        }
+
+        const baseEncounterChanceText = `(Base Terrain: ${tc.encounterChanceOnEnter || 0}%)`;
+        const baseSpeedMultiplierText = `(Base Terrain: x${(tc.speedMultiplier || 1.0).toFixed(2)})`;
+
+        const encounterChanceFinalText = `${displayEncounterChance}%` +
+            (showWeatherInTooltip && weatherCondition?.effects && typeof weatherCondition.effects.encounterChanceModifier === 'number' && weatherCondition.effects.encounterChanceModifier !== 0
+                ? ` ${baseEncounterChanceText}`
+                : '');
+
+        const speedMultiplierFinalText = `x${displaySpeedMultiplier.toFixed(2)}` +
+            (showWeatherInTooltip && weatherCondition?.effects && typeof weatherCondition.effects.travelSpeedMultiplier === 'number' && weatherCondition.effects.travelSpeedMultiplier !== 1.0
+                ? ` ${baseSpeedMultiplierText}`
+                : '');
+
         const isPlayerAndUndiscovered =
             appState.appMode === CONST.AppMode.PLAYER &&
             !appState.playerDiscoveredHexIds.has(curHex.id) &&
             !appState.isGM;
 
-        const featureDisplayStringForTitle = currentFeatureLower !== CONST.TerrainFeature.NONE.toLowerCase()
-            ? capitalizeFirstLetterLocal(currentFeatureLower) 
+        const featureDisplayString = currentFeatureLower !== CONST.TerrainFeature.NONE.toLowerCase()
+            ? capitalizeFirstLetterLocal(currentFeatureLower)
             : "None";
+        
 
+        const terrainDescriptionString = tc.description ? `\n  <i> ${tc.description}  </i> `: ""; // ADDED Terrain Description
+
+        // Construct the final title text
         const title =
-            `📍 ID: ${curHex.id}\n` + 
+            `📍 ID: ${curHex.id}\n` +
             (isPlayerAndUndiscovered
-                ? `❓ Undiscovered` 
+                ? `❓ Undiscovered`
                 : 
-                  `🏞️ Terrain: ${tc.name} (${tc.symbol || "N/A"})\n` + 
-                  `🎲 Encounter Chance: ${tc.encounterChanceOnEnter || 0}%\n` + // Default to 0 if undefined
-                  `⏩ Speed Multiplier: x${tc.speedMultiplier || 1.0}\n` + // Default to 1.0 if undefined
-                  `✨ Feature: ${featureDisplayStringForTitle}${featureTooltipNameString}`
+                  `🏞️ Terrain: ${tc.name} (${tc.symbol || "N/A"})${terrainDescriptionString}\n` + // Appended terrain description
+                  `🎲 Encounter: ${encounterChanceFinalText}\n` +
+                  `⏩ Speed (Time): ${speedMultiplierFinalText}\n` +
+                  `✨ Feature: ${featureDisplayString}${featureTooltipNameString}` +
+                  `${weatherTooltipString}${weatherDescriptionString}` // Appended weather and its description
             );
+
         const textYOffset1 = cy_top_proj - CONST.HEX_SIZE * 0.35 * currentYSquashFactor;
         const textYOffset2 = cy_top_proj + CONST.HEX_SIZE * 0.05 * currentYSquashFactor;
         const textYOffset3 = cy_top_proj + CONST.HEX_SIZE * 0.45 * currentYSquashFactor;
         const terrainSymbolYOffset = (elevTxt && elevTxt.length > 0) ? textYOffset3 : textYOffset2;
         const terrainSymbolFontSize = (tc.symbol && tc.symbol.length > 1 && /\p{Emoji}/u.test(tc.symbol)) ? 'text-xs sm:text-sm' : 'text-sm sm:text-base';
 
-        let weatherIconToRender = null;
+   let weatherIconToRender = null;
         let weatherName = null;
         let weatherIconClass = "weather-icon-default";
 
-        const gridForCurrentHexDisplay = appState.displayingForecastWeatherGrid ? appState.displayingForecastWeatherGrid : appState.weatherGrid;
-        const weatherIdOnHex = gridForCurrentHexDisplay ? gridForCurrentHexDisplay[curHex.id] : null;
+        const gridToUseForDisplay = appState.displayingForecastWeatherGrid 
+                                    ? appState.displayingForecastWeatherGrid 
+                                    : appState.mapWeatherSystem.weatherGrid;
+        const weatherIdOnHex = gridToUseForDisplay ? gridToUseForDisplay[curHex.id] : null;
         
         let showWeatherForThisHex = false;
         if (appState.isWeatherEnabled && weatherIdOnHex) {
             if (appState.isGM) {
-                showWeatherForThisHex = true;
-            } else {
-                if (appState.playerCanSeeCurrentWeather && !appState.displayingForecastWeatherGrid) {
+                showWeatherForThisHex = true; // GM always sees weather if enabled
+            } else { // Player logic
+                if (appState.displayingForecastWeatherGrid) { // If player is viewing a forecast
+                    showWeatherForThisHex = true; 
+                } else if (appState.playerCanSeeCurrentWeather) { // If player is viewing current and has toggle on
                     showWeatherForThisHex = true;
+                } else {
+                    showWeatherForThisHex = false; // Player viewing current, but toggle is off
                 }
             }
         }
 
         if (showWeatherForThisHex) {
-            const weatherCondition = appState.weatherConditions.find(wc => wc.id === weatherIdOnHex);
+            const weatherCondition = CONST.DEFAULT_WEATHER_CONDITIONS.find(wc => wc.id === weatherIdOnHex);
             if (weatherCondition) {
                 weatherIconToRender = weatherCondition.icon;
                 weatherName = weatherCondition.name;
-                weatherIconClass = `weather-icon-${weatherCondition.id}`;
             }
         } else {
             weatherIconToRender = null;
             weatherName = null;
-            weatherIconClass = "";
         }
 
+
+
+
+
+        
         return {
             ...curHex,
             cx: cx_top_proj, cy: cy_top_proj, points: topFacePoints,
@@ -469,30 +551,20 @@ export function renderApp(options = {}) {
                                        appState.currentGridWidth > 0 &&
                                        appState.currentGridHeight > 0;
 
-   const activePartyActivitiesDisplayArray = [];
-    appState.activePartyActivities.forEach((characterName, activityId) => {
-        const activityDetails = CONST.PARTY_ACTIVITIES[activityId];
-        if (activityDetails) {
-            activePartyActivitiesDisplayArray.push({
-                key: activityId, // For iteration in Handlebars if needed
-                value: characterName, // Character name or "_GROUP_"
-                details: {
-                    ...activityDetails,
-                    // Ensure timeFactor is available for display, using movementPenaltyFactor as the source
-                    timeFactor: activityDetails.movementPenaltyFactor ?? activityDetails.timeFactor ?? 1.0
-                }
-            });
-        }
-    });
+   const activePartyActivitiesDisplayArray = Array.from(appState.activePartyActivities, ([key, value]) => ({
+        key,
+        value,
+        details: CONST.PARTY_ACTIVITIES[key]
+    }));
     
     const renderContext = {
-        ...appState, 
+        ...appState, // Includes hexplorationTimeElapsedHoursToday, hexplorationKmTraveledToday, currentTimeOfDay, currentTravelSpeedText
         CONST,
         hexGridRenderData,
         svgViewBoxWidth,
         svgViewBoxHeight,
-        hasValidGridDataAndInitialized,
-        activePartyActivitiesDisplay: activePartyActivitiesDisplayArray, // Use the newly constructed array
+        hasValidGridDataAndInitialized, // Ensure this is correctly determined
+        activePartyActivitiesDisplay: activePartyActivitiesDisplayArray,
         travelAnimation: {
             isActive: appState.travelAnimation.isActive,
             terrainColor: appState.travelAnimation.terrainColor,
@@ -503,11 +575,11 @@ export function renderApp(options = {}) {
                     { symbol: appState.travelAnimation.terrainSymbol }
                 ))
             ),
-            currentMapPartyMarkerImagePath: appState.currentMapPartyMarkerImagePath 
+                        currentMapPartyMarkerImagePath: appState.currentMapPartyMarkerImagePath 
         },
     };
-    
-    // console.log("UI renderApp: currentMapPartyMarkerImagePath in renderContext:", renderContext.currentMapPartyMarkerImagePath); // Already exists
+
+    console.log("UI renderApp: currentMapPartyMarkerImagePath in renderContext:", renderContext.currentMapPartyMarkerImagePath);
 
     appContainer.innerHTML = mainTemplateCompiled(renderContext);
 
@@ -775,6 +847,35 @@ qsa('[data-action="toggle-activity-button"]').forEach(button => {
     };
   }
 
+    const playerSeeCurrentWeatherToggle = el("playerSeeCurrentWeatherToggle");
+  if (playerSeeCurrentWeatherToggle) {
+    playerSeeCurrentWeatherToggle.onchange = (e) => {
+      appState.playerCanSeeCurrentWeather = e.target.checked;
+      // No need to mark map dirty, this is a local UI preference
+      renderApp({ preserveScroll: true }); // Re-render to show/hide icons
+    };
+  }
+
+  const playerForecastSlider = el("playerForecastSlider"); // Listener remains the same
+  if (playerForecastSlider) {
+    playerForecastSlider.oninput = (e) => {
+      const hours = parseInt(e.target.value, 10);
+      appState.forecastHoursPlayer = hours; // Update appState
+      const displayEl = el("playerForecastHoursDisplay");
+      if(displayEl) displayEl.textContent = hours === 0 ? "Current Weather" : `${hours}h Ahead`;
+
+      if (hours === 0) {
+        appState.displayingForecastWeatherGrid = null; // Show current actual weather
+      } else {
+        appState.displayingForecastWeatherGrid = MapLogic.getForecastedWeatherGrid(hours);
+        if (!appState.displayingForecastWeatherGrid && hours > 0) { // Only alert if trying to get a forecast
+            // console.warn("Could not generate forecast. Weather might be off or no active systems.");
+        }
+      }
+      renderApp({ preserveScroll: true }); // Re-render to show forecast
+    };
+  }
+
 
   const browseMarkerBtn = el("browsePartyMarkerImageButton");
   if (browseMarkerBtn) {
@@ -935,12 +1036,85 @@ qsa('[data-action="toggle-activity-button"]').forEach(button => {
       appState.autoTerrainChangeOnElevation = e.target.checked;
   };
 
-  const enableWeatherToggle = el("enableWeatherToggle");
+  
+  const windStrengthSelect = el("windStrengthSelect");
+  if (windStrengthSelect) {
+    windStrengthSelect.onchange = (e) => {
+      appState.mapWeatherSystem.windStrength = e.target.value;
+      appState.isCurrentMapDirty = true;
+      // No immediate re-render needed, but movement will use new value
+      // Optionally, if wind directly affects current grid (e.g. visual cues), then render
+      renderApp({ preserveScroll: true }); 
+    };
+  }
+
+  const windDirectionSelect = el("windDirectionSelect");
+  if (windDirectionSelect) {
+    windDirectionSelect.onchange = (e) => {
+      appState.mapWeatherSystem.windDirection = e.target.value;
+      appState.isCurrentMapDirty = true;
+      renderApp({ preserveScroll: true });
+    };
+  }
+
+  qsa('.map-weather-type-toggle').forEach(checkbox => {
+    checkbox.onchange = (e) => {
+      const typeId = e.target.dataset.weatherTypeId;
+      const scrollContainer = document.getElementById("mapWeatherTypesScrollContainer"); // Get the container by ID
+      let oldScrollTop = 0;
+      if (scrollContainer) {
+        oldScrollTop = scrollContainer.scrollTop; // Store its scroll position
+      }
+
+      if (e.target.checked) {
+        if (!appState.mapWeatherSystem.availableWeatherTypes.includes(typeId)) {
+          appState.mapWeatherSystem.availableWeatherTypes.push(typeId);
+        }
+      } else {
+        appState.mapWeatherSystem.availableWeatherTypes = appState.mapWeatherSystem.availableWeatherTypes.filter(id => id !== typeId);
+      }
+      appState.isCurrentMapDirty = true;
+      
+      renderApp({ preserveScroll: true }); // Re-render. preserveScroll is for the main map.
+
+      // After renderApp has updated the DOM, try to restore the scroll position
+      // Use requestAnimationFrame to ensure this runs after the browser has painted the new DOM
+      requestAnimationFrame(() => {
+        const newScrollContainer = document.getElementById("mapWeatherTypesScrollContainer");
+        if (newScrollContainer) {
+          newScrollContainer.scrollTop = oldScrollTop;
+        }
+      });
+    };
+  });
+
+  const regenerateWeatherBtn = el("regenerateWeatherButton");
+  if (regenerateWeatherBtn) {
+    regenerateWeatherBtn.onclick = () => {
+      if (appState.isWeatherEnabled) {
+        MapLogic.generateWeatherGrid(); // This calls renderApp inside
+        appState.isCurrentMapDirty = true; 
+      } else {
+        alert("Weather system is not enabled.");
+      }
+    };
+  }
+
+
+const enableWeatherToggle = el("enableWeatherToggle");
   if (enableWeatherToggle) {
     enableWeatherToggle.onchange = (e) => {
       appState.isWeatherEnabled = e.target.checked;
       appState.isCurrentMapDirty = true;
-      MapLogic.generateWeatherGrid();
+      if (appState.isWeatherEnabled) {
+        MapLogic.generateWeatherGrid(); // Generates initial weather and renders
+      } else {
+        // Clear weather when disabled
+        appState.mapWeatherSystem.activeWeatherSystems = [];
+        appState.mapWeatherSystem.weatherGrid = {};
+        appState.displayingForecastWeatherGrid = null;
+        renderApp({ preserveScroll: true });
+      }
     };
   }
 
@@ -962,13 +1136,6 @@ qsa('[data-action="toggle-activity-button"]').forEach(button => {
     };
   });
 
-  const playerSeeCurrentWeatherToggle = el("playerSeeCurrentWeatherToggle");
-  if (playerSeeCurrentWeatherToggle) {
-    playerSeeCurrentWeatherToggle.onchange = (e) => {
-      appState.playerCanSeeCurrentWeather = e.target.checked;
-      renderApp({ preserveScroll: true });
-    };
-  }
 
   const forecastHoursInput = el("forecastHoursInput");
   if (forecastHoursInput) {

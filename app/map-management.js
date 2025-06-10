@@ -31,8 +31,29 @@ export function loadGlobalExplorationForMap(mapDataFromBridge) {
     }
 }
 
+// app/map-management.js
+
 export function getMapContextDataForSave() {
     const markerPos = appState.partyMarkerPosition;
+
+    let weatherSystemDataToSave = null;
+    if (appState.isWeatherEnabled && appState.mapWeatherSystem) { // Check if mapWeatherSystem exists
+        weatherSystemDataToSave = {
+            ...appState.mapWeatherSystem,
+            isWeatherEnabled: true, // Explicitly save the enabled state here
+            activeWeatherSystems: (appState.mapWeatherSystem.activeWeatherSystems || []).map(sys => ({
+                ...sys,
+                hexesOccupied: Array.from(sys.hexesOccupied || [])
+            }))
+        };
+    } else {
+        // If weather is not enabled, we can save a minimal object indicating it's off,
+        // or rely on null and let the loading logic handle it.
+        // For clarity, let's save an explicit "off" state if it was interacted with but then disabled.
+        // Or, if it was never enabled, mapWeatherSystem might be default.
+        // Simplest: if appState.isWeatherEnabled is false, mapWeatherSystem in payload will be null.
+    }
+
 
     const dataToReturn = {
         explorationData: {
@@ -54,8 +75,11 @@ export function getMapContextDataForSave() {
             hexTraversalTimeValue: appState.currentMapHexTraversalTimeValue,
             hexTraversalTimeUnit: appState.currentMapHexTraversalTimeUnit,
             zoomLevel: appState.zoomLevel,
-                        partyMarkerImagePath: appState.currentMapPartyMarkerImagePath // <<< ADDED
-        }
+            partyMarkerImagePath: appState.currentMapPartyMarkerImagePath,
+        },
+        // Updated: mapWeatherSystem will be null if appState.isWeatherEnabled is false,
+        // or it will contain the weather data including its own isWeatherEnabled: true flag.
+        mapWeatherSystem: appState.isWeatherEnabled ? weatherSystemDataToSave : null
     };
 
     return dataToReturn;
@@ -155,6 +179,7 @@ function proceedWithSave(mapId, mapName, isAutoSaveFlag) {
             hexTraversalTimeUnit: CONST.DEFAULT_HEX_TRAVERSAL_TIME_UNIT,
             zoomLevel: 1.0
         },
+                mapWeatherSystem: contextDataForSave.mapWeatherSystem, // This is now correctly sourced
         isAutoSave: isAutoSaveFlag
     };
 
@@ -463,7 +488,7 @@ export function handleLoadMapFileSelected(event) {
     reader.onload = (e) => {
         try {
             const rawData = JSON.parse(e.target.result);
-            let hexes, gridSettings, explorationData, partyMarkerPositionFromFile, mapSettingsFromFile, eventLogFromFile;
+            let hexes, gridSettings, explorationData, partyMarkerPositionFromFile, mapSettingsFromFile, eventLogFromFile, mapWeatherSystemFromFile;
 
             if (rawData && 'mapData' in rawData && 'gridSettings' in rawData.mapData && 'hexes' in rawData.mapData) { // Preferred full export format
                 gridSettings = rawData.mapData.gridSettings;
@@ -472,6 +497,7 @@ export function handleLoadMapFileSelected(event) {
                 partyMarkerPositionFromFile = rawData.partyMarkerPosition !== undefined ? rawData.partyMarkerPosition : null;
                 eventLogFromFile = rawData.eventLog || [];
                 mapSettingsFromFile = rawData.mapSettings;
+                                mapWeatherSystemFromFile = rawData.mapWeatherSystem || null;
             }
             // ... (keep other format checks if necessary) ...
             else {
@@ -513,7 +539,42 @@ export function handleLoadMapFileSelected(event) {
                             appState.currentMapPartyMarkerImagePath = null; // <<< ADDED DEFAULT
             }
 
+  if (mapWeatherSystemFromFile && mapWeatherSystemFromFile.isWeatherEnabled) { // Check the flag
+                appState.isWeatherEnabled = true;
+                appState.mapWeatherSystem = {
+                    ...getDefaultMapWeatherSystem(), // Start with defaults
+                    ...mapWeatherSystemFromFile,     // Overlay loaded data
+                    activeWeatherSystems: (mapWeatherSystemFromFile.activeWeatherSystems || []).map(sys => ({
+                        ...sys,
+                        hexesOccupied: new Set(sys.hexesOccupied || [])
+                    })),
+                    // Ensure sub-properties
+                    windStrength: mapWeatherSystemFromFile.windStrength || getDefaultMapWeatherSystem().windStrength,
+                    windDirection: mapWeatherSystemFromFile.windDirection || getDefaultMapWeatherSystem().windDirection,
+                    availableWeatherTypes: Array.isArray(mapWeatherSystemFromFile.availableWeatherTypes) && mapWeatherSystemFromFile.availableWeatherTypes.length > 0
+                                         ? mapWeatherSystemFromFile.availableWeatherTypes
+                                         : getDefaultMapWeatherSystem().availableWeatherTypes,
+                    weatherTypeWeights: typeof mapWeatherSystemFromFile.weatherTypeWeights === 'object' && Object.keys(mapWeatherSystemFromFile.weatherTypeWeights).length > 0
+                                        ? mapWeatherSystemFromFile.weatherTypeWeights
+                                        : getDefaultMapWeatherSystem().weatherTypeWeights,
+                    weatherGrid: typeof mapWeatherSystemFromFile.weatherGrid === 'object'
+                                 ? mapWeatherSystemFromFile.weatherGrid
+                                 : {},
+                };
+            } else {
+                appState.isWeatherEnabled = false;
+                appState.mapWeatherSystem = getDefaultMapWeatherSystem();
+            }
+
+
+
             initializeGridData(w, h, hexes, true);
+
+                        if (appState.isWeatherEnabled) { // If weather was loaded and enabled
+                 MapLogic.generateWeatherGrid(); // Populate grid based on loaded active systems or generate new if none
+            }
+
+
             updatePartyMarkerBasedLoS();
             if (appState.partyMarkerPosition) {
                 requestCenteringOnHex(appState.partyMarkerPosition.id);

@@ -72,12 +72,12 @@
 
   {{! Weather Icon --}}
   {{#if this.weatherIconToRender}}
-    <text x="{{sub cx (mul CONST.HEX_SIZE 0.6)}}" 
+    <text x="{{sub cx (mul CONST.HEX_SIZE 0.7)}}" 
           y="{{sub cy (mul CONST.HEX_SIZE 0.7)}}"
           text-anchor="middle"
           dominant-baseline="central"
           filter="url(#hexBorderEffect)"
-          class="text-base pointer-events-none select-none {{this.weatherIconClass}}" {{! Changed to text-base }}
+          class="text-sm pointer-events-none select-none {{this.weatherIconClass}}" {{! Changed to text-base }}
           role="img"
           aria-label="Weather: {{this.weatherName}}">
       {{{this.weatherIconToRender}}}

@@ -16,6 +16,15 @@ const DEFAULT_MAP_SETTINGS = {
 };
 const DEFAULT_LANDMARK_ICON_COLOR_CLASS_BRIDGE = "fill-yellow-200";
 
+const DEFAULT_MAP_WEATHER_SYSTEM_STRUCTURE_BRIDGE = {
+    windStrength: 'CALM',
+    windDirection: 'CALM',
+    availableWeatherTypes: ['sunny', 'cloudy', 'rainy'], // Minimal default
+    weatherTypeWeights: { sunny: 70, cloudy: 20, rainy: 10 },
+    activeWeatherSystems: [],
+    weatherGrid: {}
+};
+
 function generateUUID() {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
     var r = (Math.random() * 16) | 0,
@@ -80,7 +89,34 @@ async function getModuleData() {
             ? map.mapSettings.partyMarkerImagePath
             : DEFAULT_MAP_SETTINGS.partyMarkerImagePath;
       }
+
+  if (map.mapWeatherSystem === undefined) {
+        map.mapWeatherSystem = null; // Default to null (weather effectively off for this map or uses app defaults)
+      } else if (map.mapWeatherSystem !== null) {
+        // Ensure activeWeatherSystems' hexesOccupied are arrays (they are saved as arrays)
+        // The iframe will convert them to Sets upon loading into its appState
+        if (map.mapWeatherSystem.activeWeatherSystems && Array.isArray(map.mapWeatherSystem.activeWeatherSystems)) {
+            map.mapWeatherSystem.activeWeatherSystems = map.mapWeatherSystem.activeWeatherSystems.map(sys => ({
+                ...sys,
+                hexesOccupied: Array.isArray(sys.hexesOccupied) ? sys.hexesOccupied : Array.from(sys.hexesOccupied || [])
+            }));
+        } else {
+            map.mapWeatherSystem.activeWeatherSystems = [];
+        }
+
+
+                if (map.mapWeatherSystem.isWeatherEnabled === undefined) {
+            map.mapWeatherSystem.isWeatherEnabled = true; // Assume enabled if the object structure is there
+        }
+        // Ensure other core weather properties exist
+        map.mapWeatherSystem.windStrength = map.mapWeatherSystem.windStrength || DEFAULT_MAP_WEATHER_SYSTEM_STRUCTURE_BRIDGE.windStrength;
+        map.mapWeatherSystem.windDirection = map.mapWeatherSystem.windDirection || DEFAULT_MAP_WEATHER_SYSTEM_STRUCTURE_BRIDGE.windDirection;
+        map.mapWeatherSystem.availableWeatherTypes = Array.isArray(map.mapWeatherSystem.availableWeatherTypes) ? map.mapWeatherSystem.availableWeatherTypes : [...DEFAULT_MAP_WEATHER_SYSTEM_STRUCTURE_BRIDGE.availableWeatherTypes];
+        map.mapWeatherSystem.weatherTypeWeights = typeof map.mapWeatherSystem.weatherTypeWeights === 'object' ? map.mapWeatherSystem.weatherTypeWeights : {...DEFAULT_MAP_WEATHER_SYSTEM_STRUCTURE_BRIDGE.weatherTypeWeights};
+        map.mapWeatherSystem.weatherGrid = typeof map.mapWeatherSystem.weatherGrid === 'object' ? map.mapWeatherSystem.weatherGrid : {};
+      }
     }
+
   }
   return data;
 }
@@ -88,6 +124,18 @@ async function getModuleData() {
 async function saveModuleData(data) {
   try {
     const dataToSave = data && typeof data === "object" ? data : { maps: {} };
+    // Before saving, ensure any Sets in activeWeatherSystems are converted to Arrays
+    if (dataToSave.maps) {
+        for (const mapId in dataToSave.maps) {
+            const map = dataToSave.maps[mapId];
+            if (map.mapWeatherSystem && map.mapWeatherSystem.activeWeatherSystems) {
+                map.mapWeatherSystem.activeWeatherSystems = map.mapWeatherSystem.activeWeatherSystems.map(sys => ({
+                    ...sys,
+                    hexesOccupied: Array.from(sys.hexesOccupied || []) // Ensure it's an array
+                }));
+            }
+        }
+    }
     await game.settings.set(
       MODULE_ID,
       SETTING_MAP_DATA,
@@ -96,6 +144,7 @@ async function saveModuleData(data) {
     return true;
   } catch (e) {
     ui.notifications.error(`CRITICAL: Failed to save ${MODULE_ID} data.`);
+    console.error(`AHME SAVE ERROR:`, e);
     return false;
   }
 }
@@ -245,8 +294,8 @@ class HexMapApplication extends Application {
       id: "hexmap-app",
       title: "Advanced Hex Map Editor",
       template: `modules/${MODULE_ID}/templates/hexmap-app.html`,
-      width: Math.min(1800, screenWidth * 0.95),
-      height: Math.min(1000, screenHeight * 0.9),
+      width: Math.min(1800, screenWidth * 0.9),
+      height: Math.min(1200, screenHeight * 0.95),
       resizable: true,
       popOut: true,
       classes: ["hexmap-application-window", "advanced-hex-map-dialog"],
@@ -263,25 +312,41 @@ class HexMapApplication extends Application {
       SETTING_ACTIVE_GM_MAP_ID
     );
 
-
-
-        const hoursToday = game.settings.get(MODULE_ID, SETTING_HEXPLORATION_TIME_ELAPSED_HOURS) || 0;
+   const hoursToday = game.settings.get(MODULE_ID, SETTING_HEXPLORATION_TIME_ELAPSED_HOURS) || 0;
     const kmToday = game.settings.get(MODULE_ID, SETTING_HEXPLORATION_KM_TRAVELED_TODAY) || 0;
     const worldTimeFormatted = game.time && game.time.worldTime ?
         new Date(game.time.worldTime * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true }) : "N/A";
     const currentPartyActivities = game.settings.get(MODULE_ID, "partyActivities") || {};
 
-    this.initialPayloadForIframe = {
+    let activeMapWeatherSystem = null;
+    if (activeGmMapIdSetting && completeModuleData.maps[activeGmMapIdSetting]) {
+        const activeMap = completeModuleData.maps[activeGmMapIdSetting];
+        if (activeMap.mapWeatherSystem) { // It can be null
+            activeMapWeatherSystem = {
+                ...activeMap.mapWeatherSystem,
+                activeWeatherSystems: (activeMap.mapWeatherSystem.activeWeatherSystems || []).map(sys => ({
+                    ...sys,
+                    hexesOccupied: Array.from(sys.hexesOccupied || []) // Ensure array for postMessage
+                }))
+            };
+        }
+    }
+
+   this.initialPayloadForIframe = {
         mapList: Object.entries(completeModuleData.maps || {}).map(
             ([id, mapInfo]) => ({ id: id, name: mapInfo.name || "Unnamed Map" })
         ),
         activeGmMapId: activeGmMapIdSetting || null,
-        currentHexplorationStatus: { // Changed from hexplorationData for consistency
-            timeElapsedHoursToday: hoursToday, // Corrected here
-            kmTraveledToday: kmToday,          // Corrected here
+        currentHexplorationStatus: {
+            timeElapsedHoursToday: hoursToday,
+            kmTraveledToday: kmToday,
             currentTimeOfDay: worldTimeFormatted,
         },
-        partyActivitiesData: currentPartyActivities
+        partyActivitiesData: currentPartyActivities,
+        // Include weather system for the active map, if any
+        // This is for when the iframe first loads and requests initialData
+        // The `mapDataLoaded` message will also send map-specific weather
+        initialMapWeatherSystem: activeMapWeatherSystem // Add this for the initial load
     };
     return appTemplateData;
 }
@@ -342,93 +407,134 @@ class HexMapApplication extends Application {
             );
           }
           break;
-   case "ahnTriggerNewDayProcedure":
-    if (!game.user?.isGM) return;
-    console.log("AHME_BRIDGE: Received ahnTriggerNewDayProcedure from iframe.");
-    const pf2eSystemActive = game.system?.id === "pf2e" && game.pf2e?.actions?.restForTheNight;
-    let timeAdvancedByPF2eRest = false;
+        case "ahnTriggerNewDayProcedure":
+          if (!game.user?.isGM) return;
+          console.log(
+            "AHME_BRIDGE: Received ahnTriggerNewDayProcedure from iframe."
+          );
+          const pf2eSystemActive =
+            game.system?.id === "pf2e" && game.pf2e?.actions?.restForTheNight;
+          let timeAdvancedByPF2eRest = false;
 
-    if (pf2eSystemActive) {
-        try {
-            let actorsToRest = [];
-            if (canvas.scene) {
+          if (pf2eSystemActive) {
+            try {
+              let actorsToRest = [];
+              if (canvas.scene) {
                 actorsToRest = canvas.scene.tokens
-                    .filter(token => token.actor && token.actor.type === "character" && token.actor.hasPlayerOwner)
-                    .map(token => token.actor);
-            }
-            if (actorsToRest.length === 0) {
-                actorsToRest = game.actors.filter(actor => actor.type === "character" && actor.hasPlayerOwner);
-            }
-            const uniqueActorsToRest = [...new Set(actorsToRest)].filter(a => a.canUserModify(game.user, "update"));
+                  .filter(
+                    (token) =>
+                      token.actor &&
+                      token.actor.type === "character" &&
+                      token.actor.hasPlayerOwner
+                  )
+                  .map((token) => token.actor);
+              }
+              if (actorsToRest.length === 0) {
+                actorsToRest = game.actors.filter(
+                  (actor) => actor.type === "character" && actor.hasPlayerOwner
+                );
+              }
+              const uniqueActorsToRest = [...new Set(actorsToRest)].filter(
+                (a) => a.canUserModify(game.user, "update")
+              );
 
-            if (uniqueActorsToRest.length > 0) {
-                console.log("AHME_BRIDGE: Attempting PF2e Rest for the Night with actors:", uniqueActorsToRest.map(a => a.name));
-                
+              if (uniqueActorsToRest.length > 0) {
+                console.log(
+                  "AHME_BRIDGE: Attempting PF2e Rest for the Night with actors:",
+                  uniqueActorsToRest.map((a) => a.name)
+                );
+
                 // The `restForTheNight` action in PF2e itself handles the 8-hour time advancement.
                 // We don't need to manually advance time here if this is successful.
-                await game.pf2e.actions.restForTheNight({ actors: uniqueActorsToRest });
+                await game.pf2e.actions.restForTheNight({
+                  actors: uniqueActorsToRest,
+                });
                 timeAdvancedByPF2eRest = true; // Mark that PF2e handled the time
-                ui.notifications.info("AHME: PF2e Rest for the Night successfully triggered for party members. Time advanced by PF2e system.");
-
-            } else {
-                ui.notifications.warn("AHME: PF2e Rest - No player-owned character actors found to rest. Falling back to manual 8-hour time advance.");
+                ui.notifications.info(
+                  "AHME: PF2e Rest for the Night successfully triggered for party members. Time advanced by PF2e system."
+                );
+              } else {
+                ui.notifications.warn(
+                  "AHME: PF2e Rest - No player-owned character actors found to rest. Falling back to manual 8-hour time advance."
+                );
                 // Fallback: If no actors, manually advance 8 hours
                 await game.time.advance(8 * 60 * 60); // 8 hours in seconds
                 ChatMessage.create({
-                    speaker: ChatMessage.getSpeaker({ alias: "System" }),
-                    content: "Time advanced by 8 hours as no specific characters were rested via PF2e system.",
+                  speaker: ChatMessage.getSpeaker({ alias: "System" }),
+                  content:
+                    "Time advanced by 8 hours as no specific characters were rested via PF2e system.",
                 });
-            }
-        } catch (e) {
-            console.error("AHME_BRIDGE: Error triggering PF2e rest:", e);
-            ui.notifications.error("AHME: An error occurred during PF2e rest. Falling back to manual 8-hour time advance.");
-            // Fallback: If error during PF2e rest, manually advance 8 hours
-            await game.time.advance(8 * 60 * 60); // 8 hours in seconds
-             ChatMessage.create({
+              }
+            } catch (e) {
+              console.error("AHME_BRIDGE: Error triggering PF2e rest:", e);
+              ui.notifications.error(
+                "AHME: An error occurred during PF2e rest. Falling back to manual 8-hour time advance."
+              );
+              // Fallback: If error during PF2e rest, manually advance 8 hours
+              await game.time.advance(8 * 60 * 60); // 8 hours in seconds
+              ChatMessage.create({
                 speaker: ChatMessage.getSpeaker({ alias: "System" }),
-                content: "Error during PF2e rest. Time advanced by 8 hours as a fallback.",
-            });
-        }
-    } else {
-        // Generic Foundry or other system: Manually advance 8 hours
-        console.log("AHME_BRIDGE: PF2e system not active or rest action not found. Manually advancing time by 8 hours.");
-        if (game.time && game.time.advance) {
-            await game.time.advance(8 * 60 * 60); // 8 hours in seconds
-            ChatMessage.create({
+                content:
+                  "Error during PF2e rest. Time advanced by 8 hours as a fallback.",
+              });
+            }
+          } else {
+            // Generic Foundry or other system: Manually advance 8 hours
+            console.log(
+              "AHME_BRIDGE: PF2e system not active or rest action not found. Manually advancing time by 8 hours."
+            );
+            if (game.time && game.time.advance) {
+              await game.time.advance(8 * 60 * 60); // 8 hours in seconds
+              ChatMessage.create({
                 speaker: ChatMessage.getSpeaker({ alias: "System" }),
                 content: "Time advanced by 8 hours for a new day.",
-            });
-        } else {
-            ui.notifications.warn("AHME: Game time system not available to advance time.");
-        }
-    }
+              });
+            } else {
+              ui.notifications.warn(
+                "AHME: Game time system not available to advance time."
+              );
+            }
+          }
 
-    // This part runs regardless of how time was advanced (PF2e or manual)
-    // Reset Hexploration daily counters
-    await game.settings.set(MODULE_ID, SETTING_HEXPLORATION_KM_TRAVELED_TODAY, 0);
-    await game.settings.set(MODULE_ID, SETTING_HEXPLORATION_TIME_ELAPSED_HOURS, 0);
+          // This part runs regardless of how time was advanced (PF2e or manual)
+          // Reset Hexploration daily counters
+          await game.settings.set(
+            MODULE_ID,
+            SETTING_HEXPLORATION_KM_TRAVELED_TODAY,
+            0
+          );
+          await game.settings.set(
+            MODULE_ID,
+            SETTING_HEXPLORATION_TIME_ELAPSED_HOURS,
+            0
+          );
 
-    // Get the new world time to send to iframes
-    const worldTimeFormatted = (game.time && typeof game.time.worldTime === 'number') ?
-        new Date(game.time.worldTime * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
-        : "N/A";
+          // Get the new world time to send to iframes
+          const worldTimeFormatted =
+            game.time && typeof game.time.worldTime === "number"
+              ? new Date(game.time.worldTime * 1000).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                })
+              : "N/A";
 
-    // Broadcast updated Hexploration data to all iframes
-    // The onChange hooks for the settings will also fire, but this ensures
-    // the very latest currentTimeOfDay is bundled with the reset counters.
-    // Broadcast updated Hexploration data to all iframes
-    broadcastToAllIframes("hexplorationDataUpdated", {
-        timeElapsedHoursToday: 0,
-        kmTraveledToday: 0,
-        currentTimeOfDay: worldTimeFormatted,
-        forceCenterOnPartyMarker: true // 
-    });
+          // Broadcast updated Hexploration data to all iframes
+          // The onChange hooks for the settings will also fire, but this ensures
+          // the very latest currentTimeOfDay is bundled with the reset counters.
+          // Broadcast updated Hexploration data to all iframes
+          broadcastToAllIframes("hexplorationDataUpdated", {
+            timeElapsedHoursToday: 0,
+            kmTraveledToday: 0,
+            currentTimeOfDay: worldTimeFormatted,
+            forceCenterOnPartyMarker: true, //
+          });
 
-    ChatMessage.create({
-        speaker: ChatMessage.getSpeaker({ alias: "Hexploration" }),
-        content: `Hexploration: A new day dawns. Current time is now ${worldTimeFormatted}.`,
-    });
-    break;
+          ChatMessage.create({
+            speaker: ChatMessage.getSpeaker({ alias: "Hexploration" }),
+            content: `Hexploration: A new day dawns. Current time is now ${worldTimeFormatted}.`,
+          });
+          break;
 
         case "requestFilePickForMarker":
           if (!game.user?.isGM) {
@@ -554,39 +660,52 @@ class HexMapApplication extends Application {
                 mapToLoad.mapSettings.zoomLevel ||
                 DEFAULT_MAP_SETTINGS.zoomLevel;
             }
-    const hoursToday = game.settings.get(MODULE_ID, SETTING_HEXPLORATION_TIME_ELAPSED_HOURS) || 0;
-    const kmToday = game.settings.get(MODULE_ID, SETTING_HEXPLORATION_KM_TRAVELED_TODAY) || 0;
-    const worldTimeFormatted = game.time && game.time.worldTime ? 
-        new Date(game.time.worldTime * 1000).toLocaleTimeString([], { /* options */ }) : "N/A";
-    const currentPartyActivities = game.settings.get(MODULE_ID, "partyActivities") || {};
 
-    iframe.contentWindow.postMessage(
-        {
-            type: "mapDataLoaded",
-            payload: {
-                // ... existing map specific data (mapId, name, gridSettings, hexes, exploration, etc.)
-                mapId: payload.mapId,
-                name: mapToLoad.name,
-                gridSettings: mapToLoad.gridSettings,
-                hexes: mapToLoad.hexes,
-                exploration: mapToLoad.exploration,
-                partyMarkerPosition: mapToLoad.partyMarkerPosition,
-                eventLog: mapToLoad.eventLog,
-                mapSettings: mapToLoad.mapSettings,
-                
-                // Add current world-level data
-                currentHexplorationStatus: {
+
+ const hoursToday = game.settings.get(MODULE_ID, SETTING_HEXPLORATION_TIME_ELAPSED_HOURS) || 0;
+            const kmToday = game.settings.get(MODULE_ID, SETTING_HEXPLORATION_KM_TRAVELED_TODAY) || 0;
+            const worldTimeFormatted = game.time && game.time.worldTime ? 
+                new Date(game.time.worldTime * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true }) : "N/A";
+            const currentPartyActivities = game.settings.get(MODULE_ID, "partyActivities") || {};
+
+            // Prepare mapWeatherSystem for sending to iframe (convert Sets to Arrays if any were Sets, though unlikely from JSON)
+            let mapWeatherSystemForIframe = null;
+            if (mapToLoad.mapWeatherSystem) {
+                mapWeatherSystemForIframe = {
+                    ...mapToLoad.mapWeatherSystem,
+                    activeWeatherSystems: (mapToLoad.mapWeatherSystem.activeWeatherSystems || []).map(sys => ({
+                        ...sys,
+                        hexesOccupied: Array.from(sys.hexesOccupied || [])
+                    }))
+                };
+            }
+
+            iframe.contentWindow.postMessage(
+              {
+                type: "mapDataLoaded",
+                payload: {
+                  // ... existing map specific data (mapId, name, gridSettings, hexes, exploration, etc.)
+                  mapId: payload.mapId,
+                  name: mapToLoad.name,
+                  gridSettings: mapToLoad.gridSettings,
+                  hexes: mapToLoad.hexes,
+                  exploration: mapToLoad.exploration,
+                  partyMarkerPosition: mapToLoad.partyMarkerPosition,
+                  eventLog: mapToLoad.eventLog,
+                  mapSettings: mapToLoad.mapSettings,
+                  currentHexplorationStatus: {
                     timeElapsedHoursToday: hoursToday,
                     kmTraveledToday: kmToday,
                     currentTimeOfDay: worldTimeFormatted,
+                  },
+                  partyActivitiesData: currentPartyActivities,
+                                  mapWeatherSystem: mapWeatherSystemForIframe, // Send weather system // Ensure this is always sent
                 },
-                partyActivitiesData: currentPartyActivities, // Ensure this is always sent
-            },
-            moduleId: MODULE_ID,
-        },
-        "*"
-    );
-} else {
+                moduleId: MODULE_ID,
+              },
+              "*"
+            );
+          } else {
             if (iframe.contentWindow)
               iframe.contentWindow.postMessage(
                 {
@@ -642,6 +761,27 @@ class HexMapApplication extends Application {
           ) {
             validationError = "Map settings invalid.";
           }
+          
+             // Weather System Validation (if present)
+          if (payload.mapWeatherSystem !== null && payload.mapWeatherSystem !== undefined) {
+              if (typeof payload.mapWeatherSystem !== 'object' ||
+                  payload.mapWeatherSystem.isWeatherEnabled === undefined || // Check for the flag
+                  !payload.mapWeatherSystem.hasOwnProperty('windStrength') ||
+                  !payload.mapWeatherSystem.hasOwnProperty('windDirection') ||
+                  !Array.isArray(payload.mapWeatherSystem.availableWeatherTypes) ||
+                  typeof payload.mapWeatherSystem.weatherTypeWeights !== 'object' ||
+                  !Array.isArray(payload.mapWeatherSystem.activeWeatherSystems) || // iframe sends arrays
+                  typeof payload.mapWeatherSystem.weatherGrid !== 'object') {
+                  validationError = "Map Weather System data structure invalid.";
+              } else {
+                  for (const sys of payload.mapWeatherSystem.activeWeatherSystems) {
+                      if (typeof sys.id !== 'string' || typeof sys.weatherType !== 'string' || !Array.isArray(sys.hexesOccupied)) {
+                           validationError = "Invalid structure in activeWeatherSystems.";
+                           break;
+                      }
+                  }
+              }
+          }
 
           if (validationError) {
             ui.notifications.error(`AHME Save Error: ${validationError}`);
@@ -664,6 +804,17 @@ class HexMapApplication extends Application {
           const originalMapIdFromPayload = payload.mapId;
           const mapIdToSave = originalMapIdFromPayload || generateUUID();
 
+             let weatherSystemToSave = null;
+          if (payload.mapWeatherSystem) {
+            weatherSystemToSave = {
+                ...payload.mapWeatherSystem,
+                activeWeatherSystems: (payload.mapWeatherSystem.activeWeatherSystems || []).map(sys => ({
+                    ...sys,
+                    hexesOccupied: Array.from(sys.hexesOccupied || [])
+                }))
+            };
+          }
+
           moduleData.maps[mapIdToSave] = {
             name: payload.mapName.trim(),
             gridSettings: payload.mapData.gridSettings,
@@ -675,6 +826,7 @@ class HexMapApplication extends Application {
             eventLog: payload.eventLog || [],
             mapSettings: payload.mapSettings,
             lastUpdated: Date.now(),
+            mapWeatherSystem: payload.mapWeatherSystem
           };
 
           const savedSuccessfully = await saveModuleData(moduleData);
@@ -1215,8 +1367,8 @@ class HexMapApplication extends Application {
             timeElapsedHoursToday: 0,
             kmTraveledToday: 0,
             currentTimeOfDay: worldTimeFormattedOnReset,
-                    forceCenterOnPartyMarker: true // 
- // Send current time of day too
+            forceCenterOnPartyMarker: true, //
+            // Send current time of day too
           });
           ChatMessage.create({
             speaker: ChatMessage.getSpeaker({ alias: "Hexploration" }),
@@ -1468,9 +1620,9 @@ class HexMapApplication extends Application {
           broadcastToAllIframes("hexplorationDataUpdated", {
             timeElapsedHoursToday: newTimeElapsedToday,
             kmTraveledToday: newKmTraveledToday,
-            currentTimeOfDay: worldTimeFormattedAfterAction, 
-                    forceCenterOnPartyMarker: true // 
-// Crucial: send updated time
+            currentTimeOfDay: worldTimeFormattedAfterAction,
+            forceCenterOnPartyMarker: true, //
+            // Crucial: send updated time
           });
           break;
 
@@ -1693,8 +1845,7 @@ async function advanceTimeToTargetFoundry(
       timeElapsedHoursToday: 0,
       kmTraveledToday: 0,
       currentTimeOfDay: worldTimeFormatted,
-              forceCenterOnPartyMarker: true // 
-
+      forceCenterOnPartyMarker: true, //
     });
     ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ alias: "Hexploration" }),
@@ -1843,8 +1994,7 @@ Hooks.once("init", () => {
             SETTING_HEXPLORATION_KM_TRAVELED_TODAY
           ) || 0,
         currentTimeOfDay: worldTimeFormatted,
-                forceCenterOnPartyMarker: true // 
-
+        forceCenterOnPartyMarker: true, //
       });
     },
   });
@@ -1869,9 +2019,8 @@ Hooks.once("init", () => {
             SETTING_HEXPLORATION_TIME_ELAPSED_HOURS
           ) || 0,
         kmTraveledToday: value,
-        currentTimeOfDay: worldTimeFormatted, 
-                forceCenterOnPartyMarker: true // 
-
+        currentTimeOfDay: worldTimeFormatted,
+        forceCenterOnPartyMarker: true, //
       });
     },
   });

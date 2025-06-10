@@ -1,4 +1,4 @@
-// map-logic.js
+// app/map-logic.js
 
 import { appState } from './state.js';
 import * as CONST from './constants.js';
@@ -14,6 +14,29 @@ const APP_MODULE_ID = new URLSearchParams(window.location.search).get('moduleId'
 
 // Re-export for external use if needed
 export const { updateWeatherOverTime, getForecastedWeatherGrid, generateWeatherGrid, spawnNewWeatherSystem } = WeatherLogic;
+
+// NEW HELPER FUNCTION to determine terrain based on elevation
+function determineTerrainFromElevation(elevation) {
+    // This is a simplified example. A more robust solution would involve
+    // checking a predefined mapping of elevation bands to terrain types or
+    // iterating through TERRAIN_TYPES_CONFIG to find suitable matches.
+    // This example uses global thresholds from constants.js.
+    // It does not currently consult CONST.AUTO_TERRAIN_IGNORE_TYPES.
+    if (elevation >= CONST.MOUNTAIN_THRESHOLD) { // e.g., 600m
+        // Consider what high-altitude terrain is most appropriate.
+        // SNOW_CAPPED_MOUNTAIN implies snow; ALPINE_TUNDRA might be a more general high-altitude rock/sparse veg.
+        // Using SNOW_CAPPED_MOUNTAIN for this example as it's clearly tied to high elevation in many contexts.
+        return CONST.TerrainType.SNOW_CAPPED_MOUNTAIN;
+    } else if (elevation >= CONST.HILLS_THRESHOLD) { // e.g., 300m
+        return CONST.TerrainType.GRASSY_HILLS; // Or a generic 'Hills'
+    } else if (elevation < -5) { // Example for shallow water/coastal areas. More refined logic might be needed.
+                                // Check for specific negative thresholds if defined for different water bodies.
+        return CONST.TerrainType.COASTAL_SHALLOWS; // Or a generic 'Water' type
+    }
+    // Default for low-lying land not meeting other criteria
+    return CONST.TerrainType.ROLLING_PLAINS;
+}
+
 
 function getTravelDirection(prevHex, nextHex, isExploringCurrentHex = false) {
     if (isExploringCurrentHex) return "exploring current location";
@@ -53,11 +76,13 @@ export function calculateLineOfSight(sourceHexId, currentHexDataMap) {
     const observerElevation = sourceHex.elevation + CONST.OBSERVER_EYE_HEIGHT_M;
 
     let weatherVisibilityMultiplier = 1.0;
-    if (appState.isWeatherEnabled && appState.weatherGrid && appState.weatherGrid[sourceHex.id]) {
-        const weatherId = appState.weatherGrid[sourceHex.id];
-        const weatherCondition = appState.weatherConditions.find(wc => wc.id === weatherId);
-        if (weatherCondition && weatherCondition.effects && typeof weatherCondition.effects.visibility === 'number') {
-            weatherVisibilityMultiplier = weatherCondition.effects.visibility;
+    // UPDATED to use mapWeatherSystem
+    if (appState.isWeatherEnabled && appState.mapWeatherSystem.weatherGrid && appState.mapWeatherSystem.weatherGrid[sourceHex.id]) {
+        const weatherId = appState.mapWeatherSystem.weatherGrid[sourceHex.id];
+        // Use CONST.DEFAULT_WEATHER_CONDITIONS for definitions
+        const weatherCondition = CONST.DEFAULT_WEATHER_CONDITIONS.find(wc => wc.id === weatherId);
+        if (weatherCondition && weatherCondition.effects && typeof weatherCondition.effects.visibilityMultiplier === 'number') {
+            weatherVisibilityMultiplier = weatherCondition.effects.visibilityMultiplier;
         }
     }
 
@@ -67,7 +92,6 @@ export function calculateLineOfSight(sourceHexId, currentHexDataMap) {
     
     baseObserverRangeHexes *= weatherVisibilityMultiplier;
     baseObserverRangeHexes = Math.max(weatherVisibilityMultiplier === 0 ? 0 : 1, baseObserverRangeHexes);
-
     currentHexDataMap.forEach(targetHex => {
         if (targetHex.id === sourceHex.id) return;
         const dist = HEX_UTILS.hexDistance(sourceHex, targetHex);
@@ -236,28 +260,17 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
         const timeAfterTerrain = timeAfterActivities * terrainTimeMultiplier;
         const terrainModifierEffect = timeAfterTerrain - timeAfterActivities;
         
-        // Apply weather factor to the terrain-and-activity-modified time
-        let weatherTimeMultiplier = 1.0;
+          let weatherTimeMultiplier = 1.0;
         let weatherOnHexDetails = null;
-        if (appState.isWeatherEnabled && appState.weatherGrid?.[targetHex.id]) {
-            const weatherId = appState.weatherGrid[targetHex.id];
-            const weatherCondition = appState.weatherConditions.find(wc => wc.id === weatherId);
-            // Assuming weather.effects.travelSpeed is a MULTIPLIER on current time
-            // e.g. 0.8 means 20% faster, 1.2 means 20% slower
-            // If it was an absolute penalty, logic would differ.
-            // Let's clarify: If weather.effects.travelSpeed is 0.8, it means speed is 80% of normal.
-            // If it means time is 0.8 of normal (faster), then it's fine.
-            // If it means speed is 0.8 (slower), then timeFactor is 1/0.8 = 1.25
-            // Given PF2e context, weather usually *increases* time.
-            // So if weather.effects.travelSpeed = 0.8 (like for rain), this implies timeFactor of 1 / 0.8 = 1.25
-            // Let's assume CONST.weatherConditions.effects.travelSpeed is a "speed efficiency" (1.0 = normal, 0.5 = half speed)
-            // So, time multiplier is 1 / weather.effects.travelSpeed (if not 0).
-            if (weatherCondition?.effects?.travelSpeed && weatherCondition.effects.travelSpeed !== 0) {
+        if (appState.isWeatherEnabled && appState.mapWeatherSystem.weatherGrid?.[targetHex.id]) { // Use mapWeatherSystem
+            const weatherId = appState.mapWeatherSystem.weatherGrid[targetHex.id];
+            const weatherCondition = CONST.DEFAULT_WEATHER_CONDITIONS.find(wc => wc.id === weatherId);
+            
+            if (weatherCondition?.effects?.travelSpeedMultiplier) {
                 weatherOnHexDetails = { id: weatherCondition.id, name: weatherCondition.name, icon: weatherCondition.icon };
-                weatherTimeMultiplier = 1 / weatherCondition.effects.travelSpeed;
-            } else if (weatherCondition?.effects?.travelSpeed === 0) { // Impassable due to weather
-                weatherTimeMultiplier = 999; // Effectively impassable
-                 weatherOnHexDetails = { id: weatherCondition.id, name: weatherCondition.name, icon: weatherCondition.icon };
+                // travelSpeedMultiplier: 1.0 normal, >1.0 slower (more time), <1.0 faster (less time)
+                weatherTimeMultiplier = weatherCondition.effects.travelSpeedMultiplier; 
+                if (weatherTimeMultiplier <= 0) weatherTimeMultiplier = 999; // Impassable
             }
         }
         const timeAfterWeather = timeAfterTerrain * weatherTimeMultiplier;
@@ -394,10 +407,13 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
             
             let newHexData = { ...currentHexInLoop }; 
             let hexSpecificChange = false;
+            const oldTerrain = newHexData.terrain; // Store old terrain for comparison
 
             switch (appState.paintMode) {
                 case CONST.PaintMode.ELEVATION:
                     let newElevation;
+                    const oldElevation = newHexData.elevation; // Store old elevation for comparison
+
                     if (appState.elevationBrushMode === CONST.ElevationBrushMode.INCREASE) {
                         newElevation = newHexData.elevation + appState.elevationBrushCustomStep;
                     } else if (appState.elevationBrushMode === CONST.ElevationBrushMode.DECREASE) {
@@ -406,7 +422,25 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
                         newElevation = appState.elevationBrushSetValue;
                     }
                     newHexData.elevation = Math.max(CONST.MIN_ELEVATION, Math.min(CONST.MAX_ELEVATION, newElevation));
-                    hexSpecificChange = true; 
+                    
+                    if (newHexData.elevation !== oldElevation) { // Check if elevation actually changed
+                        hexSpecificChange = true;
+                    }
+
+                    // --- START OF AUTO-TERRAIN CHANGE LOGIC ---
+                    if (appState.autoTerrainChangeOnElevation && newHexData.elevation !== oldElevation) { // Only if elevation actually changed
+                        // Note: CONST.AUTO_TERRAIN_IGNORE_TYPES is currently defined to ignore ALL terrains.
+                        // For this feature to be useful, AUTO_TERRAIN_IGNORE_TYPES should be an empty array
+                        // or a specific list of terrains to preserve.
+                        // This implementation currently does NOT consult AUTO_TERRAIN_IGNORE_TYPES for simplicity.
+                        
+                        const determinedNewTerrainType = determineTerrainFromElevation(newHexData.elevation);
+                        if (newHexData.terrain !== determinedNewTerrainType) {
+                            newHexData.terrain = determinedNewTerrainType;
+                            hexSpecificChange = true; // Ensure change is flagged if terrain also changes
+                        }
+                    }
+                    // --- END OF AUTO-TERRAIN CHANGE LOGIC ---
                     break;
                 case CONST.PaintMode.TERRAIN: 
                     if (newHexData.terrain !== appState.selectedTerrainType) { 
@@ -461,7 +495,10 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
                     }
                     break;
             }
-            if (hexSpecificChange) { interimHexDataMap.set(newHexData.id, newHexData); changedByBrushLoopOverall = true; }
+            if (hexSpecificChange) { 
+                interimHexDataMap.set(newHexData.id, newHexData); 
+                changedByBrushLoopOverall = true; 
+            }
         });
 
         if (requiresFeatureDetailsDialog) {
