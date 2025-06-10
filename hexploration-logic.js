@@ -1,5 +1,6 @@
 // app/hexploration-logic.js
 import { appState } from './state.js';
+import { renderApp } from './ui.js';
 import * as CONST from './constants.js'; 
 
 const APP_MODULE_ID_HEXPLORATION = new URLSearchParams(window.location.search).get('moduleId');

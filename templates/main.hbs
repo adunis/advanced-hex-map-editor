@@ -85,8 +85,9 @@
           <p><span class="text-gray-400">KM Today:</span> <span class="font-semibold">{{toFixed hexplorationKmTraveledToday 1}}</span> km</p>
           {{#if isGM}}
             <button id="newHexplorationDayBtn" class="mt-2 w-full px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm shadow hover:shadow-md">Start New Day</button>
-          {{/if}}
-        
+              <button id="exploreCurrentHexBtn" class="mt-1 w-full px-3 py-1.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white text-xs sm:text-sm shadow hover:shadow-md {{#unless partyMarkerPosition}}opacity-50 cursor-not-allowed{{/unless}}" {{#unless partyMarkerPosition}}disabled title="Party marker not placed"{{/unless}}>Explore Current Hex</button>
+           {{/if}}
+
           {{#if (eq appMode CONST.AppMode.PLAYER)}}
             <hr class="my-2 sm:my-3 border-gray-600">
             <h4 class="text-md font-semibold text-sky-300 mb-1">Active Party Activities:</h4>
@@ -95,7 +96,7 @@
                 <ul class="list-none pl-0 space-y-1">
                     {{#each activePartyActivitiesDisplay}}
                         {{#with this.details}}
-                            <li class="p-1.5 bg-gray-700 rounded-md shadow-sm" title="Source: {{this.source}} (Time Factor: x{{toFixed this.timeFactor 2}})">
+                            <li class="p-1.5 bg-gray-700 rounded-md shadow-sm" title="{{this.description}} (Movement Penalty: x{{toFixed this.movementPenaltyFactor 2}})">
                                 <div class="flex justify-between items-center">
                                     <span class="flex items-center">
                                         <span class="mr-2 w-5 text-center">{{this.icon}}</span>
@@ -112,7 +113,7 @@
                                     {{/if}}
                                 </div>
                                 <p class="text-xxs text-gray-400 mt-0.5">
-                                     (Time x{{toFixed this.timeFactor 2}})
+                                     (Movement Penalty x{{toFixed this.movementPenaltyFactor 2}})
                                 </p>
                             </li>
                         {{/with}}

@@ -1526,7 +1526,7 @@ export const PARTY_ACTIVITIES = {
   // --- Non-Mount Specific Travel Activities ---
   avoid_notice: {
     id: 'avoid_notice',
-    name: 'Avoid Notice',
+    name: 'Avoiding Notice',
     icon: '🤫',
     description: 'Attempt Stealth (Perception DC). Modifies current travel mode speed by a factor of 2.0 (half speed). On encounter start, use Stealth for initiative and detection.',
     movementPenaltyFactor: 2.0, // This is a multiplier on the current travel mode's effective time
@@ -1534,19 +1534,19 @@ export const PARTY_ACTIVITIES = {
     traits: ['Exploration'],
     source: 'Player Core pg. 438'
   },
-  careful_traverse: {
-    id: 'careful_traverse',
-    name: 'Careful Traverse',
-    icon: '⛰️',
-    description: 'When moving slowly (such as due to encumbrance or hazardous terrain), you concentrate on secure footing. Does not inherently slow you further than current conditions but grants +1 circumstance bonus to saves vs. prone and relevant skill checks for balance/treacherous surfaces.',
-    movementPenaltyFactor: 1.0, // No additional penalty beyond what the terrain/mode imposes
-    isGroupActivity: false,
-    traits: ['Exploration', 'Move'],
-    source: 'Custom Rule (Encumbrance Adaptation)'
-  },
+  // careful_traverse: {
+  //   id: 'careful_traverse',
+  //   name: 'Careful Traverse',
+  //   icon: '⛰️',
+  //   description: 'When moving slowly (such as due to encumbrance or hazardous terrain), you concentrate on secure footing. Does not inherently slow you further than current conditions but grants +1 circumstance bonus to saves vs. prone and relevant skill checks for balance/treacherous surfaces.',
+  //   movementPenaltyFactor: 1.0, // No additional penalty beyond what the terrain/mode imposes
+  //   isGroupActivity: false,
+  //   traits: ['Exploration', 'Move'],
+  //   source: 'Custom Rule (Encumbrance Adaptation)'
+  // },
   cover_tracks: {
     id: 'cover_tracks',
-    name: 'Cover Tracks',
+    name: 'Covering Tracks',
     icon: '🚫',
     description: 'Use Survival to obscure tracks. Modifies current travel mode speed by a factor of 2.0 (half speed).',
     movementPenaltyFactor: 2.0,
@@ -1556,7 +1556,7 @@ export const PARTY_ACTIVITIES = {
   },
   defend: {
     id: 'defend',
-    name: 'Defend',
+    name: 'Defending',
     icon: '🛡️',
     description: 'Move with shield raised. Modifies current travel mode speed by a factor of 2.0 (half speed). Gain Raise a Shield benefits before first turn in combat.',
     movementPenaltyFactor: 2.0,
@@ -1564,19 +1564,9 @@ export const PARTY_ACTIVITIES = {
     traits: ['Exploration'],
     source: 'Player Core pg. 438'
   },
-  detailed_survey: {
-    id: 'detailed_survey',
-    name: 'Detailed Survey',
-    icon: '🧐',
-    description: 'Meticulously observe surroundings. Modifies current travel mode speed by a factor of 2.0 (half speed). GM makes secret checks for advantageous positions, routes, hazards, resources.',
-    movementPenaltyFactor: 2.0,
-    isGroupActivity: false,
-    traits: ['Exploration', 'Concentrate', 'Secret', 'Move'],
-    source: 'Custom Rule (Environmental Focus)'
-  },
   detect_magic: {
     id: 'detect_magic',
-    name: 'Detect Magic',
+    name: 'Detecting Magic',
     icon: '✨',
     description: 'Cast detect magic at intervals. Modifies current travel mode speed by a factor of 2.0 (half speed) or slower for thoroughness.',
     movementPenaltyFactor: 2.0, // Can be set higher by GM for more thoroughness
@@ -1586,7 +1576,7 @@ export const PARTY_ACTIVITIES = {
   },
   follow_expert: {
     id: 'follow_expert',
-    name: 'Follow the Expert',
+    name: 'Following the Expert',
     icon: '👣',
     description: 'Match an ally\'s skill check (e.g., Climb, Avoid Notice) while traveling. Does not inherently modify speed beyond the expert\'s activity.',
     movementPenaltyFactor: 1.0, // Relies on the expert\'s speed/activity
@@ -1596,7 +1586,7 @@ export const PARTY_ACTIVITIES = {
   },
   investigate: {
     id: 'investigate',
-    name: 'Investigate',
+    name: 'Investigating',
     icon: '🔍',
     description: 'Seek info with Recall Knowledge (secret). Modifies current travel mode speed by a factor of 2.0 (half speed).',
     movementPenaltyFactor: 2.0,
@@ -1606,7 +1596,7 @@ export const PARTY_ACTIVITIES = {
   },
   manage_burdens: {
     id: 'manage_burdens',
-    name: 'Manage Burdens',
+    name: 'Managing Burdens',
     icon: '🎒',
     description: 'Focus on keeping gear secure and balanced when heavily laden. Does not inherently slow you further than current conditions. May prevent item dropping/damage or reduce DC for exhaustion checks (GM discretion).',
     movementPenaltyFactor: 1.0,
@@ -1616,7 +1606,7 @@ export const PARTY_ACTIVITIES = {
   },
   repeat_spell: {
     id: 'repeat_spell',
-    name: 'Repeat a Spell',
+    name: 'Repeating a Spell',
     icon: '🔁',
     description: 'Repeatedly cast a 2-action or less spell (usually cantrip). Modifies current travel mode speed by a factor of 2.0 (half speed).',
     movementPenaltyFactor: 2.0,
@@ -1626,7 +1616,7 @@ export const PARTY_ACTIVITIES = {
   },
   scout: {
     id: 'scout',
-    name: 'Scout',
+    name: 'Scouting',
     icon: '👁️‍🗨️',
     description: 'Scout ahead/behind. Modifies current travel mode speed by a factor of 2.0 (half speed). Party gains +1 initiative next encounter.',
     movementPenaltyFactor: 2.0,
@@ -1636,7 +1626,7 @@ export const PARTY_ACTIVITIES = {
   },
   search: {
     id: 'search',
-    name: 'Search',
+    name: 'Searching',
     icon: '🧐',
     description: 'Meticulously Seek for hidden things. Modifies current travel mode speed by a factor of 2.0 (half speed) or slower. GM makes free secret Seek.',
     movementPenaltyFactor: 2.0, // Can be higher for more thoroughness
@@ -1646,7 +1636,7 @@ export const PARTY_ACTIVITIES = {
   },
   sense_direction: {
     id: 'sense_direction',
-    name: 'Sense Direction',
+    name: 'Sensing Direction',
     icon: '🗺️',
     description: 'Use Survival to get a sense of location or cardinal directions. Minimal time, does not significantly impact travel speed unless lost (then takes up to 10 min).',
     movementPenaltyFactor: 1.0, // Assume efficient use, or minimal pause
@@ -1656,7 +1646,7 @@ export const PARTY_ACTIVITIES = {
   },
   squeeze: {
     id: 'squeeze',
-    name: 'Squeeze',
+    name: 'Squeezing',
     icon: '🤏',
     description: 'Use Acrobatics to squeeze through tight spaces. Modifies current travel mode speed by a factor of 3.0 (one-third speed).',
     movementPenaltyFactor: 3.0,
@@ -1666,7 +1656,7 @@ export const PARTY_ACTIVITIES = {
   },
   track: {
     id: 'track',
-    name: 'Track',
+    name: 'Tracking',
     icon: '👀',
     description: 'Use Survival to follow tracks. Modifies current travel mode speed by a factor of 2.0 (half speed), or slower for difficult tracks.',
     movementPenaltyFactor: 2.0, // Can be higher for difficult tracks
@@ -1675,16 +1665,16 @@ export const PARTY_ACTIVITIES = {
     source: 'Player Core pg. 264'
   },
   
-  coordinated_pace_group: { // Renamed to avoid conflict if there's an individual one
-    id: 'coordinated_pace_group',
-    name: 'Coordinated Pace (Group)',
-    icon: '⚖️',
-    description: 'The party focuses on a unified rhythm, especially useful if encumbered or in difficult conditions. Party travels at the slowest member\'s effective speed. Grants +1 circumstance bonus to Fortitude saves against fatigue from environmental conditions or prolonged Hustling.',
-    movementPenaltyFactor: 1.0, // Relies on group's slowest member's speed
-    isGroupActivity: true,
-    traits: ['Exploration'],
-    source: 'Custom Rule (Group Coordination)'
-  },
+  // coordinated_pace_group: { // Renamed to avoid conflict if there's an individual one
+  //   id: 'coordinated_pace_group',
+  //   name: 'Coordinated Pace (Group)',
+  //   icon: '⚖️',
+  //   description: 'The party focuses on a unified rhythm, especially useful if encumbered or in difficult conditions. Party travels at the slowest member\'s effective speed. Grants +1 circumstance bonus to Fortitude saves against fatigue from environmental conditions or prolonged Hustling.',
+  //   movementPenaltyFactor: 1.0, // Relies on group's slowest member's speed
+  //   isGroupActivity: true,
+  //   traits: ['Exploration'],
+  //   source: 'Custom Rule (Group Coordination)'
+  // },
   hustle_group: { // Renamed for clarity
     id: 'hustle_group',
     name: 'Hustle (Group)',
@@ -1707,7 +1697,7 @@ export const PARTY_ACTIVITIES = {
   },
   walking_on_foot: {
     id: 'walking_on_foot',
-    name: 'Walking (On Foot)',
+    name: 'Walking (Group)',
     icon: '🚶',
     description: 'Standard bipedal movement. Performance based on terrain. Base time factor on ideal plains is 1.0. Specific terrain time factors apply.',
     isGroupActivity: true,
@@ -1717,7 +1707,7 @@ export const PARTY_ACTIVITIES = {
   },
   riding_horse: {
     id: 'riding_horse',
-    name: 'Riding Horse (Group)',
+    name: 'Riding Horses (Group)',
     icon: '🐎',
     description: 'Travel with common riding horses. Faster than walking on open ground. Base time factor on ideal plains is ~0.6. Specific terrain time factors apply.',
     isGroupActivity: true,
@@ -1725,86 +1715,86 @@ export const PARTY_ACTIVITIES = {
     source: 'Custom Rule (Expanded Travel)',
     terrainPenaltyFactors: generateExpandedTerrainPenalties(RIDING_HORSE_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
   },
-  sturdy_cart_wagon: {
-    id: 'sturdy_cart_wagon',
-    name: 'Cart/Wagon (Group)',
-    icon: '🛒',
-    description: 'Animal-drawn cart/wagon. Best on roads. Base time factor on good roads/flat terrain is ~0.8-1.0. Heavily impacted by rough terrain. Specific terrain time factors apply.',
-    isGroupActivity: true,
-    traits: ['Move', 'Exploration', 'Vehicle'],
-    source: 'Custom Rule (Expanded Travel)',
-    terrainPenaltyFactors: generateExpandedTerrainPenalties(STURDY_CART_WAGON_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
-  },
-  swift_beast_riding: {
-    id: 'swift_wolf_riding',
-    name: 'Swift Beast Riding (Group)',
-    icon: '🐺',
-    description: 'Ride a large, swift beast. Excellent on plains and in sparse forests. Base time factor on ideal plains is ~0.55. Specific terrain time factors apply.',
-    isGroupActivity: true,
-    traits: ['Move', 'Exploration'],
-    source: 'Custom Rule (WoW Inspired)',
-    terrainPenaltyFactors: generateExpandedTerrainPenalties(SWIFT_WOLF_RIDING_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
-  },
-  sturdy_kodo_riding: {
-    id: 'sturdy_kodo_riding',
-    name: 'Sturdy Beast Riding (Group)',
-    icon: '🦏',
-    description: 'Ride a massive, resilient beast. Slower but handles rough terrain and deserts well. Base time factor on ideal plains is ~0.8. Specific terrain time factors apply.',
-    isGroupActivity: true,
-    traits: ['Move', 'Exploration', 'Beast of Burden'],
-    source: 'Custom Rule (WoW Inspired)',
-    terrainPenaltyFactors: generateExpandedTerrainPenalties(STURDY_KODO_RIDING_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
-  },
-  land_machine_piloting: {
-    id: 'land_machine_piloting',
-    name: 'Land Machine Piloting (Group)',
-    icon: '🤖',
-    description: 'Gnomish mechanical bird-like walker. Very fast on flat, hard surfaces. Struggles with natural or uneven terrain and water. Base time factor on ideal roads is ~0.5. Specific terrain time factors apply.',
-    isGroupActivity: true,
-    traits: ['Move', 'Exploration', 'Vehicle', 'Mechanical'],
-    source: 'Custom Rule (WoW Inspired)',
-    terrainPenaltyFactors: generateExpandedTerrainPenalties(MECHANOSTRIDER_RIDING_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
-  },
-  wind_rider_flight: {
-    id: 'wind_rider_flight',
-    name: 'Flying Beast Riding (Group)',
-    icon: '🦅',
-    description: 'WoW Inspired: Fly mounted on a Wyvern. Versatile aerial travel. Base time factor in clear skies is ~0.35. Affected by aerial conditions and canopy. Specific terrain time factors apply.',
-    isGroupActivity: true,
-    traits: ['Move', 'Exploration', 'Aerial'],
-    source: 'Custom Rule (WoW Inspired)',
-    terrainPenaltyFactors: generateExpandedTerrainPenalties(WIND_RIDER_FLIGHT_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
-  },
-  flying_machine_flight: {
-    id: 'flying_machine_flight',
-    name: 'Flying Machine (Group)',
-    icon: '🚁',
-    description: 'WoW Inspired: A Gnomish or Goblin contraption for flight. Fast in clear air but susceptible to turbulence and damage. Base time factor in ideal air is ~0.3. Specific terrain time factors apply.',
-    isGroupActivity: true,
-    traits: ['Move', 'Exploration', 'Aerial', 'Vehicle', 'Mechanical'],
-    source: 'Custom Rule (WoW Inspired)',
-    terrainPenaltyFactors: generateExpandedTerrainPenalties(FLYING_MACHINE_FLIGHT_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
-  },
-  mixed_ground_mounts: {
-    id: 'mixed_ground_mounts',
-    name: 'Mixed Ground Mounts (Group)',
-    icon: '🐴🐺', // Example icons
-    description: 'The party travels using a variety of ground mounts. Performance is averaged, offering versatility without specialization. Base time factor on ideal plains is ~0.7. Specific terrain time factors apply.',
-    isGroupActivity: true,
-    traits: ['Move', 'Exploration'],
-    source: 'Custom Rule (Mixed Group)',
-    terrainPenaltyFactors: generateExpandedTerrainPenalties(MIXED_GROUND_MOUNTS_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
-  },
-  mixed_flying_mounts: {
-    id: 'mixed_flying_mounts',
-    name: 'Mixed Flying Mounts (Group)',
-    icon: '🦅🐉', 
-    description: 'The party travels using a variety of flying mounts. Aerial performance is averaged. Base time factor in clear skies is ~0.32. Specific terrain time factors apply.',
-    isGroupActivity: true,
-    traits: ['Move', 'Exploration', 'Aerial'],
-    source: 'Custom Rule (Mixed Group)',
-    terrainPenaltyFactors: generateExpandedTerrainPenalties(MIXED_FLYING_MOUNTS_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
-  },
+  // sturdy_cart_wagon: {
+  //   id: 'sturdy_cart_wagon',
+  //   name: 'Cart/Wagon (Group)',
+  //   icon: '🛒',
+  //   description: 'Animal-drawn cart/wagon. Best on roads. Base time factor on good roads/flat terrain is ~0.8-1.0. Heavily impacted by rough terrain. Specific terrain time factors apply.',
+  //   isGroupActivity: true,
+  //   traits: ['Move', 'Exploration', 'Vehicle'],
+  //   source: 'Custom Rule (Expanded Travel)',
+  //   terrainPenaltyFactors: generateExpandedTerrainPenalties(STURDY_CART_WAGON_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
+  // },
+  // swift_beast_riding: {
+  //   id: 'swift_wolf_riding',
+  //   name: 'Swift Beast Riding (Group)',
+  //   icon: '🐺',
+  //   description: 'Ride a large, swift beast. Excellent on plains and in sparse forests. Base time factor on ideal plains is ~0.55. Specific terrain time factors apply.',
+  //   isGroupActivity: true,
+  //   traits: ['Move', 'Exploration'],
+  //   source: 'Custom Rule (WoW Inspired)',
+  //   terrainPenaltyFactors: generateExpandedTerrainPenalties(SWIFT_WOLF_RIDING_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
+  // },
+  // sturdy_kodo_riding: {
+  //   id: 'sturdy_kodo_riding',
+  //   name: 'Sturdy Beast Riding (Group)',
+  //   icon: '🦏',
+  //   description: 'Ride a massive, resilient beast. Slower but handles rough terrain and deserts well. Base time factor on ideal plains is ~0.8. Specific terrain time factors apply.',
+  //   isGroupActivity: true,
+  //   traits: ['Move', 'Exploration', 'Beast of Burden'],
+  //   source: 'Custom Rule (WoW Inspired)',
+  //   terrainPenaltyFactors: generateExpandedTerrainPenalties(STURDY_KODO_RIDING_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
+  // },
+  // land_machine_piloting: {
+  //   id: 'land_machine_piloting',
+  //   name: 'Land Machine Piloting (Group)',
+  //   icon: '🤖',
+  //   description: 'Gnomish mechanical bird-like walker. Very fast on flat, hard surfaces. Struggles with natural or uneven terrain and water. Base time factor on ideal roads is ~0.5. Specific terrain time factors apply.',
+  //   isGroupActivity: true,
+  //   traits: ['Move', 'Exploration', 'Vehicle', 'Mechanical'],
+  //   source: 'Custom Rule (WoW Inspired)',
+  //   terrainPenaltyFactors: generateExpandedTerrainPenalties(MECHANOSTRIDER_RIDING_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
+  // },
+  // wind_rider_flight: {
+  //   id: 'wind_rider_flight',
+  //   name: 'Flying Beast Riding (Group)',
+  //   icon: '🦅',
+  //   description: 'WoW Inspired: Fly mounted on a Wyvern. Versatile aerial travel. Base time factor in clear skies is ~0.35. Affected by aerial conditions and canopy. Specific terrain time factors apply.',
+  //   isGroupActivity: true,
+  //   traits: ['Move', 'Exploration', 'Aerial'],
+  //   source: 'Custom Rule (WoW Inspired)',
+  //   terrainPenaltyFactors: generateExpandedTerrainPenalties(WIND_RIDER_FLIGHT_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
+  // },
+  // flying_machine_flight: {
+  //   id: 'flying_machine_flight',
+  //   name: 'Flying Machine (Group)',
+  //   icon: '🚁',
+  //   description: 'WoW Inspired: A Gnomish or Goblin contraption for flight. Fast in clear air but susceptible to turbulence and damage. Base time factor in ideal air is ~0.3. Specific terrain time factors apply.',
+  //   isGroupActivity: true,
+  //   traits: ['Move', 'Exploration', 'Aerial', 'Vehicle', 'Mechanical'],
+  //   source: 'Custom Rule (WoW Inspired)',
+  //   terrainPenaltyFactors: generateExpandedTerrainPenalties(FLYING_MACHINE_FLIGHT_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
+  // },
+  // mixed_ground_mounts: {
+  //   id: 'mixed_ground_mounts',
+  //   name: 'Mixed Ground Mounts (Group)',
+  //   icon: '🐴🐺', // Example icons
+  //   description: 'The party travels using a variety of ground mounts. Performance is averaged, offering versatility without specialization. Base time factor on ideal plains is ~0.7. Specific terrain time factors apply.',
+  //   isGroupActivity: true,
+  //   traits: ['Move', 'Exploration'],
+  //   source: 'Custom Rule (Mixed Group)',
+  //   terrainPenaltyFactors: generateExpandedTerrainPenalties(MIXED_GROUND_MOUNTS_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
+  // },
+  // mixed_flying_mounts: {
+  //   id: 'mixed_flying_mounts',
+  //   name: 'Mixed Flying Mounts (Group)',
+  //   icon: '🦅🐉', 
+  //   description: 'The party travels using a variety of flying mounts. Aerial performance is averaged. Base time factor in clear skies is ~0.32. Specific terrain time factors apply.',
+  //   isGroupActivity: true,
+  //   traits: ['Move', 'Exploration', 'Aerial'],
+  //   source: 'Custom Rule (Mixed Group)',
+  //   terrainPenaltyFactors: generateExpandedTerrainPenalties(MIXED_FLYING_MOUNTS_GROUP_PENALTIES, TERRAIN_TYPE_TO_GROUP_MAP, TERRAIN_TYPES_CONFIG)
+  // },
 };
 
 export const WeatherGroup = {
