@@ -703,70 +703,40 @@ window.addEventListener("message", (event) => {
       }
       break;
 
-    case "ahnSyncTravelAnimation":
-      console.log(
-        `%cAHME IFRAME (User: ${appState.userId}, isGM: ${appState.isGM}): Case 'ahnSyncTravelAnimation'. Payload:`,
-        "color: magenta; font-weight: bold;",
-        JSON.parse(JSON.stringify(payload))
-      );
+   case "ahnSyncTravelAnimation":
+      // console.log(`%cAHME IFRAME (User: ${appState.userId}, isGM: ${appState.isGM}): Case 'ahnSyncTravelAnimation'. Payload:`, "color: magenta; font-weight: bold;", JSON.parse(JSON.stringify(payload)));
 
       // Update the local appState.travelAnimation with the complete payload from the GM.
       appState.travelAnimation = {
-        ...appState.travelAnimation,
-        ...payload,
+        ...appState.travelAnimation, // Keep existing defaults if any
+        ...payload, // Overlay payload from GM, this includes isExploringInPlace
       };
 
-      if (!appState.isGM) {
-        // This logic is specifically for player clients
-        console.log(
-          `%cAHME IFRAME (Player - ${appState.userId}): Processing ahnSyncTravelAnimation. payload.isActive: ${payload.isActive}`,
-          "color: magenta;"
-        );
+      if (!appState.isGM) { // Player client logic
+        // console.log(`%cAHME IFRAME (Player - ${appState.userId}): Processing ahnSyncTravelAnimation. payload.isActive: ${payload.isActive}, payload.isExploringInPlace: ${payload.isExploringInPlace}`, "color: magenta;");
 
         if (payload.isActive) {
-          // If the GM's message indicates the animation should be active:
-          appState.travelAnimation.startTime = payload.startTime || Date.now();
+          appState.travelAnimation.startTime = payload.startTime || Date.now(); // Use GM's start time or current if missing
           appState.travelAnimation.duration = payload.duration;
-          appState.travelAnimation.markerPosition = payload.markerPosition || 0;
+          appState.travelAnimation.markerPosition = payload.markerPosition || 0; // For progress bar
+          // No need to explicitly set isExploringInPlace again, it's in payload
 
-          // DEFER starting the animation slightly to ensure the current message processing and renderApp completes
-          // This can help if the event loop is congested or if there's an interaction with immediate rendering.
           setTimeout(() => {
-            console.log(
-              `%cAHME IFRAME (Player - ${appState.userId}): Deferred call to runPlayerAnimationLoop. Current state isActive: ${appState.travelAnimation.isActive}, markerPosition: ${appState.travelAnimation.markerPosition}`,
-              "color: purple; font-weight: bold;"
-            );
-            // Double-check if still active, in case a "stop" message arrived very, very quickly and was processed
-            // before this timeout callback.
-            if (
-              appState.travelAnimation.isActive &&
-              appState.travelAnimation.markerPosition < 100
-            ) {
-              // Check markerPosition too
-              AnimationLogic.runPlayerAnimationLoop();
+            // console.log(`%cAHME IFRAME (Player - ${appState.userId}): Deferred call to runPlayerAnimationLoop. Current state isActive: ${appState.travelAnimation.isActive}, isExploring: ${appState.travelAnimation.isExploringInPlace}`, "color: purple; font-weight: bold;");
+            if (appState.travelAnimation.isActive) { // Check isActive from appState
+                 AnimationLogic.runPlayerAnimationLoop();
             } else {
-              console.log(
-                `%cAHME IFRAME (Player - ${appState.userId}): Animation was already stopped or completed before deferred runPlayerAnimationLoop could execute. isActive: ${appState.travelAnimation.isActive}, markerPos: ${appState.travelAnimation.markerPosition}`,
-                "color: purple;"
-              );
+                // console.log(`%cAHME IFRAME (Player - ${appState.userId}): Animation was already stopped before deferred runPlayerAnimationLoop could execute. isActive: ${appState.travelAnimation.isActive}`, "color: purple;");
             }
-          }, 0); // setTimeout with 0ms defers to the next tick in the event loop
+          }, 0); 
         } else if (!payload.isActive) {
-          // If the GM's message indicates the animation should NOT be active:
-          console.log(
-            `%cAHME IFRAME (Player - ${appState.userId}): Calling stopPlayerAnimationLoop directly due to !payload.isActive.`,
-            "color: magenta;"
-          );
+          // console.log(`%cAHME IFRAME (Player - ${appState.userId}): Calling stopPlayerAnimationLoop directly due to !payload.isActive.`, "color: magenta;");
           AnimationLogic.stopPlayerAnimationLoop();
         }
       }
 
-      // Re-render the UI for all clients (GM and Players)
-      console.log(
-        `%cAHME IFRAME (User: ${appState.userId}, isGM: ${appState.isGM}): Calling renderApp after processing ahnSyncTravelAnimation. Animation active: ${appState.travelAnimation.isActive}`,
-        "color: magenta;"
-      );
-      renderApp({ preserveScroll: true });
+      // console.log(`%cAHME IFRAME (User: ${appState.userId}, isGM: ${appState.isGM}): Calling renderApp after processing ahnSyncTravelAnimation. Animation active: ${appState.travelAnimation.isActive}`, "color: magenta;");
+      renderApp({ preserveScroll: true }); // Re-render to show/hide popup
       break;
     default:
       // console.log(`%cAHME IFRAME (User: ${appState.userId}): Unhandled message type '${type}'. Payload:`, "color: orange;", payload);

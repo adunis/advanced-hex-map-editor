@@ -247,55 +247,99 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
         HexplorationLogic.calculateEffectivePartySpeed(); 
 
         const originalBaseTimePerHex = appState.currentMapHexTraversalTimeValue;
-        
-        // Factor from combined individual and group activities
-        const effectiveActivityMultiplier = (appState.calculatedSlowestIndividualTimeFactor * appState.calculatedCombinedGroupTimeFactor) || 1.0;
-
-        // Time considering only base time and activities
-        const timeAfterActivities = originalBaseTimePerHex * effectiveActivityMultiplier;
-        const activityModifierEffect = timeAfterActivities - originalBaseTimePerHex;
-
-        // Now, apply terrain factor to the activity-modified time
-        const terrainTimeMultiplier = targetTerrainConfig.speedMultiplier || 1.0; // speedMultiplier on terrain is a time multiplier
-        const timeAfterTerrain = timeAfterActivities * terrainTimeMultiplier;
-        const terrainModifierEffect = timeAfterTerrain - timeAfterActivities;
-        
-          let weatherTimeMultiplier = 1.0;
-        let weatherOnHexDetails = null;
-        if (appState.isWeatherEnabled && appState.mapWeatherSystem.weatherGrid?.[targetHex.id]) { // Use mapWeatherSystem
-            const weatherId = appState.mapWeatherSystem.weatherGrid[targetHex.id];
-            const weatherCondition = CONST.DEFAULT_WEATHER_CONDITIONS.find(wc => wc.id === weatherId);
-            
-            if (weatherCondition?.effects?.travelSpeedMultiplier) {
-                weatherOnHexDetails = { id: weatherCondition.id, name: weatherCondition.name, icon: weatherCondition.icon };
-                // travelSpeedMultiplier: 1.0 normal, >1.0 slower (more time), <1.0 faster (less time)
-                weatherTimeMultiplier = weatherCondition.effects.travelSpeedMultiplier; 
-                if (weatherTimeMultiplier <= 0) weatherTimeMultiplier = 999; // Impassable
-            }
-        }
-        const timeAfterWeather = timeAfterTerrain * weatherTimeMultiplier;
-        const weatherModifierEffect = timeAfterWeather - timeAfterTerrain;
-        
-        // Calculate absolute elevation penalty based on original base time
-        let elevationChange = 0;
-        let elevationPenaltyAbsolute = 0;
-        if (previousHex && !isExploringCurrentHex) {
-            elevationChange = targetHex.elevation - previousHex.elevation;
-            elevationPenaltyAbsolute = (Math.abs(elevationChange) / 100) * CONST.ELEVATION_TIME_PENALTY_FACTOR_PER_100M * originalBaseTimePerHex;
-        }
-        
-        const totalCalculatedTime = timeAfterWeather + elevationPenaltyAbsolute;
-        const finalTimeValue = Math.max(0.1, totalCalculatedTime); // Ensure minimum time
-
         const timeUnit = appState.currentMapHexTraversalTimeUnit;
-        let scaleFactorToMs = 1000; // Default for 'second'
-        if (timeUnit === 'hour') scaleFactorToMs = 60 * 60 * 1000;
-        else if (timeUnit === 'minute') scaleFactorToMs = 60 * 1000;
-        else if (timeUnit === 'day') scaleFactorToMs = 24 * 60 * 60 * 1000;
-        // Add other units if necessary
+        
+        let finalTimeValue;
+        let timeBreakdown = {};
+        let animationDurationMs;
+         let activityModifierEffect = 0;
+        let terrainModifierEffect = 0;
+        let weatherModifierEffect = 0;
+        let elevationPenaltyAbsolute = 0;
+        let elevationChange = 0; // Also needed for logging in onTravelComplete
+        let weatherOnHexDetails = null; // For logging weather details in onTravelComplete
+        // ***** MODIFICATION END *****
+        
+  if (isExploringCurrentHex) {
 
-        const realWorldTravelMs = finalTimeValue * scaleFactorToMs;
-        const animationDurationMs = Math.max(500, Math.min(realWorldTravelMs, 5000));
+    
+            // --- Specific Time Cost for Exploring Current Hex ---
+            // Let's define a base exploration time, e.g., 1 hour.
+            // This can be modified by active party activities (e.g., Detailed Survey might take longer).
+            let baseExplorationTime = 1.0; // Default to 1 unit of the map's traversal time unit
+            // Adjust if the map's base traversal unit is not hours, or make this a constant
+            if (timeUnit === 'minute') baseExplorationTime = 60;
+            else if (timeUnit === 'day') baseExplorationTime = 1/24 * 8; // e.g. 8 hours of a day for thorough exploration
+
+            const effectiveActivityMultiplier = (appState.calculatedSlowestIndividualTimeFactor * appState.calculatedCombinedGroupTimeFactor) || 1.0;
+            finalTimeValue = baseExplorationTime * effectiveActivityMultiplier;
+            finalTimeValue = Math.max(0.1, finalTimeValue); 
+
+            // Assign to outer-scoped variables
+            activityModifierEffect = finalTimeValue - baseExplorationTime;
+            terrainModifierEffect = 0; // No terrain travel cost for exploring in place
+            weatherModifierEffect = 0; // Weather might affect discovery, but not time cost here
+            elevationPenaltyAbsolute = 0; // No elevation change
+            elevationChange = 0; // Explicitly zero
+
+            timeBreakdown = {
+                base: baseExplorationTime, // Base time for the exploration activity itself
+                activityModifier: finalTimeValue - baseExplorationTime, // Effect of activities on exploration time
+                terrainModifier: 0, // Typically no specific terrain "travel" cost for just exploring in place
+                weatherModifier: 0, // Weather might affect discovery, but not necessarily time spent in one spot unless severe
+                elevationPenalty: 0, // No elevation change
+                totalCalculated: finalTimeValue
+            };
+            animationDurationMs = 3000; // Short animation for exploring
+        } else {
+            // --- Time Cost for Traveling to a New Hex (existing logic) ---
+            const effectiveActivityMultiplier = (appState.calculatedSlowestIndividualTimeFactor * appState.calculatedCombinedGroupTimeFactor) || 1.0;
+            const timeAfterActivities = originalBaseTimePerHex * effectiveActivityMultiplier;
+            activityModifierEffect = timeAfterActivities - originalBaseTimePerHex; // Assign to outer-scoped variable
+
+            const terrainTimeMultiplier = targetTerrainConfig.speedMultiplier || 1.0;
+            const timeAfterTerrain = timeAfterActivities * terrainTimeMultiplier;
+            terrainModifierEffect = timeAfterTerrain - timeAfterActivities; // Assign to outer-scoped variable
+            
+            let weatherTimeMultiplier = 1.0;
+            if (appState.isWeatherEnabled && appState.mapWeatherSystem.weatherGrid?.[targetHex.id]) {
+                const weatherId = appState.mapWeatherSystem.weatherGrid[targetHex.id];
+                const weatherCondition = CONST.DEFAULT_WEATHER_CONDITIONS.find(wc => wc.id === weatherId);
+                if (weatherCondition?.effects?.travelSpeedMultiplier) {
+                    weatherTimeMultiplier = weatherCondition.effects.travelSpeedMultiplier;
+                    if (weatherTimeMultiplier <= 0) weatherTimeMultiplier = 999;
+                }
+            }
+            const timeAfterWeather = timeAfterTerrain * weatherTimeMultiplier;
+            const weatherModifierEffect = timeAfterWeather - timeAfterTerrain;
+            
+            let elevationChange = 0;
+            let elevationPenaltyAbsolute = 0;
+            if (previousHex) { // previousHex will be different from targetHex here
+                elevationChange = targetHex.elevation - previousHex.elevation;
+                elevationPenaltyAbsolute = (Math.abs(elevationChange) / 100) * CONST.ELEVATION_TIME_PENALTY_FACTOR_PER_100M * originalBaseTimePerHex;
+            }
+            
+            const totalCalculatedTime = timeAfterWeather + elevationPenaltyAbsolute;
+            finalTimeValue = Math.max(0.1, totalCalculatedTime);
+
+            timeBreakdown = {
+                base: originalBaseTimePerHex,
+                activityModifier: activityModifierEffect,
+                terrainModifier: terrainModifierEffect,
+                weatherModifier: weatherModifierEffect,
+                elevationPenalty: elevationPenaltyAbsolute,
+                totalCalculated: finalTimeValue
+            };
+
+            let scaleFactorToMs = 1000; 
+            if (timeUnit === 'hour') scaleFactorToMs = 60 * 60 * 1000;
+            else if (timeUnit === 'minute') scaleFactorToMs = 60 * 1000;
+            else if (timeUnit === 'day') scaleFactorToMs = 24 * 60 * 60 * 1000;
+            const realWorldTravelMs = finalTimeValue * scaleFactorToMs;
+            animationDurationMs = Math.max(500, Math.min(realWorldTravelMs, 5000));
+        }
+        
 
         const onTravelComplete = async () => {
             if (!isExploringCurrentHex) {
@@ -383,8 +427,13 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
             }
         };
 
-        if (!isExploringCurrentHex && animationDurationMs > 0) {
-            AnimationLogic.startTravelAnimation(targetHex, animationDurationMs, onTravelComplete);
+  if (animationDurationMs > 0) {
+            AnimationLogic.startTravelAnimation(
+                targetHex, // For exploring, targetHex is the current hex
+                animationDurationMs, 
+                onTravelComplete,
+                isExploringCurrentHex // Pass the flag here
+            );
         } else {
             await onTravelComplete();
         }

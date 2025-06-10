@@ -1241,6 +1241,7 @@ const enableWeatherToggle = el("enableWeatherToggle");
 
           if (event.target.id === 'exploreCurrentHexBtn' || event.target.closest('#exploreCurrentHexBtn')) {
               if (appState.partyMarkerPosition && appState.isGM && appState.appMode === CONST.AppMode.PLAYER) {
+                  // Call handleHexClick with a flag indicating it's an exploration of the current hex
                   MapLogic.handleHexClick(appState.partyMarkerPosition.row, appState.partyMarkerPosition.col, true);
               }
           }
