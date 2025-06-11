@@ -4,16 +4,16 @@
   "description": "An application embedded in Foundry VTT to visually edit elevations, terrain types, and features on a hexagonal grid map. Includes GM editing tools and a player view with fog of war.",
   "version": "1.0.1",
   "compatibility": {
-    "minimum": "12",
-    "verified": "13"
+    "minimum": "11",
+    "verified": "12"
   },
   "authors": [
     {
       "name": "Aleksandar Petrovic",
       "url": "https://github.com/adunis"
-    } 
+    }
   ],
-  "esmodules": [
+  "scripts": [
     "foundry-bridge.js"
   ],
   "styles": [
@@ -21,8 +21,8 @@
   ],
   "languages": [],
   "packs": [],
-  "socket": false,
+  "socket": true,
   "manifest": "https://github.com/adunis/advanced-hex-map-editor/releases/latest/download/module.json",
   "download": "https://github.com/adunis/advanced-hex-map-editor/releases/download/v1.0.1/module.zip",
-  "url": "https://github.com/your-repo/advanced-hex-map-editor"
+  "url": "https://github.com/adunis/advanced-hex-map-editor"
 }
