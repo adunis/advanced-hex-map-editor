@@ -14,6 +14,16 @@ export const appState = {
   currentTimeOfDay: "N/A", 
   currentTravelSpeedText: "N/A (Calculating...)", 
 
+ mapDisorientation: {
+    isActive: false,
+    startTime: 0,
+    duration: 0,                 // Duration in milliseconds
+    currentRotationAngle: 0,     // Current angle of the map
+    rotationSnapIntervalMs: 10000, // How often to snap to a new random angle
+    internalIntervalId: null,    // For GM's internal timer to stop it
+    playerAnimationId: null,     // For player's setTimeout loop
+  },
+
   // New properties for detailed speed calculation
   calculatedSlowestIndividualTimeFactor: 1.0,
   calculatedSlowestIndividualActivityName: "None",
@@ -141,6 +151,16 @@ export function resetActiveMapState() {
     appState.lastMovementInfo = null;
     appState.isWaitingForFeatureDetails = false;
 
+  appState.mapDisorientation = {
+    isActive: false,
+    startTime: 0,
+    duration: 0,
+    internalIntervalId: null,
+    playerAnimationId: null,
+    jiggleRangePx: 15,
+    jiggleIntervalMs: 100
+  };
+
     appState.isWeatherEnabled = false; // Default to off for a new/reset map context
     appState.mapWeatherSystem = getDefaultMapWeatherSystem();
 
@@ -165,6 +185,8 @@ export function resetActiveMapState() {
     appState.targetScrollTop = null;
     appState.centerViewOnHexAfterRender = null;
 
+
+    
     appState.zoomLevel = 1.0;
     appState.activePartyActivities = new Map();
 

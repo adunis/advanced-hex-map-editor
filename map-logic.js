@@ -620,6 +620,15 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
     }
 }
 
+export function triggerPlayerDisorientation(durationMs) {
+    if (!appState.isGM) {
+        console.warn("AHME: Non-GM tried to trigger player disorientation.");
+        return;
+    }
+    console.log(`%cAHME IFRAME (GM): Triggering player disorientation for ${durationMs}ms.`, "color: red; font-weight: bold;");
+    AnimationLogic.startMapDisorientation(durationMs);
+}
+
 export function handleAppModeChange(newMode) {
     if (appState.appMode === newMode) return;
     appState.appMode = newMode;
