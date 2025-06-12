@@ -39,7 +39,7 @@ const TERRAIN_METADATA = {
     isImpassable: false, blocksLineOfSight: false,
     colors: { low: 'rgb(134, 239, 172)', mid: 'rgb(74, 222, 128)', high: 'rgb(34, 197, 94)' },
     elevationThresholds: { mid: 50, high: 150 },
-    encounterChanceOnEnter: 100,
+    encounterChanceOnEnter: 5,
     encounterChanceOnDiscover: 5
   },
   TALLGRASS_PRAIRIE: {
