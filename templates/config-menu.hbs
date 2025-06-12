@@ -1,0 +1,20 @@
+<!-- templates/config-menu.hbs -->
+<form autocomplete="off">
+    <div class="form-group" style="display: block;">
+        <h2 class="text-lg font-semibold text-stone-200" style="margin-bottom: 0.5rem;">Global Constants Configuration</h2>
+        <p class="notes" style="margin-bottom: 1rem;">
+            Warning: You are directly editing the module's <code>constants.js</code> file.
+            Incorrect syntax will break the module. Changes require a browser refresh (F5) to take full effect.
+            It is highly recommended to back up your changes before saving.
+        </p>
+        <textarea name="constantsContent" style="width: 100%; height: 500px; font-family: monospace; background-color: #222; color: #eee; border: 1px solid #555; border-radius: 3px;">{{constantsContent}}</textarea>
+    </div>
+    <footer class="sheet-footer flexrow">
+        <button type="button" class="reset-button">
+            <i class="fas fa-undo"></i> Reset to Default
+        </button>
+        <button type="submit" name="submit">
+            <i class="far fa-save"></i> Save Changes
+        </button>
+    </footer>
+</form>

@@ -235,6 +235,18 @@ export function renderApp(options = {}) {
                 }
             }
         }
+
+
+        const isCurrentlyVisible = appState.playerCurrentVisibleHexIds.has(curHex.id);
+        const isDiscovered = appState.playerDiscoveredHexIds.has(curHex.id);
+        
+        // This is the new key condition
+        const isObscuredWhileLost = appState.mapDisorientation.isActive && 
+                                    !appState.isGM && 
+                                    isDiscovered && 
+                                    !isCurrentlyVisible;
+        // --- END OF MODIFICATION ---
+
         const cx_2d_center = svgPad + hexTrueW / 2 + curHex.col * hexTrueW + (curHex.row % 2 !== 0 ? hexTrueW / 2 : 0);
         const cy_2d_center = svgPad + CONST.HEX_SIZE + curHex.row * hexVOff;
         const cx_top_proj = cx_2d_center;
@@ -269,6 +281,11 @@ export function renderApp(options = {}) {
 
         let fillForTopFace = baseFillColorForSides;
         let isTW = typeof fillForTopFace === "string" && fillForTopFace.startsWith("fill-");
+
+
+        let isTextHidden = false;
+
+
         let txtClr = "fill-white";
         if (!isTW) {
             const rgbMatch = fillForTopFace.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
@@ -285,24 +302,29 @@ export function renderApp(options = {}) {
         }
 
         let opacity = "opacity-100";
-        if (appState.appMode === CONST.AppMode.PLAYER) {
-            if (!appState.playerDiscoveredHexIds.has(curHex.id)) {
+        if (isObscuredWhileLost) {
+            fillForTopFace = CONST.FOG_OF_WAR_COLOR;
+            isTW = false;
+            isTextHidden = true;
+        } else if (appState.appMode === CONST.AppMode.PLAYER) {
+            if (!isDiscovered) {
                 if (appState.isGM) {
-                    fillForTopFace = "rgba(30, 30, 30, 0.75)";
-                    isTW = false;
-                    txtClr = "fill-gray-400";
-                    opacity = "opacity-85";
+                    fillForTopFace = "rgba(30, 30, 30, 0.75)"; isTW = false; txtClr = "fill-gray-400"; opacity = "opacity-85";
                 } else {
-                    fillForTopFace = CONST.FOG_OF_WAR_COLOR;
-                    isTW = false;
-                    txtClr = "fill-transparent";
+                    fillForTopFace = CONST.FOG_OF_WAR_COLOR; isTW = false; isTextHidden = true;
                 }
-            } else if ( !appState.playerCurrentVisibleHexIds.has(curHex.id) && (!appState.partyMarkerPosition || appState.partyMarkerPosition.id !== curHex.id) ) {
+            } else if (!isCurrentlyVisible && (!appState.partyMarkerPosition || appState.partyMarkerPosition.id !== curHex.id)) {
                 opacity = `opacity-${Math.round(CONST.DISCOVERED_DIM_OPACITY * 100)}`;
                 if (appState.isGM) opacity = "opacity-60";
             }
         }
 
+
+
+             if (isTextHidden) {
+            txtClr = "fill-transparent";
+        }
+        
         const editorLOSActive = appState.editorLosSourceHexId !== null;
         let strokeClr = "stroke-gray-500";
         let strokeW = Math.max( 0.75, Math.min(3, 0.75 + Math.max(0, curHex.elevation) / 500) );
@@ -593,6 +615,10 @@ export function renderApp(options = {}) {
             svgElement.style.transform = `scale(${appState.zoomLevel})`;
             svgElement.style.transformOrigin = "0 0";
 
+            if (appState.mapDisorientation.isActive && (!appState.isGM || appState.isStandaloneMode)) {
+    AnimationLogic.runMapDisorientationLoop();
+}
+
             requestAnimationFrame(() => {
                 if (!newSvgScrollContainer || !document.body.contains(newSvgScrollContainer)) {
                         return;
@@ -678,6 +704,7 @@ function capitalizeFirstLetterLocal(string) {
 }
 
 
+
 let customPromptResolve = null; 
 
 // DEFINE showCustomPrompt HERE, before attachEventListeners
@@ -748,10 +775,7 @@ export function attachEventListeners() {
     };
   }
 
-// In app/ui.js -> attachEventListeners()
-// In app/ui.js -> attachEventListeners()
-// In app/ui.js -> attachEventListeners()
-// Remove or comment out the old qsa('input[type="checkbox"][data-activity-id]') listener
+
 
 qsa('[data-action="toggle-activity-button"]').forEach(button => {
   const activityButtonClickHandler = async (event) => {
@@ -1237,12 +1261,19 @@ const enableWeatherToggle = el("enableWeatherToggle");
                   renderApp({ preserveScroll: true });
                   syncActivitiesToFoundry();
               }
-          }
-
-          if (event.target.id === 'exploreCurrentHexBtn' || event.target.closest('#exploreCurrentHexBtn')) {
+          } else if (event.target.id === 'exploreCurrentHexBtn' || event.target.closest('#exploreCurrentHexBtn')) {
               if (appState.partyMarkerPosition && appState.isGM && appState.appMode === CONST.AppMode.PLAYER) {
-                  // Call handleHexClick with a flag indicating it's an exploration of the current hex
                   MapLogic.handleHexClick(appState.partyMarkerPosition.row, appState.partyMarkerPosition.col, true);
+              }
+          // --- START: FIX ---
+          // Add the logic for the "Make Players Lost" button here.
+          } else if (event.target.id === 'makePlayersLostBtn' || event.target.closest('#makePlayersLostBtn')) {
+              if (appState.isGM) {
+   
+                      MapLogic.triggerPlayerDisorientation(60 * 1000); // Convert to milliseconds
+                  } else {
+                      alert("Invalid duration. Please enter a positive number.");
+                  
               }
           }
       });

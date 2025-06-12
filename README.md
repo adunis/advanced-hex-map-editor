@@ -80,4 +80,4 @@ Bug reports and feature requests can be submitted via the [issue tracker](YOUR_B
 
 ## License
 
-[Specify Your License Here, e.g., MIT License]
+GNU GPLv3

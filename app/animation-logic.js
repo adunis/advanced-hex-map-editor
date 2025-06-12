@@ -30,6 +30,27 @@ function syncTravelAnimationStateToFoundry() {
   }
 }
 
+function getPartyMarkerCenterCoords() {
+    if (!appState.partyMarkerPosition) return null;
+    
+    const markerHex = appState.hexDataMap.get(appState.partyMarkerPosition.id);
+    if (!markerHex) return null;
+    
+    const hexTrueW = CONST.HEX_SIZE * Math.sqrt(3);
+    const hexVOff = CONST.HEX_SIZE * 1.5;
+    const svgPad = CONST.HEX_SIZE;
+    
+    let yShift = 0;
+    if (appState.viewMode === CONST.ViewMode.THREED) {
+        yShift = markerHex.elevation * CONST.HEX_3D_PROJECTED_Y_SHIFT_PER_ELEVATION_UNIT;
+    }
+
+    const cx = svgPad + hexTrueW / 2 + markerHex.col * hexTrueW + (markerHex.row % 2 !== 0 ? hexTrueW / 2 : 0);
+    const cy = svgPad + CONST.HEX_SIZE + markerHex.row * hexVOff - yShift;
+
+    return { cx, cy };
+}
+
 export function runPlayerAnimationLoop() {
     // console.log(`%cAHME IFRAME (Player - ${appState.userId}): runPlayerAnimationLoop called. Current travelAnimation state:`, "color: green; font-weight: bold;", JSON.parse(JSON.stringify(appState.travelAnimation)));
     
@@ -266,4 +287,136 @@ export function startTravelAnimation(targetHex, travelDurationMs, onCompleteCall
         // If in standalone mode and this instance is a player view, start its animation loop
         runPlayerAnimationLoop();
     }
+}
+
+// Function to sync disorientation state to Foundry
+function syncMapDisorientationStateToFoundry() {
+  if (appState.isGM && !appState.isStandaloneMode && window.parent && APP_MODULE_ID) {
+    try {
+      const { internalIntervalId, playerAnimationId, ...payload } = appState.mapDisorientation;
+      window.parent.postMessage({
+        type: 'gmSyncMapDisorientationToFoundry',
+        payload: payload,
+        moduleId: APP_MODULE_ID
+      }, '*');
+    } catch (e) {
+      console.error("AHME: Error syncing map disorientation state to Foundry:", e);
+    }
+  }
+}
+
+// GM's internal step to check if disorientation duration is over
+function performDisorientationStep() {
+  if (!appState.mapDisorientation.isActive) {
+    if (appState.mapDisorientation.internalIntervalId) {
+      clearInterval(appState.mapDisorientation.internalIntervalId);
+      appState.mapDisorientation.internalIntervalId = null;
+    }
+    return;
+  }
+
+  const elapsed = Date.now() - appState.mapDisorientation.startTime;
+  if (elapsed >= appState.mapDisorientation.duration) {
+    stopMapDisorientation();
+  }
+}
+
+// GM starts the disorientation effect
+export function startMapDisorientation(durationMs) {
+  if (appState.mapDisorientation.internalIntervalId) {
+    clearInterval(appState.mapDisorientation.internalIntervalId);
+  }
+  stopMapDisorientationLoop();
+
+  appState.mapDisorientation = {
+    ...appState.mapDisorientation,
+    isActive: true,
+    startTime: Date.now(),
+    duration: durationMs,
+    currentRotationAngle: 0,
+    internalIntervalId: null,
+    playerAnimationId: null
+  };
+  
+  if (appState.isGM) {
+    appState.mapDisorientation.internalIntervalId = setInterval(performDisorientationStep, 1000);
+  }
+  if (appState.isStandaloneMode && appState.isGM) {
+      runMapDisorientationLoop();
+  }
+  syncMapDisorientationStateToFoundry();
+}
+
+// GM stops the disorientation effect
+export function stopMapDisorientation() {
+  if (appState.mapDisorientation.internalIntervalId) {
+    clearInterval(appState.mapDisorientation.internalIntervalId);
+    appState.mapDisorientation.internalIntervalId = null;
+  }
+
+  if (appState.mapDisorientation.isActive) {
+    appState.mapDisorientation.isActive = false;
+    stopMapDisorientationLoop();
+    syncMapDisorientationStateToFoundry();
+    renderApp({ preserveScroll: true }); // Re-render to remove blackouts
+  }
+}
+
+
+// Player runs its animation loop
+export function runMapDisorientationLoop() {
+    const { isActive, rotationSnapIntervalMs, playerAnimationId } = appState.mapDisorientation;
+    const svgElement = document.getElementById("hexGridSvg");
+
+    if (!svgElement || !isActive) {
+      stopMapDisorientationLoop(); // Ensure everything is reset if we can't run
+      return;
+    }
+
+    if (playerAnimationId) clearTimeout(playerAnimationId);
+
+    const rotate = () => {
+        if (!appState.mapDisorientation.isActive) {
+            stopMapDisorientationLoop();
+            return;
+        }
+
+        const partyCoords = getPartyMarkerCenterCoords();
+        if (!partyCoords) {
+             // Can't find party, stop the effect
+            stopMapDisorientation();
+            return;
+        }
+
+        const possibleAngles = [90, 180, 270];
+        const newAngle = possibleAngles[Math.floor(Math.random() * possibleAngles.length)];
+        
+        appState.mapDisorientation.currentRotationAngle = newAngle;
+
+        svgElement.style.transformOrigin = `${partyCoords.cx}px ${partyCoords.cy}px`;
+        svgElement.style.transition = 'transform 1s ease-in-out';
+        svgElement.style.transform = `scale(${appState.zoomLevel}) rotate(${newAngle}deg)`;
+
+        appState.mapDisorientation.playerAnimationId = setTimeout(rotate, rotationSnapIntervalMs);
+    };
+
+    rotate();
+}
+
+// Player stops its animation loop
+export function stopMapDisorientationLoop() {
+  if (appState.mapDisorientation.playerAnimationId) {
+    clearTimeout(appState.mapDisorientation.playerAnimationId);
+    appState.mapDisorientation.playerAnimationId = null;
+  }
+  
+  appState.mapDisorientation.isActive = false;
+  appState.mapDisorientation.currentRotationAngle = 0;
+
+  const svgElement = document.getElementById("hexGridSvg");
+  if (svgElement) {
+    svgElement.style.transition = 'transform 0.5s ease-out';
+    svgElement.style.transformOrigin = '0 0';
+    svgElement.style.transform = `scale(${appState.zoomLevel})`;
+  }
 }

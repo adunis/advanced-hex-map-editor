@@ -524,6 +524,27 @@ window.addEventListener("message", (event) => {
       }
       break;
 
+    case "ahnSyncMapDisorientation":
+  console.log(`%cAHME IFRAME (User: ${appState.userId}, isGM: ${appState.isGM}): Case 'ahnSyncMapDisorientation'. Payload:`, "color: brown; font-weight: bold;", JSON.parse(JSON.stringify(payload)));
+
+  // Update the local appState.mapDisorientation with the complete payload from the GM.
+  // This payload includes isActive, startTime, and duration.
+  appState.mapDisorientation = {
+    ...appState.mapDisorientation, // Keep constants like jiggleRangePx, jiggleIntervalMs
+    ...payload
+  };
+
+  // Only players (or standalone GM) react to this message by starting/stopping their visual loop
+  if (!appState.isGM || (appState.isStandaloneMode && appState.appMode === CONST.AppMode.PLAYER)) {
+    if (payload.isActive) {
+      AnimationLogic.runMapDisorientationLoop();
+    } else {
+      AnimationLogic.stopMapDisorientationLoop(); // Explicitly stop
+    }
+  }
+  // No renderApp() needed here as the visual change is handled directly by AnimationLogic.
+  break;
+
     case "forceMapReload":
       console.log(
         `%cAHME IFRAME (User: ${appState.userId}): Case 'forceMapReload'. Payload:`,

@@ -25,6 +25,103 @@ const DEFAULT_MAP_WEATHER_SYSTEM_STRUCTURE_BRIDGE = {
     weatherGrid: {}
 };
 
+
+// Class definition for the configuration menu
+class AHMEConfigMenu extends FormApplication {
+    static get defaultOptions() {
+        return foundry.utils.mergeObject(super.defaultOptions, {
+            id: "ahme-config-menu",
+            title: "Advanced Hex Map - Global Configuration",
+            template: `modules/${MODULE_ID}/templates/config-menu.hbs`,
+            width: 800,
+            height: "auto",
+            classes: ["sheet"],
+            resizable: true,
+            closeOnSubmit: false,
+            submitOnChange: false,
+        });
+    }
+
+    async getData(options) {
+        const data = await super.getData(options);
+        const constantsPath = `modules/${MODULE_ID}/app/constants.js`;
+        try {
+            const response = await fetch(`${constantsPath}?_=${Date.now()}`); // Cache-bust
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            data.constantsContent = await response.text();
+        } catch (e) {
+            ui.notifications.error("Could not load constants.js file.");
+            console.error(`AHME: Failed to fetch ${constantsPath}`, e);
+            data.constantsContent = "Error: Could not load constants file. Check console (F12) for details.";
+        }
+        return data;
+    }
+
+    async _updateObject(event, formData) {
+        const content = formData.constantsContent;
+        if (typeof content !== 'string') {
+            ui.notifications.error("Invalid content for constants.js.");
+            return;
+        }
+
+        try {
+            const file = new File([content], "constants.js", { type: "text/javascript" });
+            const targetPath = `modules/${MODULE_ID}/app/`;
+            await FilePicker.upload("data", targetPath, file, {}, { notify: false });
+            ui.notifications.info("Successfully updated constants.js. A refresh (F5) is recommended for changes to apply.");
+            this.render();
+        } catch (e) {
+            ui.notifications.error("Failed to save constants.js. Check console (F12) for details. The server might not have permission to write to the module folder.");
+            console.error("AHME Config Save Error:", e);
+        }
+    }
+    
+    activateListeners(html) {
+        super.activateListeners(html);
+        html.find('button.reset-button').on('click', this._onResetToDefaults.bind(this));
+    }
+
+    async _onResetToDefaults(event) {
+        event.preventDefault();
+        const confirmation = await Dialog.confirm({
+            title: "Reset Configuration",
+            content: "<p>Are you sure you want to reset all configurations to their default values? This will overwrite your custom changes in <strong>constants.js</strong>.</p>",
+            yes: () => true,
+            no: () => false,
+            defaultYes: false
+        });
+
+        if (!confirmation) {
+            return;
+        }
+        
+        const defaultConstantsPath = `modules/${MODULE_ID}/app/constants.default.js`;
+        try {
+            const response = await fetch(`${defaultConstantsPath}?_=${Date.now()}`);
+            if (!response.ok) {
+                throw new Error(`Could not find the default configuration file. Was it deleted?`);
+            }
+            const defaultContent = await response.text();
+            
+            const file = new File([defaultContent], "constants.js", { type: "text/javascript" });
+            const targetPath = `modules/${MODULE_ID}/app/`;
+            await FilePicker.upload("data", targetPath, file, {}, { notify: false });
+            
+            if (this.form.querySelector('textarea[name="constantsContent"]')) {
+                this.form.querySelector('textarea[name="constantsContent"]').value = defaultContent;
+            }
+
+            ui.notifications.info("Configuration has been reset to default. A refresh (F5) is recommended.");
+
+        } catch (e) {
+            ui.notifications.error(`Failed to reset constants.js: ${e.message}. Check console (F12).`);
+            console.error(`AHME: Failed to fetch or write default constants from ${defaultConstantsPath}`, e);
+        }
+    }
+}
+
 function generateUUID() {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
     var r = (Math.random() * 16) | 0,
@@ -535,6 +632,36 @@ class HexMapApplication extends Application {
             content: `Hexploration: A new day dawns. Current time is now ${worldTimeFormatted}.`,
           });
           break;
+
+
+case "gmSyncMapDisorientationToFoundry": // This is the new message type from the GM's iframe
+  console.log(
+    `%cAHME BRIDGE (GM - ${game.user?.id}): Received 'gmSyncMapDisorientationToFoundry' from local iframe. Payload:`,
+    "color: #FFA500;",
+    payload
+  );
+
+  if (game.user?.isGM && event.data.moduleId === MODULE_ID) {
+    // 1. Update the GM's own iframe(s) immediately via postMessage (if GM has player view open)
+    // This ensures the GM's own player view is snappy.
+    broadcastToAllIframes("ahnSyncMapDisorientation", payload);
+
+    // 2. Update the world setting to trigger players.
+    // Add a timestamp to the data to ensure onChange always fires, even if the payload is identical.
+    const triggerData = {
+      timestamp: Date.now(),
+      payload: payload,
+    };
+    game.settings.set(MODULE_ID, "mapDisorientationState", triggerData);
+    console.log(`%cAHME BRIDGE (GM - ${game.user?.id}): Setting 'mapDisorientationState' to trigger other clients.`, "color: #FF69B4; font-weight: bold;");
+  } else if (!game.user?.isGM) {
+    console.warn(
+      `%cAHME BRIDGE (Player - ${game.user?.id}): Received 'gmSyncMapDisorientationToFoundry' but not GM. Ignoring.`,
+      "color: red;"
+    );
+  }
+  break;
+
 
         case "requestFilePickForMarker":
           if (!game.user?.isGM) {
@@ -1878,6 +2005,48 @@ Hooks.once("init", () => {
     type: String,
     default: "{}",
   });
+
+      game.settings.registerMenu(MODULE_ID, "configMenu", {
+      name: "Global Configuration",
+      label: "Configure Constants File",
+      hint: "Directly edit the module's constants.js file. Changes require a refresh to take effect. Be very careful!",
+      icon: "fas fa-cogs",
+      type: AHMEConfigMenu,
+      restricted: true // Only GMs can access this
+    });
+
+  game.settings.register(MODULE_ID, "mapDisorientationState", {
+  name: "AHME Map Disorientation State",
+  scope: "world", // Must be world to sync across clients
+  config: false,  // Not user-configurable
+  type: Object,   // Store the object with isActive, startTime, duration
+  default: { isActive: false, startTime: 0, duration: 0 },
+  onChange: (data) => {
+    // This onChange hook will fire on ALL clients (GM and Players)
+    console.log(
+      `%cAHME BRIDGE (User: ${game.user?.id}, isGM: ${game.user?.isGM}) - SETTING 'mapDisorientationState' onChange. Data:`,
+      "background: #ADD8E6; color: #000; font-weight: bold;",
+      data
+    );
+
+    // Only player clients need to react to this hook, as the GM's iframe
+    // is updated directly by its own bridge via postMessage.
+    if (!game.user?.isGM && data && data.payload) {
+      // Ensure we don't re-process the same event if onChange fires multiple times for the same change
+      if (game.user._ahme_lastDisorientationTriggerProcessed !== data.timestamp) {
+         console.log(
+             `%cAHME BRIDGE (Player - ${game.user?.id}): Player client reacting to mapDisorientationState change. Broadcasting 'ahnSyncMapDisorientation' to local iframe. Payload:`,
+             "color: #9370DB; font-weight: bold;",
+             data.payload
+         );
+         broadcastToAllIframes("ahnSyncMapDisorientation", data.payload);
+         game.user._ahme_lastDisorientationTriggerProcessed = data.timestamp; // Mark as processed
+      } else {
+         console.log(`%cAHME BRIDGE (Player - ${game.user?.id}): Already processed this mapDisorientationState timestamp. Ignoring redundant trigger.`, "color: gray;");
+      }
+    }
+  },
+});
 
   game.settings.register(MODULE_ID, "partyActivities", {
     name: "Hexploration Party Activities",
