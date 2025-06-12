@@ -2,6 +2,16 @@
 
 A Foundry VTT module that provides an embedded JavaScript and Handlebars application to visually edit elevations, terrain types, and features on a hexagonal grid map. It includes GM editing tools and a player view with fog of war and line of sight.
 
+![image](https://github.com/user-attachments/assets/429c8fb1-da86-4f92-a1d5-9e01352345ea)
+
+![image](https://github.com/user-attachments/assets/77549800-956a-4d65-adcd-ccf57662d7b8)
+
+![image](https://github.com/user-attachments/assets/4d6ef885-a7d6-40ad-81d0-b4db11ec6325)
+
+![image](https://github.com/user-attachments/assets/dcfea39c-1946-4530-acfd-d11c345b37d9)
+
+![image](https://github.com/user-attachments/assets/6f97e967-8e29-4af7-8ba9-ed5f359c46c0)
+
 ## Features
 
 *   **Visual Hex Map Editing:** Directly paint terrain, adjust elevation, and place features on a hex grid.
