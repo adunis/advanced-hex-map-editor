@@ -610,25 +610,29 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
                                 newHexData.featureName = "";
                                 newHexData.featureIcon = null;
                                 newHexData.featureIconColor = null;
+                                // If removing a road/river, connections are implicitly handled by the feature no longer being road/river
                                 hexSpecificChange = true;
                             }
-                        } else if (selectedFeatureTypeConst !== CONST.TerrainFeature.LANDMARK && selectedFeatureTypeConst !== CONST.TerrainFeature.SECRET) {
-                            if (newHexData.feature !== featureTypeToApplyLower) {
-                                newHexData.feature = featureTypeToApplyLower;
-                                newHexData.featureName = ""; // Clear name/icon for non-landmark/secret
+                        } else if (selectedFeatureTypeConst === CONST.TerrainFeature.ROAD || selectedFeatureTypeConst === CONST.TerrainFeature.RIVER) {
+                            const featureToApply = selectedFeatureTypeConst.toLowerCase();
+                            if (newHexData.feature !== featureToApply) {
+                                newHexData.feature = featureToApply;
+                                newHexData.featureName = "";
                                 newHexData.featureIcon = null;
                                 newHexData.featureIconColor = null;
-                                // Ensure .connections object exists if placing a connectable feature
-                                if (featureTypeToApplyLower === CONST.TerrainFeature.ROAD || featureTypeToApplyLower === CONST.TerrainFeature.RIVER) {
-                                    if (!newHexData.connections) {
-                                        newHexData.connections = {};
-                                    }
-                                } else {
-                                    // If changing from a connectable feature to a non-connectable one,
-                                    // and the hex had connections, those connections might become orphaned.
-                                    // For now, we are not automatically clearing them here, but it's a consideration.
-                                    // The main thing is to ensure .connections exists if it *is* a road/river.
-                                }
+                                newHexData.connections = newHexData.connections || {}; // Ensure connections object exists
+                                hexSpecificChange = true;
+                            }
+                        } else { // For any other future simple features that don't need a dialog
+                            // This branch ensures any other non-LANDMARK, non-SECRET, non-NONE, non-ROAD/RIVER feature type
+                            // would also be applied simply, without a dialog.
+                            const featureToApply = selectedFeatureTypeConst.toLowerCase();
+                            if (newHexData.feature !== featureToApply) {
+                                newHexData.feature = featureToApply;
+                                newHexData.featureName = "";
+                                newHexData.featureIcon = null;
+                                newHexData.featureIconColor = null;
+                                // newHexData.connections = newHexData.connections || {}; // Decide if other simple features use connections
                                 hexSpecificChange = true;
                             }
                         }
