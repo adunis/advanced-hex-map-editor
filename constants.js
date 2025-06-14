@@ -34,28 +34,6 @@ export const TerrainFeature = {
 };
 
 const TERRAIN_METADATA = {
-  ROAD: {
-    id: 'road', name: 'Road', symbol: '#️⃣', color: 'fill-yellow-600',
-    description: 'A man-made road, offering fast and easy travel.',
-    speedMultiplier: 0.8, visibilityFactor: 1, baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
-    isImpassable: false, blocksLineOfSight: false,
-    colors: { low: 'rgb(202, 138, 4)', mid: 'rgb(212, 148, 14)', high: 'rgb(222, 158, 24)' }, // Example shades of yellow/brown
-    elevationThresholds: { mid: 5, high: 10 }, // Roads typically don't have significant elevation changes themselves
-    encounterChanceOnEnter: 1, // Low chance, maybe bandits
-    encounterChanceOnDiscover: 0
-  },
-  RIVER: {
-    id: 'river', name: 'River', symbol: '〰️', color: 'fill-blue-500',
-    description: 'A flowing body of water, potentially navigable or an obstacle.',
-    speedMultiplier: 1, // Base, depends on how it's interacted with (e.g. swimming, boat)
-    visibilityFactor: 1, baseInherentVisibilityBonus: 0, prominence: 0, canopyBlockage: 0,
-    isImpassable: false, // Assuming it can be crossed or navigated by some means
-    blocksLineOfSight: false, // Water surface doesn't block LoS
-    colors: { low: 'rgb(59, 130, 246)', mid: 'rgb(37, 99, 235)', high: 'rgb(29, 78, 216)' }, // Example shades of blue
-    elevationThresholds: { mid: -10, high: -5 }, // Rivers are typically depressions
-    encounterChanceOnEnter: 3, // River creatures, or people at crossings
-    encounterChanceOnDiscover: 2
-  },
   ROLLING_PLAINS: {
     id: 'rolling_plains', name: 'Rolling Plains', symbol: '🌾', color: 'fill-green-400',
     description: 'Vast, open grasslands with gentle undulations, offering easy travel and clear lines of sight.',
