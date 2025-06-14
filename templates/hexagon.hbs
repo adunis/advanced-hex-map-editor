@@ -42,6 +42,22 @@
   </filter>
 </defs>
 
+{{! Lines for Roads/Rivers --}}
+{{#if linesToDraw}}
+  {{#each linesToDraw}}
+    <line
+      x1="{{this.x1}}"
+      y1="{{this.y1}}"
+      x2="{{this.x2}}"
+      y2="{{this.y2}}"
+      stroke-width="{{#if (eq this.featureType 'road')}}2.5{{else}}3.5{{/if}}"
+      stroke="{{#if (eq this.featureType 'road')}}#A16207{{! yellow-700 }}{{else}}#2563EB{{! blue-600 }}{{/if}}"
+      {{#if (eq this.featureType 'road')}}stroke-dasharray="4,2"{{/if}}
+      opacity="0.75"
+    />
+  {{/each}}
+{{/if}}
+
 {{! Feature Icons --}}
 {{#if this.featureDisplayIconToRender}}
   {{#if this.isLandmarkFeature}} {{!-- Landmark includes Encounters now --}}

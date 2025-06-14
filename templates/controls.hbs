@@ -236,6 +236,15 @@
             Remove Mode
           </button>
         </div>
+
+        {{!-- Connection Mode Feedback --}}
+        {{#if isConnectingFeature}}
+          <div class="mt-1 p-1 bg-sky-700 border border-sky-500 rounded text-center text-xs">
+            <p class="text-white font-semibold">Connecting: {{capitalizeFirst connectingFeatureType}}</p>
+            <p class="text-sky-200">Left-click adjacent hex to connect/disconnect.</p>
+            <p class="text-sky-300">Right-click source hex again or different hex to exit.</p>
+          </div>
+        {{/if}}
       {{/if}}
 
       {{!-- LoS Tools --}}
