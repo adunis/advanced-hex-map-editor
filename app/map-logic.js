@@ -168,6 +168,7 @@ export function initializeGridData(
         if (hex.featureIcon === undefined) hex.featureIcon = null;
         if (hex.featureIconColor === undefined) hex.featureIconColor = null;
         if (hex.feature === undefined) hex.feature = CONST.TerrainFeature.NONE.toLowerCase();
+        if (hex.connections === undefined) hex.connections = {};
         newHexMap.set(hex.id, hex);
     });
 
@@ -182,7 +183,8 @@ export function initializeGridData(
                     elevation: defaultElevation, terrain: defaultTerrain,
                     baseVisibility: CONST.INITIAL_BASE_VISIBILITY,
                     feature: CONST.TerrainFeature.NONE.toLowerCase(), featureName: "", featureIcon: null,
-                    featureIconColor: null
+                    featureIconColor: null,
+                    connections: {}
                 };
                 newHexMap.set(id, hex);
             } rowArr.push(hex);
@@ -443,7 +445,85 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
     if (appState.appMode === CONST.AppMode.HEX_EDITOR) {
         if (!appState.isGM) return;
 
-        if (appState.isEditorLosSelectMode) { appState.editorLosSourceHexId = clickedHexId; appState.editorVisibleHexIds = calculateLineOfSight(clickedHexId, appState.hexDataMap); appState.isEditorLosSelectMode = false; renderApp(); return; }
+        if (appState.isEditorLosSelectMode) {
+            appState.editorLosSourceHexId = clickedHexId;
+            appState.editorVisibleHexIds = calculateLineOfSight(clickedHexId, appState.hexDataMap);
+            appState.isEditorLosSelectMode = false;
+            renderApp();
+            return;
+        }
+
+        // Handle feature connection logic first if in that mode
+        if (appState.paintMode === CONST.PaintMode.FEATURE && appState.isConnectingFeature) {
+            const sourceHex = appState.hexDataMap.get(appState.connectingFeatureHexId);
+            // targetHex is already defined from the click earlier in handleHexClick
+            if (!sourceHex || !targetHex) {
+                console.error("Connection error: Source or target hex data missing.");
+                appState.isConnectingFeature = false; // Exit mode
+                appState.connectingFeatureHexId = null;
+                appState.connectingFeatureType = null;
+                renderApp({ preserveScroll: true });
+                return;
+            }
+
+            if (targetHex.id === sourceHex.id) {
+                // Clicked on the source hex itself, do nothing.
+                // Right-click on source hex deactivates connection mode (handled in handleHexRightClick).
+                return;
+            }
+
+            if (HEX_UTILS.hexDistance(sourceHex, targetHex) !== 1) {
+                alert("Hexes must be adjacent to connect features.");
+                return;
+            }
+
+            // Ensure target hex has a feature and it's the same type
+            if (targetHex.feature !== appState.connectingFeatureType) {
+                 alert(`Adjacent hex must also be a ${appState.connectingFeatureType} to connect. Please apply the feature to the target hex first.`);
+                return;
+            }
+
+            // Ensure connections objects exist on both hexes
+            if (!sourceHex.connections) sourceHex.connections = {};
+            if (!targetHex.connections) targetHex.connections = {};
+
+            const directionToTarget = HEX_UTILS.getDirection(sourceHex, targetHex);
+            const directionToSource = HEX_UTILS.getOppositeDirection(directionToTarget);
+
+            if (!directionToTarget || !directionToSource) {
+                console.error("Connection error: Could not determine direction between hexes. Source:", sourceHex, "Target:", targetHex);
+                return;
+            }
+
+            const isCurrentlyConnected = sourceHex.connections[directionToTarget];
+
+            if (isCurrentlyConnected) {
+                delete sourceHex.connections[directionToTarget];
+                delete targetHex.connections[directionToSource];
+                console.log(`Disconnected ${sourceHex.id} (${directionToTarget}) from ${targetHex.id} (${directionToSource})`);
+            } else {
+                sourceHex.connections[directionToTarget] = true;
+                targetHex.connections[directionToSource] = true;
+                console.log(`Connected ${sourceHex.id} (${directionToTarget}) to ${targetHex.id} (${directionToSource})`);
+            }
+
+            // Update the hexDataMap and hexGridData (important to keep them in sync)
+            const updatedSourceHex = { ...sourceHex }; // Create new objects to ensure reactivity if needed
+            const updatedTargetHex = { ...targetHex };
+            appState.hexDataMap.set(sourceHex.id, updatedSourceHex);
+            appState.hexDataMap.set(targetHex.id, updatedTargetHex);
+
+            if (appState.hexGridData[sourceHex.row] && appState.hexGridData[sourceHex.row][sourceHex.col]) {
+                 appState.hexGridData[sourceHex.row][sourceHex.col] = updatedSourceHex;
+            }
+            if (appState.hexGridData[targetHex.row] && appState.hexGridData[targetHex.row][targetHex.col]) {
+                 appState.hexGridData[targetHex.row][targetHex.col] = updatedTargetHex;
+            }
+
+            appState.isCurrentMapDirty = true;
+            renderApp({ preserveScroll: true }); // Re-render to show connection changes
+            return; // Connection attempt handled, return.
+        }
         
         const affectedHexesCoords = HEX_UTILS.getHexesInRadius(targetHex, appState.brushSize, appState.hexDataMap, appState.currentGridWidth, appState.currentGridHeight);
         const interimHexDataMap = new Map(appState.hexDataMap); 
@@ -535,9 +615,20 @@ export async function handleHexClick(row, col, isExploringCurrentHex = false) {
                         } else if (selectedFeatureTypeConst !== CONST.TerrainFeature.LANDMARK && selectedFeatureTypeConst !== CONST.TerrainFeature.SECRET) {
                             if (newHexData.feature !== featureTypeToApplyLower) {
                                 newHexData.feature = featureTypeToApplyLower;
-                                newHexData.featureName = "";
+                                newHexData.featureName = ""; // Clear name/icon for non-landmark/secret
                                 newHexData.featureIcon = null;
                                 newHexData.featureIconColor = null;
+                                // Ensure .connections object exists if placing a connectable feature
+                                if (featureTypeToApplyLower === CONST.TerrainFeature.ROAD || featureTypeToApplyLower === CONST.TerrainFeature.RIVER) {
+                                    if (!newHexData.connections) {
+                                        newHexData.connections = {};
+                                    }
+                                } else {
+                                    // If changing from a connectable feature to a non-connectable one,
+                                    // and the hex had connections, those connections might become orphaned.
+                                    // For now, we are not automatically clearing them here, but it's a consideration.
+                                    // The main thing is to ensure .connections exists if it *is* a road/river.
+                                }
                                 hexSpecificChange = true;
                             }
                         }
@@ -627,6 +718,49 @@ export function triggerPlayerDisorientation(durationMs) {
     }
     console.log(`%cAHME IFRAME (GM): Triggering player disorientation for ${durationMs}ms.`, "color: red; font-weight: bold;");
     AnimationLogic.startMapDisorientation(durationMs);
+}
+
+export function handleHexRightClick(hexId) {
+    if (!appState.mapInitialized || !hexId) return;
+    const hexData = appState.hexDataMap.get(hexId);
+    if (!hexData) return;
+
+    if (appState.appMode === CONST.AppMode.HEX_EDITOR &&
+        appState.paintMode === CONST.PaintMode.FEATURE &&
+        (hexData.feature === CONST.TerrainFeature.ROAD || hexData.feature === CONST.TerrainFeature.RIVER)) {
+
+        if (appState.isConnectingFeature && appState.connectingFeatureHexId === hexId) {
+            // Right-clicked on the same hex again, cancel connection mode
+            appState.isConnectingFeature = false;
+            appState.connectingFeatureHexId = null;
+            appState.connectingFeatureType = null;
+            console.log("Connection mode deactivated by right-clicking the source hex again.");
+        } else if (appState.isConnectingFeature && appState.connectingFeatureHexId !== hexId) {
+            // If already in connection mode and right-clicking a *different* connectable hex,
+            // for now, we'll just deactivate. A more advanced implementation might allow
+            // switching the source, but that adds complexity.
+            appState.isConnectingFeature = false;
+            appState.connectingFeatureHexId = null;
+            appState.connectingFeatureType = null;
+            console.log("Connection mode deactivated by right-clicking a different hex.");
+        } else if (!appState.isConnectingFeature) { // Only activate if not already connecting
+            // Start connection mode from this hex
+            appState.isConnectingFeature = true;
+            appState.connectingFeatureHexId = hexId;
+            appState.connectingFeatureType = hexData.feature;
+            console.log(`Connection mode activated for ${hexData.feature} from hex ${hexId}`);
+        }
+    } else {
+        // If right-clicked not on a connectable feature or in wrong mode,
+        // or if already connecting and clicked elsewhere (that is not a connectable feature)
+        if (appState.isConnectingFeature) {
+            appState.isConnectingFeature = false;
+            appState.connectingFeatureHexId = null;
+            appState.connectingFeatureType = null;
+            console.log("Connection mode deactivated.");
+        }
+    }
+    renderApp({ preserveScroll: true });
 }
 
 export function handleAppModeChange(newMode) {

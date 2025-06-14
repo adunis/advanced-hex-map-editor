@@ -110,3 +110,92 @@ export function getHexAt(
   const key = `${coords.col}-${coords.row}`;
   return allHexesMap.get(key);
 }
+
+// Axial directions (cube components sum to 0)
+// These represent the change in (q, r, s) to move one step in that direction.
+export const CUBE_DIRECTIONS = [
+  { q: 1,  r: 0,  s: -1, direction: "east" },      // East
+  { q: -1, r: 0,  s: 1,  direction: "west" },      // West
+  { q: 0,  r: -1, s: 1,  direction: "northWest" }, // North-West (axial)
+  { q: 1,  r: -1, s: 0,  direction: "northEast" }, // North-East (axial)
+  { q: -1, r: 1,  s: 0,  direction: "southWest" }, // South-West (axial)
+  { q: 0,  r: 1,  s: -1, direction: "southEast" }  // South-East (axial)
+];
+
+// Direction names based on common usage for "odd-r" offset coordinates.
+// This mapping helps if you need to relate cube directions to offset descriptions.
+// Note: The exact naming ("north", "south") can be ambiguous in hex grids.
+// This example prioritizes the axial direction names.
+export const OFFSET_DIRECTION_NAMES = {
+    east: "East",
+    west: "West",
+    northWest: "North-West",
+    northEast: "North-East",
+    southWest: "South-West",
+    southEast: "South-East",
+};
+
+
+export function getDirection(sourceHex, targetHex) {
+  const sourceCube = sourceHex.q !== undefined ? sourceHex : offsetToCube(sourceHex.col, sourceHex.row);
+  const targetCube = targetHex.q !== undefined ? targetHex : offsetToCube(targetHex.col, targetHex.row);
+
+  const dq = targetCube.q - sourceCube.q;
+  const dr = targetCube.r - sourceCube.r;
+  const ds = targetCube.s - sourceCube.s;
+
+  for (const dir of CUBE_DIRECTIONS) {
+    // For directly adjacent hexes, the diff will exactly match a direction vector.
+    // We can normalize or simplify for non-adjacent if needed, but for connections, they should be adjacent.
+    if (dir.q === dq && dir.r === dr && dir.s === ds) {
+      return dir.direction;
+    }
+  }
+  // Fallback or error if not directly adjacent or an issue occurs
+  // This might happen if hexes are not perfectly adjacent or there's a calculation error.
+  // For robust connection logic, you might want to find the *closest* direction.
+  console.warn("getDirection: Hexes are not directly adjacent or direction unclear.", sourceHex, targetHex);
+  return null;
+}
+
+export function getOppositeDirection(direction) {
+  switch (direction) {
+    case "east": return "west";
+    case "west": return "east";
+    case "northEast": return "southWest";
+    case "southWest": return "northEast";
+    case "northWest": return "southEast";
+    case "southEast": return "northWest";
+    default:
+      console.warn("getOppositeDirection: Unknown direction", direction);
+      return null;
+  }
+}
+
+export function getAdjacentHexCoords(sourceHexCoords, direction) {
+  const sourceCube = sourceHexCoords.q !== undefined
+    ? { q: sourceHexCoords.q, r: sourceHexCoords.r, s: sourceHexCoords.s }
+    : offsetToCube(sourceHexCoords.col, sourceHexCoords.row);
+
+  const dirVector = CUBE_DIRECTIONS.find(d => d.direction === direction);
+
+  if (!dirVector) {
+    console.warn("getAdjacentHexCoords: Unknown direction", direction);
+    return null;
+  }
+
+  const newQ = sourceCube.q + dirVector.q;
+  const newR = sourceCube.r + dirVector.r;
+  const newS = sourceCube.s + dirVector.s; // For completeness, though cubeToOffset only needs q,r
+
+  const offsetCoords = cubeToOffset(newQ, newR, newS);
+
+  return {
+    col: offsetCoords.col,
+    row: offsetCoords.row,
+    q: newQ,
+    r: newR,
+    s: newS,
+    id: `${offsetCoords.col}-${offsetCoords.row}`
+  };
+}

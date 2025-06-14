@@ -8,6 +8,11 @@ export const appState = {
   appMode: null,
   viewMode: CONST.DEFAULT_VIEW_MODE,
   
+  // Feature Connection Mode
+  isConnectingFeature: false,
+  connectingFeatureHexId: null,
+  connectingFeatureType: null,
+
   // Hexploration Status
   hexplorationTimeElapsedHoursToday: 0,
   hexplorationKmTraveledToday: 0,
@@ -150,6 +155,9 @@ export function resetActiveMapState() {
     appState.playerDiscoveredHexIds = new Set();
     appState.lastMovementInfo = null;
     appState.isWaitingForFeatureDetails = false;
+    appState.isConnectingFeature = false;
+    appState.connectingFeatureHexId = null;
+    appState.connectingFeatureType = null;
 
   appState.mapDisorientation = {
     isActive: false,

@@ -249,8 +249,58 @@ export function renderApp(options = {}) {
 
         const cx_2d_center = svgPad + hexTrueW / 2 + curHex.col * hexTrueW + (curHex.row % 2 !== 0 ? hexTrueW / 2 : 0);
         const cy_2d_center = svgPad + CONST.HEX_SIZE + curHex.row * hexVOff;
-        const cx_top_proj = cx_2d_center;
-        const cy_top_proj = cy_2d_center - yShift;
+        let cx_top_proj = cx_2d_center; // Make mutable for y-shift adjustment
+        let cy_top_proj = cy_2d_center; // Make mutable
+
+        if (is3D) { // Apply 3D shift for center calculation if needed
+            cy_top_proj -= yShift; // yShift is already calculated based on elevation
+        }
+
+        // Prepare linesToDraw for roads/rivers
+        curHex.linesToDraw = [];
+        if (curHex.feature === CONST.TerrainFeature.ROAD || curHex.feature === CONST.TerrainFeature.RIVER) {
+            if (curHex.connections) { // Ensure connections object exists
+                for (const direction in curHex.connections) {
+                    if (curHex.connections[direction] === true) {
+                        const neighborCoords = HEX_UTILS.getAdjacentHexCoords(curHex, direction);
+                        if (neighborCoords) {
+                            const neighborHex = appState.hexDataMap.get(neighborCoords.id);
+                            if (neighborHex && neighborHex.feature === curHex.feature) {
+                                const oppositeDirection = HEX_UTILS.getOppositeDirection(direction);
+                                if (neighborHex.connections && neighborHex.connections[oppositeDirection] === true) {
+                                    // Confirmed reciprocal connection
+                                    if (curHex.id < neighborHex.id) { // Draw line only from one side to avoid duplicates
+                                        let neighbor_cx_2d_center = svgPad + hexTrueW / 2 + neighborHex.col * hexTrueW + (neighborHex.row % 2 !== 0 ? hexTrueW / 2 : 0);
+                                        let neighbor_cy_2d_center = svgPad + CONST.HEX_SIZE + neighborHex.row * hexVOff;
+                                        let neighbor_cx_top_proj = neighbor_cx_2d_center;
+                                        let neighbor_cy_top_proj = neighbor_cy_2d_center;
+
+                                        if (is3D) {
+                                            const neighborYShift = neighborHex.elevation * CONST.HEX_3D_PROJECTED_Y_SHIFT_PER_ELEVATION_UNIT;
+                                            neighbor_cy_top_proj -= neighborYShift;
+                                        }
+                                        curHex.linesToDraw.push({
+                                            x1: cx_top_proj,
+                                            y1: cy_top_proj,
+                                            x2: neighbor_cx_top_proj,
+                                            y2: neighbor_cy_top_proj,
+                                            featureType: curHex.feature
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // End of linesToDraw preparation
+
+        // cx_top_proj was already calculated correctly for the current hex before line drawing.
+        // cy_top_proj was also calculated correctly.
+        // No need to re-calculate cx_top_proj and cy_top_proj here unless they were altered for line drawing only.
+        // const cx_top_proj = cx_2d_center; // This line is redundant if already calculated above
+        // const cy_top_proj = cy_2d_center - yShift; // This line is redundant
         const currentYSquashFactor = is3D ? CONST.HEX_3D_Y_SQUASH_FACTOR : 1;
         const topFacePoints = Array(6).fill(0).map((_, i) => {
             const angle = (Math.PI / 180) * (60 * i - 90);
@@ -678,6 +728,18 @@ export function renderApp(options = {}) {
         }
     }
     attachEventListeners();
+
+    // Attach right-click listeners for feature connection
+    const hexGroups = document.querySelectorAll('#hexGridSvg g[data-hex-id]');
+    hexGroups.forEach(hexGroup => {
+        hexGroup.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            const hexId = event.currentTarget.dataset.hexId;
+            if (hexId && MapLogic && typeof MapLogic.handleHexRightClick === 'function') {
+                MapLogic.handleHexRightClick(hexId);
+            }
+        });
+    });
 }
 
 function getDefaultCenteringScroll(scrollContainer, unscaledWidth, unscaledHeight) {
